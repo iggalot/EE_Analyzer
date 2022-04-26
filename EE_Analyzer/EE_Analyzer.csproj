@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>EE_Analyzer</RootNamespace>
-    <AssemblyName>rk4afrrj.lex</AssemblyName>
+    <AssemblyName>zajqhs5g.squ</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -54,9 +54,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DrawObject.cs" />
+    <Compile Include="FoundationLayout.cs" />
     <Compile Include="LayerObjects.cs" />
     <Compile Include="ManipulateObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UserInteraction.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
