@@ -157,9 +157,9 @@ namespace EE_Analyzer
             coll.CopyTo(sort_arr, 0);
             Point3d temp;
 
-            for (int j = 0; j < coll.Count - 2; j++)
+            for (int j = 0; j < coll.Count - 1; j++)
             {
-                for (int i = 0; i < coll.Count - 2; i++)
+                for (int i = 0; i < coll.Count - 1; i++)
                 {
                     if (sort_arr[i].Y > sort_arr[i + 1].Y)
                     {
@@ -182,13 +182,9 @@ namespace EE_Analyzer
             var points = new Point3dCollection();
 
             var curves = ln;
- //           ed.WriteMessage("curves.Length: " + curves.Length);
             for (int i = 0; i < curves.Length - 1; i++)
             {
- //               for (int j = i + 1; j < curves.Length; j++)
- //               {
                     curves.IntersectWith(pline, Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
- //               }
             }
             return points;
         }
@@ -267,10 +263,10 @@ namespace EE_Analyzer
         [CommandMethod("EE_FDN")]
         public void DrawFoundationDetails()
         {
-            double sx = 120;  // horiz space between beams
+            double sx = 68;  // horiz space between beams
             double vert_beam_width = 0.833;  // vertical direction beam width
 
-            double sy = 120;  // vertical space between beams
+            double sy = 44;  // vertical space between beams
             double horiz_beam_width = 0.833; // horizontal direction beam width
 
             double circle_radius = sx * 0.1;
@@ -398,13 +394,11 @@ namespace EE_Analyzer
                                 // Trim the line to the physical edge of the slab (not the limits rectangle)
                                 ln = TrimLineToPolyline(ln, pl);
 
-
                                 ln.ColorIndex = 1;  // Color is red
-
                                 ln.Linetype = "CENTER";
 
-                //                btr.AppendEntity(ln);
-                //                trans.AddNewlyCreatedDBObject(ln, true);
+                                btr.AppendEntity(ln);
+                                trans.AddNewlyCreatedDBObject(ln, true);
 
                                 // add out beam lines to our collection.
                                 BeamLines.Add(ln);
@@ -521,7 +515,7 @@ namespace EE_Analyzer
                                     }
 
                                     // Draw trimmed beam center lines
-                                    TrimLinesToPolylineIntersection(edt, trans, btr, sorted_points);
+                                    TrimLinesToPolylineIntersection(edt, trans, btr, sorted_points, pline);
 
                                     // Add some display text for numbering the beams
 
@@ -563,7 +557,7 @@ namespace EE_Analyzer
         /// <param name="btr">The AutoCAD model space block table record</param>
         /// <param name="points">The points to trim</param>
 
-        private static void TrimLinesToPolylineIntersection(Editor edt, Transaction trans, BlockTableRecord btr, Point3d[] points)
+        private static void TrimLinesToPolylineIntersection(Editor edt, Transaction trans, BlockTableRecord btr, Point3d[] points, Polyline pline)
         {
             // Must be an even number of points currently
             // TODO:  Determine logic to hand odd number of intersection points -- which could occur for a tangent point to a corner.
@@ -576,7 +570,7 @@ namespace EE_Analyzer
 
                     Polyline pl = new Polyline();
                     Point2d pt1 = new Point2d(points[i].X, points[i].Y);
-                    Point2d pt2 = new Point2d(points[i+1].X, points[i+1].Y);
+                    Point2d pt2 = new Point2d(points[i + 1].X, points[i + 1].Y);
 
                     pl.AddVertexAt(0, pt1, 0, 0, 0);
                     pl.AddVertexAt(1, pt2, 0, 0, 0);
@@ -589,35 +583,11 @@ namespace EE_Analyzer
                     btr.AppendEntity(pl);
                     trans.AddNewlyCreatedDBObject(pl, true);
 
-
                     // Get the angle of the polyline
                     var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
 
-                    ////////////////////////////////////
                     // Add number labels for each line segment
-                    ////////////////////////////////////
-                    string txt = "Beam " + beamCount.ToString();
-                    Point3d insPt = points[i];
-                    using (MText mtx = new MText())
-                    {
-                        mtx.Contents = txt;
-                        mtx.Location = insPt;
-                        mtx.TextHeight = 10;
-                        mtx.ColorIndex = 2;
-
-                        mtx.Rotation = angle;
-
-                        btr.AppendEntity(mtx);
-                        trans.AddNewlyCreatedDBObject(mtx, true);
-                    }
-
-                    //if(beamCount == 20)
-                    //{
-                    //    edt.WriteMessage("\nS20: " + points[i].X + " , " + points[i].Y);
-                    //    edt.WriteMessage("\nE20: " + points[i + 1].X + " , " + points[i + 1].Y);
-                    //    edt.WriteMessage("\nS21: " + points[i + 2].X + " , " + points[i + 2].Y);
-                    //    edt.WriteMessage("\nE21: " + points[i + 3].X + " , " + points[i + 3].Y);
-                    //}
+                    AddBeamLabels(trans, btr, points, i, angle);
 
                     //Line ln = new Line(points[i], points[i + 1]);
                     //ln.ColorIndex = 150;  // Color is blue
@@ -628,11 +598,159 @@ namespace EE_Analyzer
                 }
             } else
             {
+                for (int i = 0; i < points.Length; i = i + 2)
+                {
+                    // Send a message to the user
+                    //edt.WriteMessage("\nDrawing a shortened Line object: ");
+
+                    Polyline pl = new Polyline();
+                    Point2d pt1 = new Point2d(points[i].X, points[i].Y);
+                    Point2d pt2 = new Point2d(points[points.Length-1].X, points[points.Length - 1].Y);
+
+                    // Assume Line AB and Polyline segment CD
+                    var overlap_case = HorizontalTestLineOverLapPolyline(pline, pt1, pt2);
+
+                   
+
+                    switch (overlap_case)
+                    {
+                        case 0:
+                            {
+                                pl.AddVertexAt(0, pt1, 0, 0, 0);
+                                pl.AddVertexAt(1, pt2, 0, 0, 0);
+                                pl.Closed = false;
+                                pl.ColorIndex = 2; // yellow color
+                                pl.ConstantWidth = 8;
+
+                                // Set the default properties
+                                pl.SetDatabaseDefaults();
+                                btr.AppendEntity(pl);
+                                trans.AddNewlyCreatedDBObject(pl, true);
+
+                                // Get the angle of the polyline
+                                var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
+
+                                // Add number labels for each line segment
+                                AddBeamLabels(trans, btr, points, i, angle);
+
+                                break;
+                            }
+
+                        default:
+                            {
+                                pl.AddVertexAt(0, pt1, 0, 0, 0);
+                                pl.AddVertexAt(1, pt2, 0, 0, 0);
+                                pl.Closed = false;
+                                pl.ColorIndex = 1; // red color
+                                pl.ConstantWidth = 8;
+
+                                // Set the default properties
+                                pl.SetDatabaseDefaults();
+                                btr.AppendEntity(pl);
+                                trans.AddNewlyCreatedDBObject(pl, true);
+
+                                // Get the angle of the polyline
+                                var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
+
+                                // Add number labels for each line segment
+                                AddBeamLabels(trans, btr, points, i, angle);
+
+                                break;
+
+                            }
+                    }
+                }
+
                 edt.WriteMessage("\nError: The points list should have an even number of points");
             }
+        }
 
+        // Add number labels for each line segment
+        private static void AddBeamLabels(Transaction trans, BlockTableRecord btr, Point3d[] points, int i, double angle)
+        {
+            string txt = "Beam " + beamCount.ToString();
+            Point3d insPt = points[i];
+            using (MText mtx = new MText())
+            {
+                mtx.Contents = txt;
+                mtx.Location = insPt;
+                mtx.TextHeight = 10;
+                mtx.ColorIndex = 2;
 
+                mtx.Rotation = angle;
 
+                btr.AppendEntity(mtx);
+                trans.AddNewlyCreatedDBObject(mtx, true);
+            }
+        }
+
+        private static int HorizontalTestLineOverLapPolyline(Polyline pline, Point2d A, Point2d B)
+        {
+
+            if(pline.NumberOfVertices < 2)
+            {
+                throw new System.Exception("Polyline must have at least 2 vertices");
+            }
+
+            int overlap_case = 0;
+
+            Point2d temp;
+            // swap A and B so that A is always on the left
+            if(A.X > B.X)
+            {
+                temp = A;
+                A = B;
+                B = temp;
+            }
+            
+            var C = pline.GetPoint2dAt(0);
+            var D = pline.GetPoint2dAt(1);
+
+            // swap C and D so that C is always on the left
+            if (C.X > D.X)
+            {
+                temp = C;
+                C = D;
+                D = temp;
+            }
+
+            // Check endpoints
+            // Case 1: C and D both within line AB
+            // A =========== C ----------- D ========= B or
+            //     -- create line segments AC and DB
+            if ((C.X > A.X) && (C.X < B.X) && (D.X > A.X) && (D.X < B.X))
+            {
+                overlap_case = 1;
+            }
+
+            // Case 2: C within and D is not within AB
+            // A =========== C ----------- B --------- D or
+            //     -- create line segment AC and move B to D
+            if ((C.X > A.X) && (C.X < B.X) && (D.X > A.X) && (D.X > B.X))
+            {
+                overlap_case = 2;
+            }
+
+            // Case 3: C is not within and D is within AB
+            // A =========== D ----------- B --------- C or
+            //     -- create line segment AD and move B to C
+            if ((C.X > A.X) && (C.X > B.X) && (D.X > A.X) && (D.X < B.X))
+            {
+                overlap_case = 3;
+            }
+
+            // Case 4: Both C and D are outside AB
+            // C ----------- D   A ========= B or
+            // A =========== B   C ---------- D  
+            //     -- create line AB
+            if (((C.X < A.X) && (C.X < B.X) && (D.X < A.X) && (D.X < B.X)) ||
+                ((C.X > A.X) && (C.X > B.X) && (D.X > A.X) && (D.X > B.X))
+                )
+            {
+                overlap_case = 4;
+            }
+
+            return overlap_case;
         }
     }
 }
