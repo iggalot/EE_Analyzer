@@ -5,11 +5,126 @@ using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EE_Analyzer
 {
     public class FoundationLayout
     {
+        [CommandMethod("TEST")]
+        public void Test()
+        {
+            var doc = Application.DocumentManager.MdiActiveDocument;
+            var db = doc.Database;
+            var ed = doc.Editor;
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                var modelSpace = (BlockTableRecord)tr.GetObject(
+                    SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+
+                // get all curve entities in model space
+                var curveClass = RXObject.GetClass(typeof(Curve));
+                var curves = modelSpace
+                    .Cast<ObjectId>()
+                    .Where(id => id.ObjectClass.IsDerivedFrom(curveClass))
+                    .Select(id => (Curve)tr.GetObject(id, OpenMode.ForRead))
+                    .ToArray();
+
+                ed.WriteMessage(curves.Length + " polylines found");
+
+                // get all intersections (brute force algorithm O(n²) complexity)
+                var points = new Point3dCollection();
+                for (int i = 0; i < curves.Length - 1; i++)
+                {
+                    ed.WriteMessage(i + "points found");
+
+                    for (int j = i + 1; j < curves.Length; j++)
+                    {
+                        curves[i].IntersectWith(curves[j], Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
+                        ed.WriteMessage(points.Count + "points found");
+                    }
+                }
+
+                // draw the circles
+                double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
+                foreach (Point3d point in points)
+                {
+                    var circle = new Circle(point, Vector3d.ZAxis, radius);
+                    circle.ColorIndex = 1;
+                    modelSpace.AppendEntity(circle);
+                    tr.AddNewlyCreatedDBObject(circle, true);
+                }
+                tr.Commit();
+            }
+        }
+
+        [CommandMethod("Test2")]
+        public void Test2()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor edt = doc.Editor;
+
+            var options1 = new PromptEntityOptions("\nSelect Polyline");
+            options1.SetRejectMessage("\nSelected object is not a polyline.");
+            options1.AddAllowedClass(typeof(Polyline), true);
+
+            var options2 = new PromptEntityOptions("\nSelect Line");
+            options2.SetRejectMessage("\nSelected object is not a line.");
+            options2.AddAllowedClass(typeof(Line), true);
+
+            var pline_result = edt.GetEntity(options1);
+            var line_result = edt.GetEntity(options2);
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                var modelSpace = (BlockTableRecord)trans.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+
+                if (pline_result.Status == PromptStatus.OK && line_result.Status == PromptStatus.OK)
+                {
+                    var pline = trans.GetObject(pline_result.ObjectId, OpenMode.ForRead) as Polyline;
+                    var line = trans.GetObject(line_result.ObjectId, OpenMode.ForRead) as Line;
+
+                    Point3dCollection points = IntersectionPointsOnPolyline(line, pline);
+                    edt.WriteMessage(points.Count + " intersection points found");
+
+                    // draw the circles
+                    double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
+                    foreach (Point3d point in points)
+                    {
+                        var circle = new Circle(point, Vector3d.ZAxis, radius);
+                        circle.ColorIndex = 1;
+                        modelSpace.AppendEntity(circle);
+                        trans.AddNewlyCreatedDBObject(circle, true);
+                    }
+                    trans.Commit();
+                } else
+                {
+                    trans.Abort();
+                }
+            }
+        }
+
+        private Point3dCollection IntersectionPointsOnPolyline(Line ln, Polyline pline)
+        {
+            var doc = Application.DocumentManager.MdiActiveDocument;
+            var db = doc.Database;
+            var ed = doc.Editor;
+
+            var points = new Point3dCollection();
+
+            var curves = ln;
+            ed.WriteMessage("curves.Length: " + curves.Length);
+            for (int i = 0; i < curves.Length - 1; i++)
+            {
+ //               for (int j = i + 1; j < curves.Length; j++)
+ //               {
+                    curves.IntersectWith(pline, Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
+ //               }
+            }
+            return points;
+        }
 
         // Find the point where two line segments intersect
         private static Point3d FindPointOfIntersectLines_2D(Line l1, Line l2)
@@ -86,11 +201,14 @@ namespace EE_Analyzer
         public void DrawFoundationDetails()
         {
             double sx = 120;  // horiz space between beams
-            double vert_beam_width = 10;  // vertical direction beam width
+            double vert_beam_width = 0.833;  // vertical direction beam width
 
             double sy = 120;  // vertical space between beams
-            double horiz_beam_width = 10; // horizontal direction beam width
+            double horiz_beam_width = 0.833; // horizontal direction beam width
 
+            double circle_radius = sx * 0.1;
+
+            int max_beams = 50;  // define the maximum number of beams in a given direction.
 
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -100,11 +218,12 @@ namespace EE_Analyzer
             LoadLineTypes("CENTER", doc, db);
             LoadLineTypes("DASHED", doc, db);
 
-
-
             var options = new PromptEntityOptions("\nSelect Foundation Polyline");
             options.SetRejectMessage("\nSelected object is not a polyline.");
             options.AddAllowedClass(typeof(Polyline), true);
+
+            List<Line> BeamLines = new List<Line>();
+            Polyline pline = null;
 
             var result = edt.GetEntity(options);
             if (result.Status == PromptStatus.OK)
@@ -113,6 +232,8 @@ namespace EE_Analyzer
 
                 using (Transaction trans = db.TransactionManager.StartTransaction())
                 {
+
+
                     try
                     {
                         BlockTable bt;
@@ -121,7 +242,7 @@ namespace EE_Analyzer
                         BlockTableRecord btr;
                         btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
-                        var pline = trans.GetObject(result.ObjectId, OpenMode.ForRead) as Polyline;
+                        pline = trans.GetObject(result.ObjectId, OpenMode.ForRead) as Polyline;
 
 
                         // Send a message to the user
@@ -191,7 +312,7 @@ namespace EE_Analyzer
                         // Draw centerlines of intermediate beams
                         // draw horizontal beams
                         int count = 0;
-                        while (boundP1.Y + count * sy < boundP2.Y && count < 25)
+                        while (boundP1.Y + count * sy < boundP2.Y && count < max_beams)
                         {
                             try
                             {
@@ -212,6 +333,9 @@ namespace EE_Analyzer
 
                                 btr.AppendEntity(ln);
                                 trans.AddNewlyCreatedDBObject(ln, true);
+
+                                // add out beam lines to our collection.
+                                BeamLines.Add(ln);
                             }
                             catch (System.Exception ex)
                             {
@@ -224,7 +348,7 @@ namespace EE_Analyzer
 
                         // draw vertical beams
                         count = 0;
-                        while (boundP1.X + count * sx < boundP4.X && count < 25)
+                        while (boundP1.X + count * sx < boundP4.X && count < max_beams)
                         {
                             try
                             {
@@ -240,6 +364,9 @@ namespace EE_Analyzer
 
                                 btr.AppendEntity(ln);
                                 trans.AddNewlyCreatedDBObject(ln, true);
+
+                                // add out beam lines to our collection.
+                                BeamLines.Add(ln);
                             }
                             catch (System.Exception ex)
                             {
@@ -264,20 +391,66 @@ namespace EE_Analyzer
                     }
                 }
 
-                // Now trim the beams
-                using (Transaction trans = db.TransactionManager.StartTransaction())
+                edt.WriteMessage("\n" + BeamLines.Count + " lines in BeamLines list");
+
+                //Now trim the beams
+                using (Transaction trans2 = db.TransactionManager.StartTransaction())
                 {
-                    // Trim the line to the physical edge of the slab (not the limits rectangle)
-                    
-                    // TODO:
-                    //ln = TrimLineToPolyline(ln, pl);
+                    try
+                    {
 
-                    trans.Commit();
+                        var modelSpace2 = (BlockTableRecord)trans2.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+
+                        edt.WriteMessage("After modelSpace2");
+
+                        // Trim the line to the physical edge of the slab (not the limits rectangle)
+                        Point3dCollection points = null;
+
+                        if (pline != null && BeamLines.Count > 0)
+                        {
+                            foreach (var beamline in BeamLines)
+                            {
+                                points = IntersectionPointsOnPolyline(beamline, pline);
+
+                                if (points != null)
+                                    edt.WriteMessage("\n" + points.Count + " points are intersecting the BeamLines");
+                                else
+                                    edt.WriteMessage("\nNo points of intersection found");
+
+                                // TODO:  Change these circles for the intersection points to be the new endpoints of the beam and strand lines
+
+                                // draw the circles
+                                //double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
+                                double radius = circle_radius;
+
+                                if (points != null)
+                                {
+                                    foreach (Point3d point in points)
+                                    {
+                                        var circle = new Circle(point, Vector3d.ZAxis, radius);
+                                        circle.ColorIndex = 1;
+                                        modelSpace2.AppendEntity(circle);
+                                        trans2.AddNewlyCreatedDBObject(circle, true);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            edt.WriteMessage("Error with foundation polyline object.");
+                        }
+
+
+                    }
+                    catch (System.Exception ex)
+                    {
+                        edt.WriteMessage("Trans2: Error encountered: " + ex.Message);
+                        trans2.Abort();
+                    }
+
+                    trans2.Commit();
                 }
-
             }
         }
-
-
     }
 }
