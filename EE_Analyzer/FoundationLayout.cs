@@ -7,6 +7,8 @@ using Autodesk.AutoCAD.Geometry;
 using System.Collections.Generic;
 using System.Linq;
 
+using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
+
 namespace EE_Analyzer
 {
     public class FoundationLayout
@@ -124,7 +126,7 @@ namespace EE_Analyzer
         /// </summary>
         /// <param name="coll"></param>
         /// <returns></returns>
-        private Point3d[] sortPoint3dByHorizontally(Point3dCollection coll)
+        private static Point3d[] sortPoint3dByHorizontally(Point3dCollection coll)
         {
             Point3d[] sort_arr = new Point3d[coll.Count];
             coll.CopyTo(sort_arr, 0);
@@ -151,7 +153,7 @@ namespace EE_Analyzer
         /// </summary>
         /// <param name="coll"></param>
         /// <returns></returns>
-        private Point3d[] sortPoint3dByVertically(Point3dCollection coll)
+        private static Point3d[] sortPoint3dByVertically(Point3dCollection coll)
         {
             Point3d[] sort_arr = new Point3d[coll.Count];
             coll.CopyTo(sort_arr, 0);
@@ -173,7 +175,7 @@ namespace EE_Analyzer
             return sort_arr;
         }
 
-        private Point3dCollection IntersectionPointsOnPolyline(Line ln, Polyline pline)
+        private static Point3dCollection IntersectionPointsOnPolyline(Line ln, Polyline pline)
         {
             var doc = Application.DocumentManager.MdiActiveDocument;
             var db = doc.Database;
@@ -208,7 +210,7 @@ namespace EE_Analyzer
 
         }
 
-        private Line TrimLineToPolyline(Line ln, Polyline pl)
+        private static Line TrimLineToPolyline(Line ln, Polyline pl)
         {
             // find segment of polyline that brackets the line to be trimmed
 
@@ -261,15 +263,20 @@ namespace EE_Analyzer
         }
 
         [CommandMethod("EE_FDN")]
-        public void DrawFoundationDetails()
+        public static void DrawFoundationDetails(int x_qty, double x_spa, double x_depth, double x_width, int y_qty, double y_spa, double y_depth, double y_width)
         {
-            double sx = 68;  // horiz space between beams
-            double vert_beam_width = 0.833;  // vertical direction beam width
+            double beam_x_spa = x_spa;  // spacing between horizontal beams
+            double beam_x_width = x_width;  // horizontal beam width
+            double beam_x_depth = x_depth;  // horizontal beam depth
+            int beam_x_qty = x_qty;         // horizontal beam qty
 
-            double sy = 44;  // vertical space between beams
-            double horiz_beam_width = 0.833; // horizontal direction beam width
+            double beam_y_spa = y_spa;  // spacing between vertical beams
+            double beam_y_width = y_width;  // vertical beam width
+            double beam_y_depth = y_depth;  // vertical beam depth
+            int beam_y_qty = y_qty;         // vertical beam qty 
 
-            double circle_radius = sx * 0.1;
+
+            double circle_radius = beam_x_spa * 0.1;
 
             int max_beams = 50;  // define the maximum number of beams in a given direction.
 
@@ -380,15 +387,12 @@ namespace EE_Analyzer
                         // Draw centerlines of intermediate horizontal beams
                         ////////////////////////////////////////////////////
                         int count = 0;
-                        while (boundP1.Y + count * sy < boundP2.Y && count < max_beams)
+                        while (boundP1.Y + count * beam_x_spa < boundP2.Y && count < max_beams)
                         {
                             try
                             {
-                                // Send a message to the user
-                                edt.WriteMessage("\nDrawing a horizontal Line object: ");
-
-                                Point3d p1 = new Point3d(boundP1.X, boundP1.Y + count * sy, 0);
-                                Point3d p2 = new Point3d(boundP4.X, boundP1.Y + count * sy, 0);
+                                Point3d p1 = new Point3d(boundP1.X, boundP1.Y + count * beam_x_spa, 0);
+                                Point3d p2 = new Point3d(boundP4.X, boundP1.Y + count * beam_x_spa, 0);
                                 Line ln = new Line(p1, p2);
 
                                 // Trim the line to the physical edge of the slab (not the limits rectangle)
@@ -405,7 +409,7 @@ namespace EE_Analyzer
                             }
                             catch (System.Exception ex)
                             {
-                                edt.WriteMessage("\nError encountered: " + ex.Message);
+                                edt.WriteMessage("\nError encountered - drawing horizontal beams: " + ex.Message);
                                 trans.Abort();
                             }
 
@@ -416,26 +420,31 @@ namespace EE_Analyzer
                         // Draw centerlines of intermediate vertical beams
                         ////////////////////////////////////////////////////
                         count = 0;
-                        while (boundP1.X + count * sx < boundP4.X && count < max_beams)
+                        while (boundP1.X + count * beam_y_spa < boundP4.X && count < max_beams)
                         {
+                            try
+                            {
+                                // Send a message to the user
+                                Point3d p1 = new Point3d(boundP1.X + count * beam_y_spa, boundP1.Y, 0);
+                                Point3d p2 = new Point3d(boundP1.X + count * beam_y_spa, boundP2.Y, 0);
+                                Line ln = new Line(p1, p2);
+                                ln.ColorIndex = 2;  // Color is red
 
-                            // Send a message to the user
-                            edt.WriteMessage("\nDrawing a vertical Line object: ");
+                                ln.Linetype = "DASHED";
 
-                            Point3d p1 = new Point3d(boundP1.X + count * sx, boundP1.Y, 0);
-                            Point3d p2 = new Point3d(boundP1.X + count * sx, boundP2.Y , 0);
-                            Line ln = new Line(p1, p2);
-                            ln.ColorIndex = 2;  // Color is red
+                                btr.AppendEntity(ln);
+                                trans.AddNewlyCreatedDBObject(ln, true);
 
-                            ln.Linetype = "DASHED";
+                                // add out beam lines to our collection.
+                                BeamLines.Add(ln);
 
-                //            btr.AppendEntity(ln);
-                //            trans.AddNewlyCreatedDBObject(ln, true);
+                                count++;
+                            } catch (System.Exception ex)
+                            {
+                                edt.WriteMessage("\nError encountered - drawing beam centerline extent lines: " + ex.Message);
+                                trans.Abort();
+                            }
 
-                            // add out beam lines to our collection.
-                            BeamLines.Add(ln);
-
-                            count++;
                         }
 
                         ///////////////////////////////////////////////////////////////////////////  
@@ -495,31 +504,30 @@ namespace EE_Analyzer
                                 //double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
                                 double radius = circle_radius;
 
-                                if (points != null)
+                                try
                                 {
-                                    // Mark the circles for intersection
-                                    for(int i=0; i< sorted_points.Length; i++)
+                                    if (points != null)
                                     {
-                                        var circle = new Circle(sorted_points[i], Vector3d.ZAxis, radius);
-                                        circle.ColorIndex = 1;
-                                        modelSpace.AppendEntity(circle);
-                                        trans.AddNewlyCreatedDBObject(circle, true);
+                                        // Mark the circles for intersection
+                                        for (int i = 0; i < sorted_points.Length; i++)
+                                        {
+                                            var circle = new Circle(sorted_points[i], Vector3d.ZAxis, radius);
+                                            circle.ColorIndex = 1;
+                                            modelSpace.AppendEntity(circle);
+                                            trans.AddNewlyCreatedDBObject(circle, true);
+                                        }
+
+                                        // Draw trimmed beam center lines
+                                        TrimLinesToPolylineIntersection(edt, trans, btr, sorted_points, pline);
+
                                     }
-
-                                    if (beamCount == 20)
-                                    {
-                                        edt.WriteMessage("\nS20: " + sorted_points[0].X + " , " + sorted_points[0].Y);
-                                        edt.WriteMessage("\nE20: " + sorted_points[0 + 1].X + " , " + sorted_points[0 + 1].Y);
-                                        edt.WriteMessage("\nS21: " + sorted_points[0 + 2].X + " , " + sorted_points[0 + 2].Y);
-                                        edt.WriteMessage("\nE21: " + sorted_points[0 + 3].X + " , " + sorted_points[0 + 3].Y);
-                                    }
-
-                                    // Draw trimmed beam center lines
-                                    TrimLinesToPolylineIntersection(edt, trans, btr, sorted_points, pline);
-
-                                    // Add some display text for numbering the beams
-
+                                } 
+                                catch (System.Exception ex)
+                                {
+                                    edt.WriteMessage("\nError encountered - trimming beam centerline to foundation extents: " + ex.Message);
+                                    trans.Abort();
                                 }
+
                             }
                         }
                         else
@@ -532,7 +540,7 @@ namespace EE_Analyzer
                     }
                     catch (System.Exception ex)
                     {
-                        edt.WriteMessage("\nError encountered: " + ex.Message);
+                        edt.WriteMessage("\nError encountered while drawing beam objects: " + ex.Message);
                         trans.Abort();
                     }
                 }
@@ -751,6 +759,81 @@ namespace EE_Analyzer
             }
 
             return overlap_case;
+        }
+
+        [CommandMethod("JIM")]
+        public void ShowModalWpfDialogCmd()
+        {
+            Document doc;
+            Database db;
+            Editor ed;
+            double radius; // radius default value
+            string layer;  // layer default value
+
+            // private fields initialization (initial default values)
+            doc = AcAp.DocumentManager.MdiActiveDocument;
+            db = doc.Database;
+            ed = doc.Editor;
+            // initial default values
+            layer = (string)AcAp.GetSystemVariable("clayer");
+            radius = 10.0;
+
+            var layers = GetLayerNames();
+            if (!layers.Contains(layer))
+            {
+                layer = (string)AcAp.GetSystemVariable("clayer");
+            }
+
+            // shows the dialog box
+            var dialog = new EE_FDNInputDialog(layers, layer, radius);
+            var result = AcAp.ShowModalWindow(dialog);
+            if (result.Value)
+            {
+                // fields update
+                layer = dialog.Layer;
+                radius = dialog.Radius;
+
+                // circle drawing
+                var ppr = ed.GetPoint("\nSpecify the center: ");
+                if (ppr.Status == PromptStatus.OK)
+                {
+                    // drawing the circlr in current space
+                    using (var tr = db.TransactionManager.StartTransaction())
+                    {
+                        var curSpace =
+                            (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                        using (var circle = new Circle(ppr.Value, Vector3d.ZAxis, radius))
+                        {
+                            circle.TransformBy(ed.CurrentUserCoordinateSystem);
+                            circle.Layer = layer;
+                            curSpace.AppendEntity(circle);
+                            tr.AddNewlyCreatedDBObject(circle, true);
+                        }
+                        tr.Commit();
+                    }
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Gets the layer list.
+        /// </summary>
+        /// <param name="db">Database instance this method applies to.</param>
+        /// <returns>Layer names list.</returns>
+        private List<string> GetLayerNames()
+        {
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            using (var tr = db.TransactionManager.StartOpenCloseTransaction())
+            {
+                return ((LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead))
+                    .Cast<ObjectId>()
+                    .Select(id => ((LayerTableRecord)tr.GetObject(id, OpenMode.ForRead)).Name)
+                    .ToList();
+            }
         }
     }
 }
