@@ -34,8 +34,8 @@ namespace EE_Analyzer
         /// <param name="radius">Default radius</param>
         public EE_FDNInputDialog(List<string> layers, string layer, double radius, 
             int x_qty = 5, double x_spa=10, double x_width=10, double x_depth=24,
-            int y_qty = 7, double y_spa = 10, double y_width = 10, double y_depth = 24
-            )
+            int y_qty = 7, double y_spa = 10, double y_width = 10, double y_depth = 24,
+            int beam_x_strand_qty=2, int slab_x_strand_qty=8, int beam_y_strand_qty=2, int slab_y_strand_qty=8)
         {
             InitializeComponent();
             this.radius = radius;
@@ -47,11 +47,16 @@ namespace EE_Analyzer
             BEAM_X_SPACING.Text = x_spa.ToString();
             BEAM_X_DEPTH.Text = x_depth.ToString();
             BEAM_X_WIDTH.Text = x_width.ToString();
-
+            BEAM_X_STRAND_QTY.Text = beam_x_strand_qty.ToString();
+            SLAB_X_STRAND_QTY.Text = slab_x_strand_qty.ToString();
+                        
             BEAM_Y_QTY.Text = y_qty.ToString();
             BEAM_Y_SPACING.Text = y_spa.ToString();
             BEAM_Y_DEPTH.Text = y_depth.ToString();
             BEAM_Y_WIDTH.Text = y_width.ToString();
+            BEAM_Y_STRAND_QTY.Text = beam_y_strand_qty.ToString();
+            SLAB_Y_STRAND_QTY.Text = slab_y_strand_qty.ToString();
+
         }
 
         /// <summary>
@@ -86,20 +91,33 @@ namespace EE_Analyzer
             double x_spa;
             double x_depth;
             double x_width;
+            int beam_x_strand_qty;
+            int slab_x_strand_qty;
 
             int y_qty;
             double y_spa;
             double y_depth;
             double y_width;
+            int beam_y_strand_qty;
+            int slab_y_strand_qty;
 
             bool resultOK = true;
-            // Grab the values from the dialog
+            // Grab the values from the dialog and check for validity
             try
             {
                 if (Int32.TryParse(BEAM_X_QTY.Text, out x_qty) is false)
                     resultOK = false;
 
                 if (Int32.TryParse(BEAM_Y_QTY.Text, out y_qty) is false)
+                    resultOK = false;
+
+                if (Int32.TryParse(BEAM_X_STRAND_QTY.Text, out beam_x_strand_qty) is false)
+                    resultOK = false;
+                if (Int32.TryParse(BEAM_Y_STRAND_QTY.Text, out beam_y_strand_qty) is false)
+                    resultOK = false;
+                if (Int32.TryParse(SLAB_Y_STRAND_QTY.Text, out slab_x_strand_qty) is false)
+                    resultOK = false;
+                if (Int32.TryParse(SLAB_Y_STRAND_QTY.Text, out slab_y_strand_qty) is false)
                     resultOK = false;
 
                 if (Double.TryParse(BEAM_X_SPACING.Text, out x_spa) is false)
@@ -117,7 +135,10 @@ namespace EE_Analyzer
 
                 if(resultOK)
                 {
-                    FoundationLayout.DrawFoundationDetails(x_qty, x_spa*12, x_depth/12.0, x_width/12.0, y_qty, y_spa*12, y_depth/12.0, y_width/12.0);
+                    FoundationLayout.DrawFoundationDetails(
+                        x_qty, x_spa*12, x_depth/12.0, x_width/12.0, 
+                        y_qty, y_spa*12, y_depth/12.0, y_width/12.0, 
+                        beam_x_strand_qty, slab_x_strand_qty, beam_y_strand_qty, slab_y_strand_qty);
                 } else
                 {
                     MessageBox.Show("Error parsing dialog window values");

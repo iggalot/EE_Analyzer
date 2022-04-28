@@ -1,12 +1,12 @@
-﻿using System;
-using Autodesk.AutoCAD.ApplicationServices;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.Runtime;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace EE_Analyzer
@@ -247,6 +247,37 @@ namespace EE_Analyzer
             }
         }
 
+        // Creates the necessary layers
+        private static void CreateLayer(string name, Document doc, Database db, short color_index)
+        {
+            string layerName = name;
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                LayerTable layTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
+
+                if (layTable.Has(name))
+                {
+                    doc.Editor.WriteMessage("\nLayer [" + name + "] is already created.");
+                    trans.Abort();
+                } else
+                {
+                    LayerTableRecord ltr = new LayerTableRecord();
+                    // Create the layer
+                    ltr.Color = Color.FromColorIndex(ColorMethod.ByAci, color_index);
+                    ltr.Name = name;
+                    
+                    // Upgrade the layer table for write
+                    layTable.UpgradeOpen();
+                    // Append the new layer to the layer table and the transaction
+                    layTable.Add(ltr);
+                    trans.AddNewlyCreatedDBObject(ltr, true);
+                }
+                trans.Commit();
+            }
+            
+        }
+
         // Return a list of vertices for a selected polyline
         public static List<Point2d> GetVertices(Polyline pl)
         {
@@ -263,22 +294,28 @@ namespace EE_Analyzer
         }
 
         [CommandMethod("EE_FDN")]
-        public static void DrawFoundationDetails(int x_qty, double x_spa, double x_depth, double x_width, int y_qty, double y_spa, double y_depth, double y_width)
+        public static void DrawFoundationDetails(int x_qty, double x_spa, double x_depth, double x_width, 
+            int y_qty, double y_spa, double y_depth, double y_width,
+            int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty)
         {
             double beam_x_spa = x_spa;  // spacing between horizontal beams
             double beam_x_width = x_width;  // horizontal beam width
             double beam_x_depth = x_depth;  // horizontal beam depth
             int beam_x_qty = x_qty;         // horizontal beam qty
+            int beam_x_strand_qty = bx_strand_qty;  // number of strands in each x-direction beam
+            int slab_x_strand_qty = sx_strand_qty;  // number of strands in x-direction slab
 
             double beam_y_spa = y_spa;  // spacing between vertical beams
             double beam_y_width = y_width;  // vertical beam width
             double beam_y_depth = y_depth;  // vertical beam depth
             int beam_y_qty = y_qty;         // vertical beam qty 
+            int beam_y_strand_qty = by_strand_qty;  // number of strands in each y-direction beam
+            int slab_y_strand_qty = sy_strand_qty;  // number of strands in y-direction slab
 
 
-            double circle_radius = beam_x_spa * 0.1;
+            double circle_radius = beam_x_spa * 0.1; // for marking the intersections of beams and strands with the foundation polyline
 
-            int max_beams = 50;  // define the maximum number of beams in a given direction.
+            int max_beams = 75;  // define the maximum number of beams in a given direction -- in case we get into an infinite loop situation.
 
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -288,6 +325,13 @@ namespace EE_Analyzer
             LoadLineTypes("CENTER", doc, db);
             LoadLineTypes("DASHED", doc, db);
 
+            // Create our layers
+            CreateLayer("_EE_FDN_BEAMS", doc, db, 1); // red
+            CreateLayer("_EE_FDN_BEAMS_TRIMMED", doc, db, 140); // blue
+            CreateLayer("_EE_FDN_BEAM_STRANDS", doc, db, 3);  // green
+            CreateLayer("_EE_FDN_SLAB_STRANDS", doc, db, 2);  // yellow
+            CreateLayer("_EE_FDN_BOUNDARY", doc, db, 4); // cyan
+ 
             var options = new PromptEntityOptions("\nSelect Foundation Polyline");
             options.SetRejectMessage("\nSelected object is not a polyline.");
             options.AddAllowedClass(typeof(Polyline), true);
@@ -301,7 +345,6 @@ namespace EE_Analyzer
             if (result.Status == PromptStatus.OK)
             {
                 // at this point we know an entity has been selected and it is a Polyline
-
                 using (Transaction trans = db.TransactionManager.StartTransaction())
                 {
                     var modelSpace = (BlockTableRecord)trans.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
@@ -369,7 +412,7 @@ namespace EE_Analyzer
                         Point2d boundP4 = new Point2d(rx, by);  // bottom right
 
                         // Specify the polyline parameters 
-                        edt.WriteMessage("\nDrawing a polyline object!");
+                        //edt.WriteMessage("\nDrawing a polyline object!");
                         Polyline pl = new Polyline();
                         pl.AddVertexAt(0, boundP1, 0, 0, 0);
                         pl.AddVertexAt(1, boundP2, 0, 0, 0);

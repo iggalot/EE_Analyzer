@@ -69,6 +69,16 @@
                         <TextBox Name="BEAM_X_WIDTH" Width="20" Height="20"></TextBox>
                     </StackPanel>
                 </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal">
+                        <Label>Strands per Beam</Label>
+                        <TextBox Name="BEAM_X_STRAND_QTY" Width="20" Height="20"></TextBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Label>Strands per Slab</Label>
+                        <TextBox Name="SLAB_X_STRAND_QTY" Width="20" Height="20"></TextBox>
+                    </StackPanel>
+                </StackPanel>
             </StackPanel>
 
             <StackPanel Orientation="Vertical">
@@ -89,6 +99,16 @@
                     <StackPanel Orientation="Horizontal">
                         <Label>Width (in.)</Label>
                         <TextBox Name="BEAM_Y_WIDTH" Width="20" Height="20"></TextBox>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal">
+                        <Label>Strands per Beam</Label>
+                        <TextBox Name="BEAM_Y_STRAND_QTY" Width="20" Height="20"></TextBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Label>Strands per Slab</Label>
+                        <TextBox Name="SLAB_Y_STRAND_QTY" Width="20" Height="20"></TextBox>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
