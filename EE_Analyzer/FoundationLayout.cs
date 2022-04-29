@@ -7,6 +7,13 @@ using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static EE_Analyzer.Utilities.LinetypeObjects;
+using static EE_Analyzer.Utilities.LayerObjects;
+using static EE_Analyzer.Utilities.EE_Helpers;
+using static EE_Analyzer.Utilities.PolylineObjects;
+using static EE_Analyzer.Utilities.LineObjects;
+
+
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace EE_Analyzer
@@ -16,282 +23,15 @@ namespace EE_Analyzer
         private const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal
         private static int beamCount = 0;
 
-        [CommandMethod("TEST")]
-        public void Test()
-        {
-            var doc = Application.DocumentManager.MdiActiveDocument;
-            var db = doc.Database;
-            var ed = doc.Editor;
-
-            using (var tr = db.TransactionManager.StartTransaction())
-            {
-                var modelSpace = (BlockTableRecord)tr.GetObject(
-                    SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
-
-                // get all curve entities in model space
-                var curveClass = RXObject.GetClass(typeof(Curve));
-                var curves = modelSpace
-                    .Cast<ObjectId>()
-                    .Where(id => id.ObjectClass.IsDerivedFrom(curveClass))
-                    .Select(id => (Curve)tr.GetObject(id, OpenMode.ForRead))
-                    .ToArray();
-
-                ed.WriteMessage("\n" + curves.Length + " polylines found");
-
-                // get all intersections (brute force algorithm O(n²) complexity)
-                var points = new Point3dCollection();
-                for (int i = 0; i < curves.Length - 1; i++)
-                {
-                    ed.WriteMessage("\n" + i + "points found");
-
-                    for (int j = i + 1; j < curves.Length; j++)
-                    {
-                        curves[i].IntersectWith(curves[j], Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
-                        ed.WriteMessage("\n" + points.Count + "points found");
-                    }
-                }
-
-                // draw the circles
-                double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
-                foreach (Point3d point in points)
-                {
-                    var circle = new Circle(point, Vector3d.ZAxis, radius);
-                    circle.ColorIndex = 1;
-                    modelSpace.AppendEntity(circle);
-                    tr.AddNewlyCreatedDBObject(circle, true);
-                }
-                tr.Commit();
-            }
-        }
-
-        [CommandMethod("Test2")]
-        public void Test2()
-        {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor edt = doc.Editor;
-
-            var options1 = new PromptEntityOptions("\nSelect Polyline");
-            options1.SetRejectMessage("\nSelected object is not a polyline.");
-            options1.AddAllowedClass(typeof(Polyline), true);
-
-            var options2 = new PromptEntityOptions("\nSelect Line");
-            options2.SetRejectMessage("\nSelected object is not a line.");
-            options2.AddAllowedClass(typeof(Line), true);
-
-            var pline_result = edt.GetEntity(options1);
-            var line_result = edt.GetEntity(options2);
-
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                var modelSpace = (BlockTableRecord)trans.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
-
-                if (pline_result.Status == PromptStatus.OK && line_result.Status == PromptStatus.OK)
-                {
-                    var pline = trans.GetObject(pline_result.ObjectId, OpenMode.ForRead) as Polyline;
-                    var line = trans.GetObject(line_result.ObjectId, OpenMode.ForRead) as Line;
-
-                    Point3dCollection points = IntersectionPointsOnPolyline(line, pline);
-                    edt.WriteMessage("\n" + points.Count + " intersection points found");
-
-                    // draw the circles
-                    double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
-                    foreach (Point3d point in points)
-                    {
-                        var circle = new Circle(point, Vector3d.ZAxis, radius);
-                        circle.ColorIndex = 1;
-                        modelSpace.AppendEntity(circle);
-                        trans.AddNewlyCreatedDBObject(circle, true);
-                    }
-                    trans.Commit();
-                } else
-                {
-                    trans.Abort();
-                }
-            }
-        }
-
-        private string DisplayPrint3DCollection(Point3dCollection coll)
-        {
-            string str = "";
-            foreach (Point3d point in coll)
-            {
-                str += point.X + " , " + point.Y + "\n";
-            }
-            return str;
-        }
-
-        /// <summary>
-        /// Bubble sort for x-direction of Point3dCollection
-        /// </summary>
-        /// <param name="coll"></param>
-        /// <returns></returns>
-        private static Point3d[] sortPoint3dByHorizontally(Point3dCollection coll)
-        {
-            Point3d[] sort_arr = new Point3d[coll.Count];
-            coll.CopyTo(sort_arr, 0);
-            Point3d temp;
-
-            for (int j = 0; j < coll.Count-1; j++)
-            {
-                for (int i = 0; i < coll.Count - 1; i++)
-                {
-                    if (sort_arr[i].X > sort_arr[i + 1].X)
-                    {
-                        temp = sort_arr[i + 1];
-                        sort_arr[i + 1] = sort_arr[i];
-                        sort_arr[i] = temp;
-                    }
-                        
-                }
-            }
-            return sort_arr;
-        }
-
-        /// <summary>
-        /// Bubble sort for Point3d of y-direction
-        /// </summary>
-        /// <param name="coll"></param>
-        /// <returns></returns>
-        private static Point3d[] sortPoint3dByVertically(Point3dCollection coll)
-        {
-            Point3d[] sort_arr = new Point3d[coll.Count];
-            coll.CopyTo(sort_arr, 0);
-            Point3d temp;
-
-            for (int j = 0; j < coll.Count - 1; j++)
-            {
-                for (int i = 0; i < coll.Count - 1; i++)
-                {
-                    if (sort_arr[i].Y > sort_arr[i + 1].Y)
-                    {
-                        temp = sort_arr[i + 1];
-                        sort_arr[i + 1] = sort_arr[i];
-                        sort_arr[i] = temp;
-                    }
-
-                }
-            }
-            return sort_arr;
-        }
-
-        private static Point3dCollection IntersectionPointsOnPolyline(Line ln, Polyline pline)
-        {
-            var doc = Application.DocumentManager.MdiActiveDocument;
-            var db = doc.Database;
-            var ed = doc.Editor;
-
-            var points = new Point3dCollection();
-
-            var curves = ln;
-            for (int i = 0; i < curves.Length - 1; i++)
-            {
-                    curves.IntersectWith(pline, Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
-            }
-            return points;
-        }
-
-        // Find the point where two line segments intersect
-        private static Point3d FindPointOfIntersectLines_2D(Line l1, Line l2)
-        {
-            var A1 = -(l1.EndPoint.Y - l1.StartPoint.Y);
-            var B1 = l1.EndPoint.X - l1.StartPoint.X;
-            var C1 = (A1 * l1.StartPoint.X + B1 * l1.StartPoint.Y);
-
-            var A2 = -(l2.EndPoint.Y - l2.StartPoint.Y);
-            var B2 = l2.EndPoint.X - l2.StartPoint.X;
-            var C2 = (A2 * l2.StartPoint.X + B2 * l2.StartPoint.Y);
-
-            var delta = A1 * B2 - A2 * B1;
-            var intX = (B2 * C1 - B1 * C2)/ delta;
-            var inty = (A1 * C2 - A2 * C1) / delta;
-
-            return new Point3d(intX, inty, 0);
-
-        }
-
-        private static Line TrimLineToPolyline(Line ln, Polyline pl)
-        {
-            // find segment of polyline that brackets the line to be trimmed
-
-            // Test the segments of the polyline to find the 
-
-            Line testline = new Line(pl.GetPoint3dAt(0), pl.GetPoint3dAt(1));
-
-            Point3d newPt = FindPointOfIntersectLines_2D(ln, testline);
-            ln.StartPoint = newPt;
-            return ln;
-        }
-
-        // Loads on autocad linetype into the drawing.
-        private static void LoadLineTypes(string name, Document doc, Database db)
-        {
-            // change the linetype
-            string ltypeName = name;
-
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                LinetypeTable ltTab = trans.GetObject(db.LinetypeTableId, OpenMode.ForRead) as LinetypeTable;
-
-                if (ltTab.Has(ltypeName))
-                {
-                    doc.Editor.WriteMessage("\nLinetype [" + ltypeName + "] is already loaded.");
-                    trans.Abort();
-                }
-                else
-                {
-                    // Load the linetype
-                    db.LoadLineTypeFile(ltypeName, "acad.lin");
-                    doc.Editor.WriteMessage("\nLinetype [" + ltypeName + "] was created successfully.");
-                    trans.Commit();                 }
-            }
-        }
-
-        // Creates the necessary layers
-        private static void CreateLayer(string name, Document doc, Database db, short color_index)
-        {
-            string layerName = name;
-
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                LayerTable layTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
-
-                if (layTable.Has(name))
-                {
-                    doc.Editor.WriteMessage("\nLayer [" + name + "] is already created.");
-                    trans.Abort();
-                } else
-                {
-                    LayerTableRecord ltr = new LayerTableRecord();
-                    // Create the layer
-                    ltr.Color = Color.FromColorIndex(ColorMethod.ByAci, color_index);
-                    ltr.Name = name;
-                    
-                    // Upgrade the layer table for write
-                    layTable.UpgradeOpen();
-                    // Append the new layer to the layer table and the transaction
-                    layTable.Add(ltr);
-                    trans.AddNewlyCreatedDBObject(ltr, true);
-                }
-                trans.Commit();
-            }
-            
-        }
-
-        // Return a list of vertices for a selected polyline
-        public static List<Point2d> GetVertices(Polyline pl)
-        {
-            Transaction tr = pl.Database.TransactionManager.TopTransaction;
-            
-            List<Point2d> vertices = new List<Point2d>();
-            for (int i = 0; i < pl.NumberOfVertices; i++)
-            {
-                Point2d pt = pl.GetPoint2dAt(i);
-                vertices.Add(pt);
-            }
-
-            return vertices;
-        }
+        private const string DEFAULT_FDN_BOUNDINGBOX_LAYER = "_EE_FDN_BOUNDINGBOX"; // Contains the bounding box 
+        private const string DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER = "_EE_FDN_PERIMETER";  // Contains the polyline for the perimeter of the foundation
+        private const string DEFAULT_FDN_BEAMS_LAYER = "_EE_FDN_BEAMS"; // For the untrimmed ribs of the foundation
+        private const string DEFAULT_FDN_BEAMS_TRIMMED_LAYER = "_EE_FDN_BEAMS_TRIMMED";  
+        private const string DEFAULT_FDN_BEAM_STRANDS_LAYER = "_EE_FDN_BEAM_STRANDS";
+        private const string DEFAULT_FDN_SLAB_STRANDS_LAYER = "_EE_FDN_SLAB_STRANDS";
+        private const string DEFAULT_FDN_TEXTS_LAYER = "_EE_FDN_TEXT";
+        private const string DEFAULT_FDN_DIMENSIONS_LAYER = "_EE_FDN_DIMENSIONS";
+        private const string DEFAULT_FDN_ANNOTATION_LAYER = "_EE_FDN_ANNOTATION_LAYER"; // for notes and markers
 
         [CommandMethod("EE_FDN")]
         public static void DrawFoundationDetails(int x_qty, double x_spa, double x_depth, double x_width, 
@@ -324,14 +64,27 @@ namespace EE_Analyzer
             // Load our linetype
             LoadLineTypes("CENTER", doc, db);
             LoadLineTypes("DASHED", doc, db);
+            LoadLineTypes("HIDDEN", doc, db);
+            LoadLineTypes("CENTERX2", doc, db);
+            LoadLineTypes("DASHEDX2", doc, db);
+            LoadLineTypes("HIDDENX2", doc, db);
+            LoadLineTypes("CENTER2", doc, db);
+            LoadLineTypes("DASHED2", doc, db);
+            LoadLineTypes("HIDDEN2", doc, db);
 
             // Create our layers
-            CreateLayer("_EE_FDN_BEAMS", doc, db, 1); // red
-            CreateLayer("_EE_FDN_BEAMS_TRIMMED", doc, db, 140); // blue
-            CreateLayer("_EE_FDN_BEAM_STRANDS", doc, db, 3);  // green
-            CreateLayer("_EE_FDN_SLAB_STRANDS", doc, db, 2);  // yellow
-            CreateLayer("_EE_FDN_BOUNDARY", doc, db, 4); // cyan
- 
+            CreateLayer(DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db, 4); // cyan
+            CreateLayer(DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, doc, db, 3); // cyan
+            CreateLayer(DEFAULT_FDN_BEAMS_LAYER, doc, db, 1); // red
+            CreateLayer(DEFAULT_FDN_BEAMS_TRIMMED_LAYER, doc, db, 140); // blue
+            CreateLayer(DEFAULT_FDN_BEAM_STRANDS_LAYER, doc, db, 3);  // green
+            CreateLayer(DEFAULT_FDN_SLAB_STRANDS_LAYER, doc, db, 2);  // yellow
+            CreateLayer(DEFAULT_FDN_TEXTS_LAYER, doc, db, 3); // yellow
+            CreateLayer(DEFAULT_FDN_DIMENSIONS_LAYER, doc, db, 2); // yellow
+            CreateLayer(DEFAULT_FDN_ANNOTATION_LAYER, doc, db, 1); // yellow
+
+
+
             var options = new PromptEntityOptions("\nSelect Foundation Polyline");
             options.SetRejectMessage("\nSelected object is not a polyline.");
             options.AddAllowedClass(typeof(Polyline), true);
@@ -358,14 +111,10 @@ namespace EE_Analyzer
                         btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                         pline = trans.GetObject(result.ObjectId, OpenMode.ForRead) as Polyline;
-
-
-                        // Send a message to the user
-                        edt.WriteMessage("\nFoundation polyline selected");
-
-                        ///////////////////////////////////////////
-                        /// This processes the foundation polyline
-                        /// ///////////////////////////////////////
+                     
+                        ///////////////////////////////////////////////////
+                        /// Now start processing  the foundation polylines
+                        /// ///////////////////////////////////////////////
                         var numVertices = pline.NumberOfVertices;
                         var lstVertices = GetVertices(pline);
 
@@ -411,49 +160,99 @@ namespace EE_Analyzer
                         Point2d boundP3 = new Point2d(rx, ty);  // upper right
                         Point2d boundP4 = new Point2d(rx, by);  // bottom right
 
-                        // Specify the polyline parameters 
-                        //edt.WriteMessage("\nDrawing a polyline object!");
                         Polyline pl = new Polyline();
-                        pl.AddVertexAt(0, boundP1, 0, 0, 0);
-                        pl.AddVertexAt(1, boundP2, 0, 0, 0);
-                        pl.AddVertexAt(2, boundP3, 0, 0, 0);
-                        pl.AddVertexAt(3, boundP4, 0, 0, 0);
-                        pl.Closed = true;
-                        pl.ColorIndex = 140; // cyan color
- 
-                        // Set the default properties
-                        pl.SetDatabaseDefaults();
-                        btr.AppendEntity(pl);
-                        trans.AddNewlyCreatedDBObject(pl, true);
+
+                        try
+                        {
+                            // Specify the polyline parameters 
+                            pl.AddVertexAt(0, boundP1, 0, 0, 0);
+                            pl.AddVertexAt(1, boundP2, 0, 0, 0);
+                            pl.AddVertexAt(2, boundP3, 0, 0, 0);
+                            pl.AddVertexAt(3, boundP4, 0, 0, 0);
+                            pl.Closed = true;
+                            pl.ColorIndex = 140; // cyan color
+
+                            // assign the layer
+                            pl.Layer = DEFAULT_FDN_BOUNDINGBOX_LAYER;
+
+
+                            // Set the default properties
+                            pl.SetDatabaseDefaults();
+                            btr.AppendEntity(pl);
+                            trans.AddNewlyCreatedDBObject(pl, true);
+                        } 
+                        catch (System.Exception ex)
+                        {
+                            edt.WriteMessage("\nError encountered drawing foundation boundary line: " + ex.Message);
+                            trans.Abort();
+                            return;
+                        }
+
+                        // Check that the polyline is in a clockwise winding.  If not, then reverse the polyline direction
+                        // -- necessary for the offset functions later to work correctly.
+                        if (!PolylineIsWoundClockwise(pline))
+                        {
+                            edt.WriteMessage("\nReversing foundation polyline direction to make it Clockwise");
+                            ReversePolylineDirection(pline);
+                        }
+
+                        //////////////////////////////////////////////////////
+                        // Draw the perimeter beam -- perimeter line will be continuous, inner edge line will be hidden
+                        // both will be assigned to the boundary perimeter layer
+                        //////////////////////////////////////////////////////
+                        MovePolylineToLayer(pline, DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER);
+                        PolylineSetLinetype(pline, "CONTINUOUS");
+
+                        // Offset the perimeter polyline and move it to its appropriate layer
+                        Polyline innerPerimeterBeamPolyline = OffsetPolyline(pline, beam_x_width, bt, btr);
+                        MovePolylineToLayer(innerPerimeterBeamPolyline, DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER);
+                        PolylineSetLinetype(innerPerimeterBeamPolyline, "HIDDEN");
 
                         ////////////////////////////////////////////////////
                         // Draw centerlines of intermediate horizontal beams
                         ////////////////////////////////////////////////////
                         int count = 0;
-                        while (boundP1.Y + count * beam_x_spa < boundP2.Y && count < max_beams)
+
+                        // offset the first beam by half a beam width
+                        while (boundP1.Y + (beam_x_width * 0.5) + count * beam_x_spa < boundP2.Y && count < max_beams)
                         {
                             try
                             {
-                                Point3d p1 = new Point3d(boundP1.X, boundP1.Y + count * beam_x_spa, 0);
-                                Point3d p2 = new Point3d(boundP4.X, boundP1.Y + count * beam_x_spa, 0);
+                                Point3d p1 = new Point3d(boundP1.X, boundP1.Y + (beam_x_width * 0.5) + count * beam_x_spa, 0);
+                                Point3d p2 = new Point3d(boundP4.X, boundP1.Y + (beam_x_width * 0.5) + count * beam_x_spa, 0);
                                 Line ln = new Line(p1, p2);
 
                                 // Trim the line to the physical edge of the slab (not the limits rectangle)
                                 ln = TrimLineToPolyline(ln, pl);
 
-                                ln.ColorIndex = 1;  // Color is red
-                                ln.Linetype = "CENTER";
+                                //ln.ColorIndex = 1;  // Color is red
+                                ln.Linetype = "CENTERX2";                                
+                                ln.Layer = DEFAULT_FDN_BEAMS_LAYER;
 
                                 btr.AppendEntity(ln);
                                 trans.AddNewlyCreatedDBObject(ln, true);
 
-                                // add out beam lines to our collection.
+                                // add our beam lines to our collection.
                                 BeamLines.Add(ln);
+
+                                // Add boundaries of our beams
+                                // edge 1
+                                Line edge1 = OffsetLine(ln, beam_x_width * 0.5, bt, btr) as Line;
+                                MoveLineToLayer(edge1, DEFAULT_FDN_BEAMS_LAYER);
+                                LineSetLinetype(edge1, "HIDDENX2");
+                                // edge 2
+                                Line edge2 = OffsetLine(ln, -beam_x_width * 0.5, bt, btr) as Line;
+                                MoveLineToLayer(edge2, DEFAULT_FDN_BEAMS_LAYER);
+                                LineSetLinetype(edge2, "HIDDENX2");
+
+                           //     BeamLines.Add(edge1);
+                           //     BeamLines.Add(edge2);
                             }
                             catch (System.Exception ex)
                             {
                                 edt.WriteMessage("\nError encountered - drawing horizontal beams: " + ex.Message);
                                 trans.Abort();
+                                return;
                             }
 
                             count++;
@@ -463,17 +262,20 @@ namespace EE_Analyzer
                         // Draw centerlines of intermediate vertical beams
                         ////////////////////////////////////////////////////
                         count = 0;
-                        while (boundP1.X + count * beam_y_spa < boundP4.X && count < max_beams)
+                        
+                        // offset the first beam by have a beam width
+                        while (boundP1.X + (beam_y_width * 0.5) + count * beam_y_spa < boundP4.X && count < max_beams)
                         {
                             try
                             {
                                 // Send a message to the user
-                                Point3d p1 = new Point3d(boundP1.X + count * beam_y_spa, boundP1.Y, 0);
-                                Point3d p2 = new Point3d(boundP1.X + count * beam_y_spa, boundP2.Y, 0);
+                                Point3d p1 = new Point3d(boundP1.X + (beam_y_width * 0.5) + count * beam_y_spa, boundP1.Y, 0);
+                                Point3d p2 = new Point3d(boundP1.X + (beam_y_width * 0.5) + count * beam_y_spa, boundP2.Y, 0);
                                 Line ln = new Line(p1, p2);
-                                ln.ColorIndex = 2;  // Color is red
+                                //ln.ColorIndex = 2;  // Color is red
 
-                                ln.Linetype = "DASHED";
+                                ln.Linetype = "CENTERX2";                                
+                                ln.Layer = DEFAULT_FDN_BEAMS_LAYER;
 
                                 btr.AppendEntity(ln);
                                 trans.AddNewlyCreatedDBObject(ln, true);
@@ -481,103 +283,173 @@ namespace EE_Analyzer
                                 // add out beam lines to our collection.
                                 BeamLines.Add(ln);
 
+                                // Add boundaries of our beams
+                                // edge 1
+                                Line edge1 = OffsetLine(ln, beam_y_width * 0.5, bt, btr) as Line;
+                                MoveLineToLayer(edge1, DEFAULT_FDN_BEAMS_LAYER);
+                                LineSetLinetype(edge1, "HIDDENX2");
+                                // edge 2
+                                Line edge2 = OffsetLine(ln, -beam_y_width * 0.5, bt, btr) as Line;
+                                MoveLineToLayer(edge2, DEFAULT_FDN_BEAMS_LAYER);
+                                LineSetLinetype(edge2, "HIDDENX2");
+
+                           //     BeamLines.Add(edge1);
+                           //     BeamLines.Add(edge2);
+
                                 count++;
                             } catch (System.Exception ex)
                             {
                                 edt.WriteMessage("\nError encountered - drawing beam centerline extent lines: " + ex.Message);
                                 trans.Abort();
+                                return;
                             }
 
                         }
 
+                        #region GradeBeams
                         ///////////////////////////////////////////////////////////////////////////  
                         // For each grade beam, find intersection points of the grade beams with
                         // the foundation border using the entities of the BeamList
                         //
                         // Trim the line to the physical edge of the slab (not the limits rectangle)
                         ///////////////////////////////////////////////////////////////////////////
-                        edt.WriteMessage("\n" + BeamLines.Count + " lines in BeamLines list");
+                        // edt.WriteMessage("\n" + BeamLines.Count + " lines in BeamLines list");
 
                         Point3dCollection points = null;
-
                         if (pline != null && BeamLines.Count > 0)
                         {
                             foreach (var beamline in BeamLines)
                             {
-                                // Get the collection of intersection points
+                                // Get the collection of intersection points and sort them
+                                //points = IntersectionPointsOnPolyline(beamline, innerPerimeterBeamPolyline);
                                 points = IntersectionPointsOnPolyline(beamline, pline);
+                                Point3d[] sorted_points = SortIntersectionPoint3DArray(edt, points);
 
-                                // Sort the collection of points into an array sorted from descending to ascending
-                                Point3d[] sorted_points = new Point3d[points.Count];
-                                
-
-                                // If the point is horizontal
-                                if (Math.Abs(points[1].Y-points[0].Y) < DEFAULT_HORIZONTAL_TOLERANCE)
-                                {
-                                    edt.WriteMessage("\nBeam " + beamCount + " is horizontal");
-                                    sorted_points = sortPoint3dByHorizontally(points);
-                                }
-                                // Otherwise it is vertical
-                                else
-                                {
-                                    edt.WriteMessage("\nBeam " + beamCount + " is vertical");
-                                    sorted_points = sortPoint3dByVertically(points);
-
-                                }
-
-                                //edt.WriteMessage("\nBEFORE===============================================");
-                                //edt.WriteMessage(DisplayPrint3DCollection(points));
-
-                                //points = new Point3dCollection(temp);
-
-                                //edt.WriteMessage("\nAFTER================================================");
-                                //edt.WriteMessage(DisplayPrint3DCollection(points));
-
-
+                                // We have the intersection points for each of the beam center lines, now mark them with circles
                                 if (sorted_points != null)
-                                    edt.WriteMessage("\n" + sorted_points.Length + " points are intersecting the BeamLines");
-                                else
-                                    edt.WriteMessage("\nNo points of intersection found");
-
-                                // TODO:  Change these circles for the intersection points to be the new endpoints of the beam and strand lines
-                                // We have the intersection points of the strand lines, now start trimming
-
-
-                                // draw the circles
-                                //double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
-                                double radius = circle_radius;
-
-                                try
                                 {
-                                    if (points != null)
+                                    // Mark the circles for intersection
+                                    for (int i = 0; i < sorted_points.Length; i++)
                                     {
-                                        // Mark the circles for intersection
-                                        for (int i = 0; i < sorted_points.Length; i++)
+                                        double radius = circle_radius;
+
+                                        try
                                         {
                                             var circle = new Circle(sorted_points[i], Vector3d.ZAxis, radius);
                                             circle.ColorIndex = 1;
+                                            circle.Layer = DEFAULT_FDN_ANNOTATION_LAYER;
+
                                             modelSpace.AppendEntity(circle);
                                             trans.AddNewlyCreatedDBObject(circle, true);
                                         }
-
-                                        // Draw trimmed beam center lines
-                                        TrimLinesToPolylineIntersection(edt, trans, btr, sorted_points, pline);
-
+                                        catch (System.Exception ex)
+                                        {
+                                            edt.WriteMessage("\nError encountered while drawing intersection points: " + ex.Message);
+                                            trans.Abort();
+                                            return;
+                                        }
                                     }
-                                } 
-                                catch (System.Exception ex)
-                                {
-                                    edt.WriteMessage("\nError encountered - trimming beam centerline to foundation extents: " + ex.Message);
-                                    trans.Abort();
-                                }
 
+                                    // Draw the trimmed beam center lines
+                                    try
+                                    {
+                                        TrimLinesToPolylineIntersection(edt, trans, btr, sorted_points, pline, true);
+                                    }
+                                    catch (System.Exception ex)
+                                    {
+                                        edt.WriteMessage("\nError encountered while trimming beam centerline to foundation extents: " + ex.Message);
+                                        trans.Abort();
+                                        return;
+                                    }
+                                }
                             }
                         }
                         else
                         {
-                            edt.WriteMessage("\nError with foundation polyline object.");
+                            edt.WriteMessage("\nError with creating beam objects");
                             trans.Abort();
+                            return;
                         }
+
+                        #endregion
+
+
+                        #region GradeBeam Strands
+                        ///////////////////////////////////////////////////////////////////////////  
+                        // For each grade beam, find intersection points of the grade beams with
+                        // the foundation border using the entities of the BeamList
+                        //
+                        // Trim the line to the physical edge of the slab (not the limits rectangle)
+                        ///////////////////////////////////////////////////////////////////////////
+                        // edt.WriteMessage("\n" + BeamLines.Count + " lines in BeamLines list");
+
+                        Point3dCollection strand_points = null;
+                        if (pline != null && BeamLines.Count > 0)
+                        {
+                            foreach (var beamline in BeamLines)
+                            {
+                                // Get the collection of intersection points and sort them
+                                //points = IntersectionPointsOnPolyline(beamline, innerPerimeterBeamPolyline);
+                                strand_points = IntersectionPointsOnPolyline(beamline, pline);
+                                Point3d[] sorted_points = SortIntersectionPoint3DArray(edt, strand_points);
+
+                                // We have the intersection points for each of the beam center lines, now mark them with circles
+                                if (sorted_points != null)
+                                {
+                                    // Mark the circles for intersection
+                                    for (int i = 0; i < sorted_points.Length; i++)
+                                    {
+                                        double radius = circle_radius*0.25;
+
+                                        try
+                                        {
+                                            // Draw the strand markers
+                                            var circle = new Circle(sorted_points[i], Vector3d.ZAxis, radius);
+                                            circle.Layer = DEFAULT_FDN_BEAM_STRANDS_LAYER;
+
+                                            modelSpace.AppendEntity(circle);
+                                            trans.AddNewlyCreatedDBObject(circle, true);
+
+                                            // Add strand labels -- stopping for the last point
+                                            if (i != sorted_points.Length - 1)
+                                            {
+                                                // Only display at the start end
+                                                if (i % 2 == 0)
+                                                {
+                                                    AddStrandLabel(edt, trans, btr, sorted_points[i], sorted_points[i + 1]);
+                                                }
+                                            }
+                                        }
+                                        catch (System.Exception ex)
+                                        {
+                                            edt.WriteMessage("\nError encountered while drawing strand intersection points: " + ex.Message);
+                                            trans.Abort();
+                                            return;
+                                        }
+                                    }
+
+                                    // Draw the trimmed strand center lines
+                                    try
+                                    {
+                                        TrimLinesToPolylineIntersection(edt, trans, btr, sorted_points, pline, false);
+                                    }
+                                    catch (System.Exception ex)
+                                    {
+                                        edt.WriteMessage("\nError encountered while trimming strand line to foundation extents: " + ex.Message);
+                                        trans.Abort();
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            edt.WriteMessage("\nError with creating beam objects");
+                            trans.Abort();
+                            return;
+                        }
+
+                        #endregion 
 
                         trans.Commit();
                     }
@@ -585,9 +457,80 @@ namespace EE_Analyzer
                     {
                         edt.WriteMessage("\nError encountered while drawing beam objects: " + ex.Message);
                         trans.Abort();
+                        return;
                     }
                 }
             }
+        }
+
+        private static void AddStrandLabel(Editor edt, Transaction trans, BlockTableRecord btr, Point3d pt1, Point3d pt2)
+        {
+            Vector3d vector = pt1.GetVectorTo(pt2);
+            var length = vector.Length;
+
+            // TODO:  CHANGE STRAND LABEL TO HANDLE DOUBLE AND TRIPLE STRANDS (DS, TS)
+            string txt = "S" + Math.Ceiling((length / 12.0) *10).ToString();
+            Point3d insPt = pt1;
+
+            // Get the angle of the polyline
+            var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
+
+            using (MText mtx = new MText())
+            {
+                try
+                {
+                    mtx.Contents = txt;
+                    mtx.Location = insPt;
+                    mtx.TextHeight = 2;
+                    mtx.ColorIndex = 3;
+
+                    mtx.Layer = DEFAULT_FDN_TEXTS_LAYER;
+
+                    mtx.Rotation = angle;
+
+                    btr.AppendEntity(mtx);
+                    trans.AddNewlyCreatedDBObject(mtx, true);
+                }
+                catch (System.Exception ex)
+                {
+                    edt.WriteMessage("\nError encountered while adding beam label objects: " + ex.Message);
+                    trans.Abort();
+                    return;
+                }
+
+            }
+        }
+
+        /// <summary>
+        /// Takes a Point3DCollection and sorts the points from left to right and bottom to top and returns
+        /// an Point3d[]
+        /// </summary>
+        /// <param name="edt">AutoCAD editor object (for messaging)</param>
+        /// <param name="points">A <see cref="Points3dCollection"/> of points </param>
+        /// <returns>An array of Points3d[]</returns>
+        private static Point3d[] SortIntersectionPoint3DArray(Editor edt, Point3dCollection points)
+        {
+            // Sort the collection of points into an array sorted from descending to ascending
+            Point3d[] sorted_points = new Point3d[points.Count];
+
+            // If the point is horizontal
+            if (Math.Abs(points[1].Y - points[0].Y) < DEFAULT_HORIZONTAL_TOLERANCE)
+            {
+                //edt.WriteMessage("\nBeam " + beamCount + " is horizontal");
+                sorted_points = sortPoint3dByHorizontally(points);
+            }
+            // Otherwise it is vertical
+            else
+            {
+                //edt.WriteMessage("\nBeam " + beamCount + " is vertical");
+                sorted_points = sortPoint3dByVertically(points);
+            }
+
+            if (sorted_points != null)
+                edt.WriteMessage("\n" + sorted_points.Length + " points are intersecting the polyline");
+            else
+                edt.WriteMessage("\nNo points of intersection found");
+            return sorted_points;
         }
 
         /// <summary>
@@ -608,8 +551,9 @@ namespace EE_Analyzer
         /// <param name="btr">The AutoCAD model space block table record</param>
         /// <param name="points">The points to trim</param>
 
-        private static void TrimLinesToPolylineIntersection(Editor edt, Transaction trans, BlockTableRecord btr, Point3d[] points, Polyline pline)
+        private static void TrimLinesToPolylineIntersection(Editor edt, Transaction trans, BlockTableRecord btr, Point3d[] points, Polyline pline, bool shouldAddLabel=true)
         {
+           
             // Must be an even number of points currently
             // TODO:  Determine logic to hand odd number of intersection points -- which could occur for a tangent point to a corner.
             if(points.Length % 2 == 0)
@@ -618,33 +562,39 @@ namespace EE_Analyzer
                 {
                     // Send a message to the user
                     //edt.WriteMessage("\nDrawing a shortened Line object: ");
-
                     Polyline pl = new Polyline();
                     Point2d pt1 = new Point2d(points[i].X, points[i].Y);
                     Point2d pt2 = new Point2d(points[i + 1].X, points[i + 1].Y);
 
-                    pl.AddVertexAt(0, pt1, 0, 0, 0);
-                    pl.AddVertexAt(1, pt2, 0, 0, 0);
-                    pl.Closed = false;
-                    pl.ColorIndex = 150; // blue color
-                    pl.ConstantWidth = 4;
+                    try
+                    {
+                        pl.AddVertexAt(0, pt1, 0, 0, 0);
+                        pl.AddVertexAt(1, pt2, 0, 0, 0);
+                        pl.Closed = false;
+                        pl.ColorIndex = 150; // blue color
+                        pl.ConstantWidth = 1;
+                        pl.Layer = DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
+                        pl.Linetype = "CENTER";
 
-                    // Set the default properties
-                    pl.SetDatabaseDefaults();
-                    btr.AppendEntity(pl);
-                    trans.AddNewlyCreatedDBObject(pl, true);
+                        // Set the default properties
+                        pl.SetDatabaseDefaults();
+                        btr.AppendEntity(pl);
+                        trans.AddNewlyCreatedDBObject(pl, true);
+                    } catch (System.Exception ex)
+                    {
+                        edt.WriteMessage("\nError encountered while drawing trimmed beam line object from Pt1: (" 
+                            + pt1.X + "," + pt1.Y + ") to Pt2: (" + pt2.X + "," + pt2.Y + "):  " + ex.Message);
+                        trans.Abort();
+                        return;
+                    }
 
                     // Get the angle of the polyline
                     var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
 
                     // Add number labels for each line segment
-                    AddBeamLabels(trans, btr, points, i, angle);
+                    if(shouldAddLabel)
+                        AddBeamLabels(edt, trans, btr, points, i, angle);
 
-                    //Line ln = new Line(points[i], points[i + 1]);
-                    //ln.ColorIndex = 150;  // Color is blue
-                    ////ln.Linetype = "DASHED";
-                    //btr.AppendEntity(ln);
-                    //trans.AddNewlyCreatedDBObject(ln, true);
                     beamCount++;
                 }
             } else
@@ -661,53 +611,75 @@ namespace EE_Analyzer
                     // Assume Line AB and Polyline segment CD
                     var overlap_case = HorizontalTestLineOverLapPolyline(pline, pt1, pt2);
 
-                   
-
                     switch (overlap_case)
                     {
                         case 0:
                             {
-                                pl.AddVertexAt(0, pt1, 0, 0, 0);
-                                pl.AddVertexAt(1, pt2, 0, 0, 0);
-                                pl.Closed = false;
-                                pl.ColorIndex = 2; // yellow color
-                                pl.ConstantWidth = 8;
+                                try
+                                {
+                                    pl.AddVertexAt(0, pt1, 0, 0, 0);
+                                    pl.AddVertexAt(1, pt2, 0, 0, 0);
+                                    pl.Closed = false;
+                                    pl.ColorIndex = 2; // yellow color
+                                    pl.ConstantWidth = 8;
+                                    pl.Layer = DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
+                                    pl.Linetype = "CENTER";
 
-                                // Set the default properties
-                                pl.SetDatabaseDefaults();
-                                btr.AppendEntity(pl);
-                                trans.AddNewlyCreatedDBObject(pl, true);
+                                    // Set the default properties
+                                    pl.SetDatabaseDefaults();
+                                    btr.AppendEntity(pl);
+                                    trans.AddNewlyCreatedDBObject(pl, true);
 
-                                // Get the angle of the polyline
-                                var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
+                                    // Get the angle of the polyline
+                                    var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
 
-                                // Add number labels for each line segment
-                                AddBeamLabels(trans, btr, points, i, angle);
+                                    // Add number labels for each line segment
+                                    AddBeamLabels(edt, trans, btr, points, i, angle);
+                            
+                                } catch (System.Exception ex)
+                                {
+                                    edt.WriteMessage("\nError encountered while drawing modified beam line object from Pt1: ("
+                                        + pt1.X + "," + pt1.Y + ") to Pt2: (" + pt2.X + "," + pt2.Y + "):  " + ex.Message);
+                                    trans.Abort();
+                                    return;
+                                }
 
                                 break;
                             }
 
                         default:
                             {
-                                pl.AddVertexAt(0, pt1, 0, 0, 0);
-                                pl.AddVertexAt(1, pt2, 0, 0, 0);
-                                pl.Closed = false;
-                                pl.ColorIndex = 1; // red color
-                                pl.ConstantWidth = 8;
+                                try
+                                {
+                                    pl.AddVertexAt(0, pt1, 0, 0, 0);
+                                    pl.AddVertexAt(1, pt2, 0, 0, 0);
+                                    pl.Closed = false;
+                                    pl.ColorIndex = 1; // red color
+                                    pl.ConstantWidth = 8;
 
-                                // Set the default properties
-                                pl.SetDatabaseDefaults();
-                                btr.AppendEntity(pl);
-                                trans.AddNewlyCreatedDBObject(pl, true);
+                                    // Set the default properties
+                                    pl.SetDatabaseDefaults();
+                                    btr.AppendEntity(pl);
+                                    trans.AddNewlyCreatedDBObject(pl, true);
+                                    pl.Layer = DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
+                                    pl.Linetype = "CENTER";
 
-                                // Get the angle of the polyline
-                                var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
+                                    // Get the angle of the polyline
+                                    var angle = Math.Atan((pt2.Y - pt1.Y) / (pt2.X - pt1.X));
 
-                                // Add number labels for each line segment
-                                AddBeamLabels(trans, btr, points, i, angle);
+                                    // Add number labels for each line segment
+                                    AddBeamLabels(edt, trans, btr, points, i, angle);
+
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    edt.WriteMessage("\nError encountered while drawing modified beam line object from Pt1: ("
+                                        + pt1.X + "," + pt1.Y + ") to Pt2: (" + pt2.X + "," + pt2.Y + "):  " + ex.Message);
+                                    trans.Abort();
+                                    return;
+                                }
 
                                 break;
-
                             }
                     }
                 }
@@ -717,21 +689,32 @@ namespace EE_Analyzer
         }
 
         // Add number labels for each line segment
-        private static void AddBeamLabels(Transaction trans, BlockTableRecord btr, Point3d[] points, int i, double angle)
+        private static void AddBeamLabels(Editor edt, Transaction trans, BlockTableRecord btr, Point3d[] points, int i, double angle)
         {
             string txt = "Beam " + beamCount.ToString();
             Point3d insPt = points[i];
             using (MText mtx = new MText())
             {
-                mtx.Contents = txt;
-                mtx.Location = insPt;
-                mtx.TextHeight = 10;
-                mtx.ColorIndex = 2;
+                try
+                {
+                    mtx.Contents = txt;
+                    mtx.Location = insPt;
+                    mtx.TextHeight = 4;
+                    mtx.ColorIndex = 2;
 
-                mtx.Rotation = angle;
+                    mtx.Layer = DEFAULT_FDN_TEXTS_LAYER;
 
-                btr.AppendEntity(mtx);
-                trans.AddNewlyCreatedDBObject(mtx, true);
+                    mtx.Rotation = angle;
+
+                    btr.AppendEntity(mtx);
+                    trans.AddNewlyCreatedDBObject(mtx, true);
+                } catch (System.Exception ex)
+                {
+                    edt.WriteMessage("\nError encountered while adding beam label objects: " + ex.Message);
+                    trans.Abort();
+                    return;
+                }
+
             }
         }
 
@@ -821,7 +804,7 @@ namespace EE_Analyzer
             layer = (string)AcAp.GetSystemVariable("clayer");
             radius = 10.0;
 
-            var layers = GetLayerNames();
+            var layers = GetAllLayerNamesList();
             if (!layers.Contains(layer))
             {
                 layer = (string)AcAp.GetSystemVariable("clayer");
@@ -857,26 +840,6 @@ namespace EE_Analyzer
                 }
             }
 
-        }
-
-        /// <summary>
-        /// Gets the layer list.
-        /// </summary>
-        /// <param name="db">Database instance this method applies to.</param>
-        /// <returns>Layer names list.</returns>
-        private List<string> GetLayerNames()
-        {
-            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-
-            using (var tr = db.TransactionManager.StartOpenCloseTransaction())
-            {
-                return ((LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead))
-                    .Cast<ObjectId>()
-                    .Select(id => ((LayerTableRecord)tr.GetObject(id, OpenMode.ForRead)).Name)
-                    .ToList();
-            }
         }
     }
 }

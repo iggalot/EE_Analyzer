@@ -33,8 +33,8 @@ namespace EE_Analyzer
         /// <param name="layer">Default layer name.</param>
         /// <param name="radius">Default radius</param>
         public EE_FDNInputDialog(List<string> layers, string layer, double radius, 
-            int x_qty = 5, double x_spa=10, double x_width=10, double x_depth=24,
-            int y_qty = 7, double y_spa = 10, double y_width = 10, double y_depth = 24,
+            int x_qty = 5, double x_spa=120, double x_width=12, double x_depth=24,
+            int y_qty = 7, double y_spa = 120, double y_width = 12, double y_depth = 24,
             int beam_x_strand_qty=2, int slab_x_strand_qty=8, int beam_y_strand_qty=2, int slab_y_strand_qty=8)
         {
             InitializeComponent();
@@ -136,8 +136,8 @@ namespace EE_Analyzer
                 if(resultOK)
                 {
                     FoundationLayout.DrawFoundationDetails(
-                        x_qty, x_spa*12, x_depth/12.0, x_width/12.0, 
-                        y_qty, y_spa*12, y_depth/12.0, y_width/12.0, 
+                        x_qty, x_spa, x_depth, x_width, 
+                        y_qty, y_spa, y_depth, y_width, 
                         beam_x_strand_qty, slab_x_strand_qty, beam_y_strand_qty, slab_y_strand_qty);
                 } else
                 {

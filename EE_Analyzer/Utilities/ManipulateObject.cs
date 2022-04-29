@@ -1,11 +1,10 @@
-﻿using System;
-using Autodesk.AutoCAD.ApplicationServices;
+﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Runtime;
 
-namespace EE_Analyzer
+namespace EE_Analyzer.Utilities
+
 {
     public class ManipulateObject
     {
@@ -152,7 +151,5 @@ namespace EE_Analyzer
                 }
             }
         }
-
-
     }
 }

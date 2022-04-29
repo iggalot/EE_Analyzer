@@ -5,7 +5,7 @@ using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
 
-namespace EE_Analyzer
+namespace EE_AutoCADUtilities
 {
     public class DrawObject
     {
