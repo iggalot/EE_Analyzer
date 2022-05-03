@@ -119,7 +119,7 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("Error moving polyline [" + obj.Handle.ToString() + "] to [" + layer_name + "]");
+                    doc.Editor.WriteMessage("Error moving polyline [" + obj.Handle.ToString() + "] to [" + layer_name + "]: " + ex.Message);
                     trans.Abort();
                 }
             }

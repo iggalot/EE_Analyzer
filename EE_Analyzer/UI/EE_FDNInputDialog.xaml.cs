@@ -32,16 +32,18 @@ namespace EE_Analyzer
         /// <param name="layers">Layer names collection.</param>
         /// <param name="layer">Default layer name.</param>
         /// <param name="radius">Default radius</param>
-        public EE_FDNInputDialog(List<string> layers, string layer, double radius, 
+
+//        public EE_FDNInputDialog(List<string> layers, string layer, double radius, 
+        public EE_FDNInputDialog(
             int x_qty = 5, double x_spa=120, double x_width=12, double x_depth=24,
             int y_qty = 7, double y_spa = 120, double y_width = 12, double y_depth = 24,
             int beam_x_strand_qty=2, int slab_x_strand_qty=8, int beam_y_strand_qty=2, int slab_y_strand_qty=8)
         {
             InitializeComponent();
-            this.radius = radius;
-            cbxLayer.ItemsSource = layers;
-            cbxLayer.SelectedItem = layer;
-            txtRadius.Text = radius.ToString();
+            //this.radius = radius;
+            //cbxLayer.ItemsSource = layers;
+            //cbxLayer.SelectedItem = layer;
+            //txtRadius.Text = radius.ToString();
 
             BEAM_X_QTY.Text = x_qty.ToString();
             BEAM_X_SPACING.Text = x_spa.ToString();
@@ -106,34 +108,79 @@ namespace EE_Analyzer
             try
             {
                 if (Int32.TryParse(BEAM_X_QTY.Text, out x_qty) is false)
+                {
                     resultOK = false;
+                    MessageBox.Show("Error reading X-dir beam qty");
+                }
+
 
                 if (Int32.TryParse(BEAM_Y_QTY.Text, out y_qty) is false)
+                {
+                    MessageBox.Show("Error reading X-dir beam qty");
                     resultOK = false;
+                } 
 
                 if (Int32.TryParse(BEAM_X_STRAND_QTY.Text, out beam_x_strand_qty) is false)
+                {
+                    MessageBox.Show("Error reading X-dir beam qty");
                     resultOK = false;
+                } 
+
                 if (Int32.TryParse(BEAM_Y_STRAND_QTY.Text, out beam_y_strand_qty) is false)
+                {
+                    MessageBox.Show("Error reading Y-dir beam qty");
                     resultOK = false;
-                if (Int32.TryParse(SLAB_Y_STRAND_QTY.Text, out slab_x_strand_qty) is false)
+                } 
+
+                if (Int32.TryParse(SLAB_X_STRAND_QTY.Text, out slab_x_strand_qty) is false)
+                {
+                    MessageBox.Show("Error reading X-dir slab strand qty");
                     resultOK = false;
+                } 
+
                 if (Int32.TryParse(SLAB_Y_STRAND_QTY.Text, out slab_y_strand_qty) is false)
+                {
+                    MessageBox.Show("Error reading Y-dir slab strand qty");
                     resultOK = false;
+                } 
 
                 if (Double.TryParse(BEAM_X_SPACING.Text, out x_spa) is false)
+                {
+                    MessageBox.Show("Error reading X-dir beam spacing");
                     resultOK = false;
-                if (Double.TryParse(BEAM_X_DEPTH.Text, out x_depth) is false)
-                    resultOK = false;
-                if (Double.TryParse(BEAM_X_WIDTH.Text, out x_width) is false)
-                    resultOK = false;
-                if (Double.TryParse(BEAM_Y_SPACING.Text, out y_spa) is false)
-                    resultOK = false;
-                if (Double.TryParse(BEAM_Y_DEPTH.Text, out y_depth) is false)
-                    resultOK = false;
-                if (Double.TryParse(BEAM_Y_WIDTH.Text, out y_width) is false)
-                    resultOK = false;
+                } 
 
-                if(resultOK)
+                if (Double.TryParse(BEAM_X_DEPTH.Text, out x_depth) is false)
+                {
+                    MessageBox.Show("Error reading X-dir beam depth");
+                    resultOK = false;
+                } 
+
+                if (Double.TryParse(BEAM_X_WIDTH.Text, out x_width) is false)
+                {
+                    MessageBox.Show("Error reading X-dir beam width");
+                    resultOK = false;
+                } 
+
+                if (Double.TryParse(BEAM_Y_SPACING.Text, out y_spa) is false)
+                {
+                    MessageBox.Show("Error reading Y-dir beam spacing");
+                    resultOK = false;
+                } 
+
+                if (Double.TryParse(BEAM_Y_DEPTH.Text, out y_depth) is false)
+                {
+                    MessageBox.Show("Error reading Y-dir beam depth");
+                    resultOK = false;
+                } 
+
+                if (Double.TryParse(BEAM_Y_WIDTH.Text, out y_width) is false)
+                {
+                    MessageBox.Show("Error reading Y-dir beam width");
+                    resultOK = false;
+                } 
+
+                if (resultOK)
                 {
                     FoundationLayout.DrawFoundationDetails(
                         x_qty, x_spa, x_depth, x_width, 

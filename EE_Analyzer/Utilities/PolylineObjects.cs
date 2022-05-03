@@ -100,13 +100,13 @@ namespace EE_Analyzer.Utilities
 
             return newPline ;
         }
-        public static void MovePolylineToLayer(Polyline obj, string layer_name)
+        public static void MovePolylineToLayer(Polyline obj, string layer_name, BlockTable bt, BlockTableRecord btr)
         {
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-
+            ed.WriteMessage("\nIn MovePolylineToLayer() function.");
             // Start a transaction
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -117,24 +117,31 @@ namespace EE_Analyzer.Utilities
                     if (!lt.Has(layer_name))
                     {
                         ed.WriteMessage("\nLayer [" + layer_name + " not found in MovePolylineToLayer");
+                    } else
+                    {
+                        ed.WriteMessage("\nLayer was found.  Attempting to move object!");
                     }
 
                     // Get the layer's id and use it
                     ObjectId lid = lt[layer_name];
 
-                    obj.LayerId = lid;
+                    //obj.LayerId = lid;
+                    Entity ent = trans.GetObject(obj.Id, OpenMode.ForWrite) as Entity;
+                    ent.LayerId = lid;
 
                     trans.Commit();
+
+                    ed.WriteMessage("\n-- Polyline [" + obj.Handle.ToString() + "] successfully moved to layer [" + layer_name + "]");
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("Error moving polyline [" + obj.Handle.ToString() + "] to [" + layer_name + "]");
+                    doc.Editor.WriteMessage("\nError moving polyline [" + obj.Handle.ToString() + "] to [" + layer_name + "]");
                     trans.Abort();
                 }
             }
         }
 
-        public static void PolylineSetLinetype(Polyline obj, string linetype_name)
+        public static void PolylineSetLinetype(Polyline obj, string linetype_name, BlockTable bt, BlockTableRecord btr)
         {
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -146,14 +153,6 @@ namespace EE_Analyzer.Utilities
             {
                 try
                 {
-                    // Open the BlockTable for read
-                    BlockTable bt;
-                    bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-
-                    // Open the block table record Modelspace for write
-                    BlockTableRecord btr;
-                    btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
                     LinetypeTable lt = trans.GetObject(db.LinetypeTableId, OpenMode.ForRead) as LinetypeTable;
 
                     if (!lt.Has(linetype_name))
@@ -161,9 +160,17 @@ namespace EE_Analyzer.Utilities
                         ed.WriteMessage("\nLinetype [" + linetype_name + " not found in PolylineSetLinetype");
                     }
 
-                    obj.LinetypeId = lt[linetype_name];
+                    ObjectId ltid = lt[linetype_name];
+                    //obj.LinetypeId = lt[linetype_name];
+
+                    //obj.LayerId = lid;
+                    Entity ent = trans.GetObject(obj.Id, OpenMode.ForWrite) as Entity;
+                    ent.LinetypeId = ltid;
 
                     trans.Commit();
+
+                    ed.WriteMessage("\n-- Polyline [" + obj.Handle.ToString() + "] successfully changed to linetype [" + linetype_name + "]");
+
                 }
                 catch (System.Exception ex)
                 {
@@ -173,6 +180,9 @@ namespace EE_Analyzer.Utilities
             }
         }
 
+        /// <summary>
+        /// Structure for storing data used by the reversing winding order function for a polyline
+        /// </summary>
         struct PerVertexData
         {
             public Point2d pt;
@@ -198,57 +208,143 @@ namespace EE_Analyzer.Utilities
             return sum > 0.0;
         }
 
-
         /// <summary>
         /// Utility function to reverse the direction of a polyline.
         /// </summary>
         /// <param name="pline"></param>
-        public static void ReversePolylineDirection(Polyline pline)
+        public static Polyline ReversePolylineDirection(Polyline pline)
         {
             var doc = Application.DocumentManager.MdiActiveDocument;
             var ed = doc.Editor;
 
-            using (Transaction tr = doc.TransactionManager.StartTransaction())
+            using (Transaction trans = doc.TransactionManager.StartTransaction())
             {
-                var obj = tr.GetObject(pline.ObjectId, OpenMode.ForRead);
+                var obj = trans.GetObject(pline.ObjectId, OpenMode.ForRead);
                 var pl = obj as Polyline;
 
-                if (pl != null)
+                try
                 {
-                    // Collect our per-vertex data
-                    List<PerVertexData> vertData =
-                      new List<PerVertexData>(pl.NumberOfVertices);
-
-                    for (int i = 0; i < pl.NumberOfVertices; i++)
+                    if (pl != null)
                     {
-                        PerVertexData pvd = new PerVertexData();
-                        pvd.bulge = (i > 0 ? pl.GetBulgeAt(i - 1) : 0);
-                        pvd.startWidth = (i > 0 ? pl.GetStartWidthAt(i - 1) : 0);
-                        pvd.endWidth = (i > 0 ? pl.GetEndWidthAt(i - 1) : 0);
-                        pvd.pt = pl.GetPoint2dAt(i);
+                        // Collect our per-vertex data
+                        List<PerVertexData> vertData =
+                          new List<PerVertexData>(pl.NumberOfVertices);
 
-                        vertData.Add(pvd);
+                        for (int i = 0; i < pl.NumberOfVertices; i++)
+                        {
+                            PerVertexData pvd = new PerVertexData();
+                            pvd.bulge = (i > 0 ? pl.GetBulgeAt(i - 1) : 0);
+                            pvd.startWidth = (i > 0 ? pl.GetStartWidthAt(i - 1) : 0);
+                            pvd.endWidth = (i > 0 ? pl.GetEndWidthAt(i - 1) : 0);
+                            pvd.pt = pl.GetPoint2dAt(i);
+
+                            vertData.Add(pvd);
+                        }
+
+                        // Now let's make sure we can edit the polyline
+                        pl.UpgradeOpen();
+
+                        // Write the data back to the polyline, but in
+                        // reverse order
+
+                        for (int i = 0; i < pl.NumberOfVertices; i++)
+                        {
+                            PerVertexData pvd =
+                            vertData[pl.NumberOfVertices - (i + 1)];
+
+                            pl.SetPointAt(i, pvd.pt);
+                            pl.SetBulgeAt(i, -pvd.bulge);
+                            pl.SetStartWidthAt(i, pvd.endWidth);
+                            pl.SetEndWidthAt(i, pvd.startWidth);
+                        }
                     }
-
-                    // Now let's make sure we can edit the polyline
-                    pl.UpgradeOpen();
-
-                    // Write the data back to the polyline, but in
-                    // reverse order
-
-                    for (int i = 0; i < pl.NumberOfVertices; i++)
-                    {
-                        PerVertexData pvd =
-                        vertData[pl.NumberOfVertices - (i + 1)];
-                        
-                        pl.SetPointAt(i, pvd.pt);
-                        pl.SetBulgeAt(i, -pvd.bulge);
-                        pl.SetStartWidthAt(i, pvd.endWidth);
-                        pl.SetEndWidthAt(i, pvd.startWidth);
-                    }
+                    trans.Commit();
                 }
-                tr.Commit();
+                catch (System.Exception ex) {
+                    doc.Editor.WriteMessage("\nError encountered while reversing polyline winding direction: " + ex.Message);
+                    trans.Abort();
+                    return null;
+                }
+
+                return pl;
             }
+        }
+
+        /// <summary>
+        /// Routine to determine if a linesegment of a polyline partially overlaps another line between two points A and B
+        /// </summary>
+        /// <param name="pline"></param>
+        /// <param name="A">Start point of our line object</param>
+        /// <param name="B">End point of our line object</param>
+        /// <returns></returns>
+        /// <exception cref="System.Exception"></exception>
+        private static int HorizontalTestLineOverLapPolyline(Polyline pline, Point2d A, Point2d B)
+        {
+
+            if (pline.NumberOfVertices < 2)
+            {
+                throw new System.Exception("Polyline must have at least 2 vertices");
+            }
+
+            int overlap_case = 0;
+
+            Point2d temp;
+            // swap A and B so that A is always on the left
+            if (A.X > B.X)
+            {
+                temp = A;
+                A = B;
+                B = temp;
+            }
+
+            var C = pline.GetPoint2dAt(0);
+            var D = pline.GetPoint2dAt(1);
+
+            // swap C and D so that C is always on the left
+            if (C.X > D.X)
+            {
+                temp = C;
+                C = D;
+                D = temp;
+            }
+
+            // Check endpoints
+            // Case 1: C and D both within line AB
+            // A =========== C ----------- D ========= B or
+            //     -- create line segments AC and DB
+            if ((C.X > A.X) && (C.X < B.X) && (D.X > A.X) && (D.X < B.X))
+            {
+                overlap_case = 1;
+            }
+
+            // Case 2: C within and D is not within AB
+            // A =========== C ----------- B --------- D or
+            //     -- create line segment AC and move B to D
+            if ((C.X > A.X) && (C.X < B.X) && (D.X > A.X) && (D.X > B.X))
+            {
+                overlap_case = 2;
+            }
+
+            // Case 3: C is not within and D is within AB
+            // A =========== D ----------- B --------- C or
+            //     -- create line segment AD and move B to C
+            if ((C.X > A.X) && (C.X > B.X) && (D.X > A.X) && (D.X < B.X))
+            {
+                overlap_case = 3;
+            }
+
+            // Case 4: Both C and D are outside AB
+            // C ----------- D   A ========= B or
+            // A =========== B   C ---------- D  
+            //     -- create line AB
+            if (((C.X < A.X) && (C.X < B.X) && (D.X < A.X) && (D.X < B.X)) ||
+                ((C.X > A.X) && (C.X > B.X) && (D.X > A.X) && (D.X > B.X))
+                )
+            {
+                overlap_case = 4;
+            }
+
+            return overlap_case;
         }
     }
 }
