@@ -5,12 +5,12 @@ using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
 
-namespace EE_AutoCADUtilities
+namespace EE_Analyzer.Utilities
 {
-    public class DrawObject
+    public static class DrawObject
     {
         [CommandMethod("EEPLine")]
-        public void DrawPLine()
+        public static void DrawPLine()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -52,7 +52,7 @@ namespace EE_AutoCADUtilities
         }
 
         [CommandMethod("EEArc")]
-        public void DrawArc()
+        public static void DrawArc()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -91,7 +91,7 @@ namespace EE_AutoCADUtilities
         }
 
         [CommandMethod("EECircle")]
-        public void DrawCircle()
+        public static void DrawEECircle()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -101,24 +101,7 @@ namespace EE_AutoCADUtilities
             {
                 try
                 {
-                    BlockTable bt;
-                    bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-
-                    BlockTableRecord btr;
-                    btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-                    // Specify the MText parameters (e.g. Textstring, insertionPoint)
-                    edt.WriteMessage("Drawing a Circle object!");
-                    Point3d centerPt = new Point3d(100, 100, 0);
-                    double circleRadius = 100.0;
-                    using (Circle circle = new Circle())
-                    {
-                        circle.Radius = circleRadius;
-                        circle.Center = centerPt;
-
-                        btr.AppendEntity(circle);
-                        trans.AddNewlyCreatedDBObject(circle, true);
-                    }
+                    DrawCircle(new Point3d(100, 100, 0), 100);
                     trans.Commit();
                 }
                 catch (System.Exception ex)
@@ -130,7 +113,7 @@ namespace EE_AutoCADUtilities
         }
 
         [CommandMethod("EEMtext")]
-        public void DrawMText()
+        public static void DrawMText()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -172,7 +155,7 @@ namespace EE_AutoCADUtilities
         }
 
         [CommandMethod("EELine")]
-        public void DrawLine()
+        public static void DrawLine()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -203,6 +186,45 @@ namespace EE_AutoCADUtilities
                 catch (System.Exception ex)
                 {
                     edt.WriteMessage("Error encountered: " + ex.Message);
+                    trans.Abort();
+                }
+            }
+        }
+
+        public static void DrawCircle(Point3d centerPt, double circleRadius)
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor edt = doc.Editor;
+
+            if (centerPt == null || circleRadius <= 0)
+                throw new System.Exception("\nInvalid data received at DrawCircle");
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                try
+                {
+                    BlockTable bt;
+                    bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+
+                    BlockTableRecord btr;
+                    btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                    // Specify the MText parameters (e.g. Textstring, insertionPoint)
+                    edt.WriteMessage("Drawing a Circle object at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z);
+                    using (Circle circle = new Circle())
+                    {
+                        circle.Radius = circleRadius;
+                        circle.Center = centerPt;
+
+                        btr.AppendEntity(circle);
+                        trans.AddNewlyCreatedDBObject(circle, true);
+                    }
+                    trans.Commit();
+                }
+                catch (System.Exception ex)
+                {
+                    edt.WriteMessage("Error encountered drawing circle at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z + ex.Message);
                     trans.Abort();
                 }
             }
