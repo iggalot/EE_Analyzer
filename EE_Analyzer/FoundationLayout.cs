@@ -14,7 +14,6 @@ using static EE_Analyzer.Utilities.PolylineObjects;
 using static EE_Analyzer.Utilities.LineObjects;
 using static EE_Analyzer.Utilities.DrawObject;
 
-
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using EE_Analyzer.Models;
 using EE_Analyzer.Utilities;
@@ -41,20 +40,12 @@ namespace EE_Analyzer
         // Default tolerance
         private const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal
 
-        // Default layers
-        private const string DEFAULT_FDN_BOUNDINGBOX_LAYER = "_EE_FDN_BOUNDINGBOX"; // Contains the bounding box 
-        private const string DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER = "_EE_FDN_PERIMETER";  // Contains the polyline for the perimeter of the foundation
-        private const string DEFAULT_FDN_BEAMS_LAYER = "_EE_FDN_BEAMS"; // For the untrimmed ribs of the foundation
-        private const string DEFAULT_FDN_BEAMS_TRIMMED_LAYER = "_EE_FDN_BEAMS_TRIMMED";
-        private const string DEFAULT_FDN_BEAM_STRANDS_LAYER = "_EE_FDN_BEAM_STRANDS";
-        private const string DEFAULT_FDN_SLAB_STRANDS_LAYER = "_EE_FDN_SLAB_STRANDS";
-        private const string DEFAULT_FDN_TEXTS_LAYER = "_EE_FDN_TEXT";
-        private const string DEFAULT_FDN_DIMENSIONS_LAYER = "_EE_FDN_DIMENSIONS";
-        private const string DEFAULT_FDN_ANNOTATION_LAYER = "_EE_FDN_ANNOTATION_LAYER"; // for notes and markers
 
         // Data storage Entities
         private static List<Line> BeamLines { get; set; } = new List<Line>();
         private static List<Polyline> StrandLines { get; set; } = new List<Polyline>();
+
+        // Stores the untrimmed grade beams for the foundation
         private static List<GradeBeamModel> lstInteriorGradeBeamsUntrimmed { get; set; } = new List<GradeBeamModel>();
         private static List<GradeBeamModel> lstInteriorGradeBeamsTrimmed { get; set; } = new List<GradeBeamModel>();
 
@@ -145,6 +136,7 @@ namespace EE_Analyzer
             }
             #endregion
 
+
             #region Draw Foundation Perimeter Beam
             // TODO:  Return a GradeBeam object for the foundation perimeter?
             //////////////////////////////////////////////////////
@@ -154,42 +146,46 @@ namespace EE_Analyzer
             doc.Editor.WriteMessage("\nDrawing foundation perimeter beam");
             DrawFoundationPerimeterBeam(db, doc, Beam_X_Width);
             doc.Editor.WriteMessage("\nDrawing foundation perimeter beam completed");
-
-            
-            // Find the intersection of the longest edges of the perimeter beam in both vertical and horizontal direction
-            // and use that point as our basis point for drawing the interior gridlines.
-            var longestSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, true);
-            Point3d insPoint1 = new Point3d(longestSegmentPoints[0].X, longestSegmentPoints[0].Y, 0);
-            DrawCircle(insPoint1, 30);
-            edt.WriteMessage("\n-Longest horizontal segment at :" + insPoint1.X.ToString() + ", " + insPoint1.Y.ToString() + ", " + insPoint1.Z.ToString());
-
-            longestSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, false);
-            Point3d insPoint2 = new Point3d(longestSegmentPoints[0].X, longestSegmentPoints[0].Y, 0);
-            DrawCircle(insPoint2, 30);
-            edt.WriteMessage("\n-Longest vertical segment at :" + insPoint2.X.ToString() + ", " + insPoint2.Y.ToString() + ", " + insPoint2.Z.ToString());
-
-            FDN_GRADE_BEAM_BASIS_POINT = new Point3d(insPoint2.X, insPoint1.Y, 0);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 30);
-            edt.WriteMessage("\n-Intersection of longest segments at :" + FDN_GRADE_BEAM_BASIS_POINT.X.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Y.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Z.ToString());
-
-
             #endregion
 
+            #region Find the Insert Point the GradeBeams
+            doc.Editor.WriteMessage("\nGet grade beam insert point");
+            FDN_GRADE_BEAM_BASIS_POINT = FindGradeBeamInsertPoint(db, doc);
+
+            // Add a marker for this point.
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 30);
+            doc.Editor.WriteMessage("\n-Intersection of longest segments at :" + FDN_GRADE_BEAM_BASIS_POINT.X.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Y.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Z.ToString());
+
+            doc.Editor.WriteMessage("\nGrade beam insert point computed succssfully");
+            #endregion
+            
             #region Draw Untrimmed Grade Beams
-            // TODO: Improve algorithm for selection of starting point.  Currently starts at lower left of bounding box.
-            // First draw the horizontal grade beams
             doc.Editor.WriteMessage("\nDrawing interior grade beams");
-            // draw horizontal grade beams
-            DrawFoundationInteriorGradeBeamsHorizontalUntrimmed(db, doc, FDN_GRADE_BEAM_BASIS_POINT, Beam_X_Width, Beam_X_Spacing, Beam_X_Depth);
-            // draw vertical grade beams
-            DrawFoundationInteriorGradeBeamsVerticalUntrimmed(db, doc, FDN_GRADE_BEAM_BASIS_POINT, Beam_Y_Width, Beam_Y_Spacing, Beam_Y_Depth);
+
+            // draw horizontal and vertical grade beams
+            DrawUntrimmedFoundationInteriorGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
+            DrawUntrimmedFoundationInteriorGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
+            
             doc.Editor.WriteMessage("\nDrawing Interior grade beams completed.");
             #endregion
+
+
+
+
 
             #region Trim Grade Beam Lines
 
             // Trim the line to the physical edge of the slab (not the limits rectangle)
             //Line trimmedCenterLine = TrimLineToPolyline(centerLine, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+
+            //// Find the intersection sorted intersection points
+            //Point3d[] sorted_points;
+
+            //// Mark intersection with a Circle
+            //foreach (Point3d pt in sorted_points)
+            //{
+            //    DrawCircle(pt, 20);
+            //}
 
             #endregion
 
@@ -216,57 +212,38 @@ namespace EE_Analyzer
         }
 
         /// <summary>
-        /// Creates the grade beam object in AutoCAD and creates our GradeBeamModel object
+        /// Algorithm to find the insert point for drawing the grade beam grid.  
+        /// Currently finds the intersection of the longest line segments. Default will be the lower left corner of the bounding box
+        /// Other options can be added for different decision making here.
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        /// <param name="p1">start point of centerline</param>
-        /// <param name="p2">end point of centerline</param>
-        /// <param name="width">width of the beam</param>
-        /// <param name="depth">depth of the beam</param>
-        /// <param name="bt"></param>
-        /// <param name="btr"></param>
-        private static void DrawGradeBeamUntrimmed(Database db, Document doc, Point3d p1, Point3d p2, double width, double depth, BlockTable bt, BlockTableRecord btr)
+        private static Point3d FindGradeBeamInsertPoint(Database db, Document doc)
         {
-            using (Transaction trans = db.TransactionManager.StartTransaction())
+            try
             {
-                try
-                {
-                    Line centerLine = new Line(p1, p2);
+                // Find the intersection of the longest edges of the perimeter beam in both vertical and horizontal direction
+                // and use that point as our basis point for drawing the interior gridlines.
+                // Finds the longest horizontal segement on the polyline
+                var longestSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, true);
+                Point3d insPoint1 = new Point3d(longestSegmentPoints[0].X, longestSegmentPoints[0].Y, 0);
+                //DrawCircle(insPoint1, 30);
+                doc.Editor.WriteMessage("\n-Longest horizontal segment at :" + insPoint1.X.ToString() + ", " + insPoint1.Y.ToString() + ", " + insPoint1.Z.ToString());
 
-                    //ln.ColorIndex = 1;  // Color is red
-                    centerLine.Linetype = "CENTERX2";
-                    centerLine.Layer = DEFAULT_FDN_BEAMS_LAYER;
-                    btr.AppendEntity(centerLine);
-                    trans.AddNewlyCreatedDBObject(centerLine, true);
+                // Finds the longest vertical segment on the poyline
+                longestSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, false);
+                Point3d insPoint2 = new Point3d(longestSegmentPoints[0].X, longestSegmentPoints[0].Y, 0);
+                //DrawCircle(insPoint2, 30);
+                doc.Editor.WriteMessage("\n-Longest vertical segment at :" + insPoint2.X.ToString() + ", " + insPoint2.Y.ToString() + ", " + insPoint2.Z.ToString());
 
-                    // Add boundaries of our beams
-                    // edge 1
-                    Line edge1 = OffsetLine(centerLine, width * 0.5, bt, btr) as Line;
-                    MoveLineToLayer(edge1, DEFAULT_FDN_BEAMS_LAYER);
-                    LineSetLinetype(edge1, "HIDDENX2");
-                    // edge 2
-                    Line edge2 = OffsetLine(centerLine, -width * 0.5, bt, btr) as Line;
-                    MoveLineToLayer(edge2, DEFAULT_FDN_BEAMS_LAYER);
-                    LineSetLinetype(edge2, "HIDDENX2");
+                return new Point3d(insPoint2.X, insPoint1.Y, 0);
+            }
+            catch (System.Exception ex)
+            {
+                doc.Editor.WriteMessage("\nError encountered finding the grade beam grid insertion point: " + ex.Message);
 
-                    // Create our GradeBeamModel
-                    GradeBeamModel model = new GradeBeamModel(p1, p2, width, depth);
-                    model.Centerline = centerLine;
-                    model.Edge1 = edge1;
-                    model.Edge2 = edge2;
-                    // and add it to our untrimmed list
-                    lstInteriorGradeBeamsUntrimmed.Add(model);
-
-                    // commit the transaction
-                    trans.Commit();
-
-                } catch (System.Exception ex)
-                {
-                    doc.Editor.WriteMessage("\nError encountered in drawing grade beam function: " + ex.Message);
-                    trans.Abort();
-                    return;
-                }
+                // Otherwise return the lower left of the bounding box
+                return new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z);
             }
         }
 
@@ -276,113 +253,11 @@ namespace EE_Analyzer
         /// <param name="spa"></param>
         /// <param name="width"></param>
         /// <param name="max_beams"></param>
-        private static void DrawFoundationInteriorGradeBeamsHorizontalUntrimmed(Database db, Document doc, Point3d basis, double width, double spacing, double depth)
+        private static void DrawUntrimmedFoundationInteriorGradeBeams(Database db, Document doc, Point3d basis, bool isHorizontal)
+//            double width, double spacing, double depth)
         {
-
-            var bbox_points = GetVertices(FDN_BOUNDARY_BOX);
-
-            if(bbox_points is null || (bbox_points.Count != 4))
-            {
-                throw new System.Exception("\nFoundation bounding box must have four points");
-            }
-
-
-
-            // grade beams to the upper boundary box horizontal edge
-            int count = 0;
-            while (basis.Y + (count * spacing) < bbox_points[1].Y)
-            {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
-                {
-                    try
-                    {
-                        BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                        BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-                        Point3d p1 = new Point3d(bbox_points[0].X, basis.Y + (count * spacing), 0);
-                        Point3d p2 = new Point3d(bbox_points[3].X, basis.Y + (count * spacing), 0);
-
-                        if(p1 == p2)
-                        {
-                            doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping grade beam here.");
-                            continue;
-                        }
-                        // reverse the points so the smallest X is on the left
-                        if (p1.X > p2.X)
-                        {
-                            Point3d temp = p1;
-                            p1 = p2;
-                            p2 = temp;
-
-                        } 
-                        DrawGradeBeamUntrimmed(db, doc, p1, p2, Beam_X_Width, Beam_X_Depth, bt, btr);
-
-                        trans.Commit();
-                    }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered - drawing grade beams: " + ex.Message);
-                        trans.Abort();
-                        return;
-                    }
-
-                    count++;
-                }
-            }
-
-            // grade beams to the lower boundary box horizontal edge
-            count = 0;
-            while (basis.Y - (count * spacing) > bbox_points[0].Y)
-            {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
-                {
-                    try
-                    {
-                        BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                        BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-                        Point3d p1 = new Point3d(bbox_points[0].X, basis.Y - (count * spacing), 0);
-                        Point3d p2 = new Point3d(bbox_points[3].X, basis.Y - (count * spacing), 0);
-
-                        if (p1 == p2)
-                        {
-                            doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping grade beam here.");
-                            continue;
-                        }
-                        // reverse the points so the smallest X is on the left
-                        if (p1.X > p2.X)
-                        {
-                            Point3d temp = p1;
-                            p1 = p2;
-                            p2 = temp;
-
-                        }
-                        DrawGradeBeamUntrimmed(db, doc, p1, p2, Beam_X_Width, Beam_X_Depth, bt, btr);
-
-                        trans.Commit();
-                    }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered - drawing grade beams: " + ex.Message);
-                        trans.Abort();
-                        return;
-                    }
-
-                    count++;
-                }
-            }
-        }
-
-
-        /// <summary>
-        /// Draws the interior grade beam
-        /// </summary>
-        /// <param name="spa"></param>
-        /// <param name="width"></param>
-        /// <param name="max_beams"></param>
-        private static void DrawFoundationInteriorGradeBeamsVerticalUntrimmed(Database db, Document doc, Point3d basis, double width, double spacing, double depth)
-        {
-
+            double width, spacing, depth;
+            // retrieve the bounding box
             var bbox_points = GetVertices(FDN_BOUNDARY_BOX);
 
             if (bbox_points is null || (bbox_points.Count != 4))
@@ -390,93 +265,124 @@ namespace EE_Analyzer
                 throw new System.Exception("\nFoundation bounding box must have four points");
             }
 
-            int count = 0;
-            // grade beams to the right edge of the boundary box horizontal edge
-            // offset the first beam by half a beam width
-            while (basis.X + (count * Beam_Y_Spacing) < bbox_points[3].X)
+            if (isHorizontal is true)
             {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
+                width = Beam_X_Width;
+                spacing = Beam_X_Spacing;
+                depth = Beam_X_Depth;
+
+                // grade beams to the upper boundary box horizontal edge
+                int count = 0;
+                while (basis.Y + (count * spacing) < bbox_points[1].Y)
                 {
-                    try
+                    Point3d p1 = new Point3d(bbox_points[0].X, basis.Y + (count * spacing), 0);
+                    Point3d p2 = new Point3d(bbox_points[3].X, basis.Y + (count * spacing), 0);
+
+                    if (p1 == p2)
                     {
-                        BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                        BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-                        Point3d p1 = new Point3d(basis.X + (count * Beam_Y_Spacing), bbox_points[0].Y, 0);
-                        Point3d p2 = new Point3d(basis.X + (count * Beam_Y_Spacing), bbox_points[1].Y, 0);
-
-                        if (p1 == p2)
-                        {
-                            doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping grade beam here.");
-                            continue;
-                        }
-                        // reverse the points so the smallest Y is at the bottom
-                        if (p1.Y > p2.Y)
-                        {
-                            Point3d temp = p1;
-                            p1 = p2;
-                            p2 = temp;
-
-                        }
-                        DrawGradeBeamUntrimmed(db, doc, p1, p2, Beam_Y_Width, Beam_Y_Depth, bt, btr);
-
-                        trans.Commit();
-
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping horizontal grade beam here.");
+                        continue;
                     }
-                    catch (System.Exception ex)
+                    // reverse the points so the smallest X is on the left
+                    if (p1.X > p2.X)
                     {
-                        doc.Editor.WriteMessage("\nError encountered - drawing grade beams: " + ex.Message);
-                        trans.Abort();
-                        return;
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
                     }
+
+                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
 
                     count++;
                 }
-            }
 
-            count = 0;
-            // grade beams to the left edge of the boundary box horizontal edge
-            // offset the first beam by half a beam width
-            while (basis.X - (count * Beam_Y_Spacing) > bbox_points[0].X)
-            {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
+                count = 0;
+                while (basis.Y - (count * spacing) > bbox_points[0].Y)
                 {
-                    try
+                    Point3d p1 = new Point3d(bbox_points[0].X, basis.Y - (count * spacing), 0);
+                    Point3d p2 = new Point3d(bbox_points[3].X, basis.Y - (count * spacing), 0);
+
+                    if (p1 == p2)
                     {
-                        BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                        BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-                        Point3d p1 = new Point3d(basis.X - (count * Beam_Y_Spacing), bbox_points[0].Y, 0);
-                        Point3d p2 = new Point3d(basis.X - (count * Beam_Y_Spacing), bbox_points[1].Y, 0);
-
-                        if (p1 == p2)
-                        {
-                            doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping grade beam here.");
-                            continue;
-                        }
-                        // reverse the points so the smallest Y is at the bottom
-                        if (p1.Y > p2.Y)
-                        {
-                            Point3d temp = p1;
-                            p1 = p2;
-                            p2 = temp;
-
-                        }
-                        DrawGradeBeamUntrimmed(db, doc, p1, p2, Beam_Y_Width, Beam_Y_Depth, bt, btr);
-
-                        trans.Commit();
-
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping horizontal grade beam here.");
+                        continue;
                     }
-                    catch (System.Exception ex)
+                    // reverse the points so the smallest X is on the left
+                    if (p1.X > p2.X)
                     {
-                        doc.Editor.WriteMessage("\nError encountered - drawing grade beams: " + ex.Message);
-                        trans.Abort();
-                        return;
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
                     }
+
+                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
 
                     count++;
                 }
+            } 
+            else
+            {
+                // for vertical beams
+                width = Beam_Y_Width;
+                spacing = Beam_Y_Spacing;
+                depth = Beam_Y_Depth;
+
+                int count = 0;
+                while (basis.X + (count * spacing) < bbox_points[3].X)
+                {
+                    Point3d p1 = new Point3d(basis.X + (count * spacing), bbox_points[0].Y, 0);
+                    Point3d p2 = new Point3d(basis.X + (count * spacing), bbox_points[1].Y, 0);
+
+                    if (p1 == p2)
+                    {
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping vertical grade beam here.");
+                        continue;
+                    }
+                    // reverse the points so the smallest Y is on the bottom
+                    if (p1.Y > p2.Y)
+                    {
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
+                    }
+
+                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
+
+                    count++;
+                }
+
+                count = 0;
+                while (basis.X - (count * spacing) > bbox_points[0].X)
+                {
+                    Point3d p1 = new Point3d(basis.X - (count * spacing), bbox_points[0].Y, 0);
+                    Point3d p2 = new Point3d(basis.X - (count * spacing), bbox_points[1].Y, 0);
+
+                    if (p1 == p2)
+                    {
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping vertical grade beam here.");
+                        continue;
+                    }
+                    // reverse the points so the smallest Y is on the bottom
+                    if (p1.Y > p2.Y)
+                    {
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
+                    }
+
+                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
+
+                    count++;
+                }
+
             }
+
+            // Now add the grade beam entities to the drawing
+            foreach (GradeBeamModel beam in lstInteriorGradeBeamsUntrimmed)
+            {
+                beam.AddToAutoCADDatabase(db, doc);
+            }
+
         }
 
         /// <summary>
@@ -498,19 +404,19 @@ namespace EE_Analyzer
 
                     // Redraw the perimeter beam
                     doc.Editor.WriteMessage("\nCreating perimeter beam outer edge line.");
-                    MovePolylineToLayer(FDN_PERIMETER_POLYLINE, DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
+                    MovePolylineToLayer(FDN_PERIMETER_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
                     PolylineSetLinetype(FDN_PERIMETER_POLYLINE, "CONTINUOUS", bt, btr);
 
                     // Draw the perimeter beam centerline
                     doc.Editor.WriteMessage("\nCreating perimeter beam center line.");
                     FDN_PERIMETER_CENTERLINE_POLYLINE = OffsetPolyline(FDN_PERIMETER_POLYLINE, beam_x_width * 0.5, bt, btr);
-                    MovePolylineToLayer(FDN_PERIMETER_CENTERLINE_POLYLINE, DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
+                    MovePolylineToLayer(FDN_PERIMETER_CENTERLINE_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
                     PolylineSetLinetype(FDN_PERIMETER_CENTERLINE_POLYLINE, "CENTER", bt, btr);
 
                     // Offset the perimeter polyline and move it to its appropriate layer
                     doc.Editor.WriteMessage("\nCreating perimeter beam inner edge line.");
                     FDN_PERIMETER_INTERIOR_EDGE_POLYLINE = OffsetPolyline(FDN_PERIMETER_POLYLINE, beam_x_width, bt, btr);
-                    MovePolylineToLayer(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
+                    MovePolylineToLayer(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
                     PolylineSetLinetype(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, "HIDDEN", bt, btr);
 
                     trans.Commit();
@@ -661,7 +567,7 @@ namespace EE_Analyzer
                     pl.ColorIndex = 140; // cyan color
 
                     // assign the layer
-                    pl.Layer = DEFAULT_FDN_BOUNDINGBOX_LAYER;
+                    pl.Layer = EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER;
 
                     // Set the default properties
                     pl.SetDatabaseDefaults();
@@ -700,15 +606,15 @@ namespace EE_Analyzer
             LoadLineTypes("HIDDEN2", doc, db);
 
             // Create our layers
-            CreateLayer(DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db, 4); // cyan
-            CreateLayer(DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, doc, db, 3); // cyan
-            CreateLayer(DEFAULT_FDN_BEAMS_LAYER, doc, db, 1); // red
-            CreateLayer(DEFAULT_FDN_BEAMS_TRIMMED_LAYER, doc, db, 140); // blue
-            CreateLayer(DEFAULT_FDN_BEAM_STRANDS_LAYER, doc, db, 3);  // green
-            CreateLayer(DEFAULT_FDN_SLAB_STRANDS_LAYER, doc, db, 2);  // yellow
-            CreateLayer(DEFAULT_FDN_TEXTS_LAYER, doc, db, 3); // yellow
-            CreateLayer(DEFAULT_FDN_DIMENSIONS_LAYER, doc, db, 2); // yellow
-            CreateLayer(DEFAULT_FDN_ANNOTATION_LAYER, doc, db, 1); // yellow
+            CreateLayer(EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db, 4); // cyan
+            CreateLayer(EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, doc, db, 3); // cyan
+            CreateLayer(EE_Settings.DEFAULT_FDN_BEAMS_LAYER, doc, db, 1); // red
+            CreateLayer(EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER, doc, db, 140); // blue
+            CreateLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_LAYER, doc, db, 3);  // green
+            CreateLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_Settings.DEFAULT_FDN_TEXTS_LAYER, doc, db, 3); // yellow
+            CreateLayer(EE_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db, 2); // yellow
+            CreateLayer(EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db, 1); // yellow
         }
 
 
@@ -798,7 +704,7 @@ namespace EE_Analyzer
                     mtx.TextHeight = 4;
                     mtx.ColorIndex = 2;
 
-                    mtx.Layer = DEFAULT_FDN_TEXTS_LAYER;
+                    mtx.Layer = EE_Settings.DEFAULT_FDN_TEXTS_LAYER;
 
                     mtx.Rotation = angle;
 

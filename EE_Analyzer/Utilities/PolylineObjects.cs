@@ -109,7 +109,6 @@ namespace EE_Analyzer.Utilities
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-            ed.WriteMessage("\nIn MovePolylineToLayer() function.");
             // Start a transaction
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -120,9 +119,6 @@ namespace EE_Analyzer.Utilities
                     if (!lt.Has(layer_name))
                     {
                         ed.WriteMessage("\nLayer [" + layer_name + " not found in MovePolylineToLayer");
-                    } else
-                    {
-                        ed.WriteMessage("\nLayer was found.  Attempting to move object!");
                     }
 
                     // Get the layer's id and use it

@@ -16,7 +16,7 @@ namespace EE_Analyzer.Utilities
         /// </summary>
         /// <param name="pline">polyline object to offset</param>
         /// <param name="offset_dist">"+" makes the object bigger and "-" makes it smaller</param>
-        public static Line OffsetLine(Line line, double offset_dist, BlockTable bt, BlockTableRecord btr)
+        public static Line OffsetLine(Line line, double offset_dist)
         {
             // Get the current document and database
             Document doc = Application.DocumentManager.MdiActiveDocument;
@@ -30,6 +30,9 @@ namespace EE_Analyzer.Utilities
             // Start a transaction
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
+                BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
                 try
                 {
                     objCollection = line.GetOffsetCurves(offset_dist);
@@ -107,19 +110,23 @@ namespace EE_Analyzer.Utilities
 
                     if (!lt.Has(layer_name))
                     {
-                        ed.WriteMessage("\nLayer [" + layer_name + " not found in MovePolylineToLayer");
+                        ed.WriteMessage("\nLayer [" + layer_name + " not found in MoveLineToLayer");
                     }
 
                     // Get the layer's id and use it
                     ObjectId lid = lt[layer_name];
 
-                    obj.LayerId = lid;
+                    //obj.LayerId = lid;
+                    Entity ent = trans.GetObject(obj.Id, OpenMode.ForWrite) as Entity;
+                    ent.LayerId = lid;
 
                     trans.Commit();
+
+                    ed.WriteMessage("\n-- Line [" + obj.Handle.ToString() + "] successfully moved to layer [" + layer_name + "]");
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("Error moving polyline [" + obj.Handle.ToString() + "] to [" + layer_name + "]: " + ex.Message);
+                    doc.Editor.WriteMessage("\nError moving line [" + obj.Handle.ToString() + "] to [" + layer_name + "]");
                     trans.Abort();
                 }
             }
@@ -137,31 +144,52 @@ namespace EE_Analyzer.Utilities
             {
                 try
                 {
-                    // Open the BlockTable for read
-                    BlockTable bt;
-                    bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-
-                    // Open the block table record Modelspace for write
-                    BlockTableRecord btr;
-                    btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
                     LinetypeTable lt = trans.GetObject(db.LinetypeTableId, OpenMode.ForRead) as LinetypeTable;
 
                     if (!lt.Has(linetype_name))
                     {
-                        ed.WriteMessage("\nLinetype [" + linetype_name + " not found in PolylineSetLinetype");
+                        ed.WriteMessage("\nLinetype [" + linetype_name + " not found in LineSetLinetype");
                     }
 
-                    obj.LinetypeId = lt[linetype_name];
+                    ObjectId ltid = lt[linetype_name];
+                    //obj.LinetypeId = lt[linetype_name];
 
+                    //obj.LayerId = lid;
+                    Entity ent = trans.GetObject(obj.Id, OpenMode.ForWrite) as Entity;
+                    ent.LinetypeId = ltid;
+
+                    trans.Commit();
+
+                    ed.WriteMessage("\n-- Line [" + obj.Handle.ToString() + "] successfully changed to linetype [" + linetype_name + "]");
+
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("\nError changing linetypes for line [" + obj.Handle.ToString() + "] to [" + linetype_name + "]");
+                    trans.Abort();
+                }
+            }
+        }
+
+        public static Line TrimLinetoPolyline(Database db, Document doc, Polyline poly, Line ln)
+        {
+            Line line = new Line();
+
+            // Start a transaction
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                try
+                {
                     trans.Commit();
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError changing linetypes for polyline [" + obj.Handle.ToString() + "] to [" + linetype_name + "]");
+                    doc.Editor.WriteMessage("\nError trimming line [" + ln.Handle.ToString() + "] to to polyline [" + poly.Handle.ToString() + "]");
                     trans.Abort();
                 }
             }
+
+            return line;
         }
 
     }
