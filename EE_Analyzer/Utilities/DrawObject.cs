@@ -27,7 +27,7 @@ namespace EE_Analyzer.Utilities
                     btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                     // Specify the polyline parameters 
-                    edt.WriteMessage("Drawing a polyline object!");
+                    edt.WriteMessage("\nDrawing a polyline object!");
                     Polyline pl = new Polyline();
                     pl.AddVertexAt(0, new Point2d(0, 0), 0, 0, 0);
                     pl.AddVertexAt(1, new Point2d(10, 10), 0, 0, 0);
@@ -211,7 +211,7 @@ namespace EE_Analyzer.Utilities
                     btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                     // Specify the MText parameters (e.g. Textstring, insertionPoint)
-                    edt.WriteMessage("Drawing a Circle object at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z);
+                    edt.WriteMessage("\nDrawing a Circle object at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z);
                     using (Circle circle = new Circle())
                     {
                         circle.Radius = circleRadius;

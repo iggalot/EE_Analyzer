@@ -111,6 +111,8 @@ namespace EE_Analyzer.Utilities
                     if (!lt.Has(layer_name))
                     {
                         ed.WriteMessage("\nLayer [" + layer_name + " not found in MoveLineToLayer");
+                        throw new System.Exception("Layer [" + layer_name + "] not currently loaded");
+
                     }
 
                     // Get the layer's id and use it
@@ -122,7 +124,7 @@ namespace EE_Analyzer.Utilities
 
                     trans.Commit();
 
-                    ed.WriteMessage("\n-- Line [" + obj.Handle.ToString() + "] successfully moved to layer [" + layer_name + "]");
+                    //ed.WriteMessage("\n-- Line [" + obj.Handle.ToString() + "] successfully moved to layer [" + layer_name + "]");
                 }
                 catch (System.Exception ex)
                 {
@@ -149,6 +151,7 @@ namespace EE_Analyzer.Utilities
                     if (!lt.Has(linetype_name))
                     {
                         ed.WriteMessage("\nLinetype [" + linetype_name + " not found in LineSetLinetype");
+                        throw new System.Exception("Linetype [" + linetype_name + "] not currently loaded");
                     }
 
                     ObjectId ltid = lt[linetype_name];
@@ -160,7 +163,7 @@ namespace EE_Analyzer.Utilities
 
                     trans.Commit();
 
-                    ed.WriteMessage("\n-- Line [" + obj.Handle.ToString() + "] successfully changed to linetype [" + linetype_name + "]");
+                    //ed.WriteMessage("\n-- Line [" + obj.Handle.ToString() + "] successfully changed to linetype [" + linetype_name + "]");
 
                 }
                 catch (System.Exception ex)

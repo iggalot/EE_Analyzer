@@ -35,7 +35,7 @@ namespace EE_Analyzer.Utilities
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
 
-            doc.Editor.WriteMessage("offsetting foundation line by: " + offset_dist);
+           // doc.Editor.WriteMessage("offsetting foundation line by: " + offset_dist);
 
             Polyline newPline = new Polyline();
             DBObjectCollection objCollection;
@@ -119,6 +119,7 @@ namespace EE_Analyzer.Utilities
                     if (!lt.Has(layer_name))
                     {
                         ed.WriteMessage("\nLayer [" + layer_name + " not found in MovePolylineToLayer");
+                        throw new System.Exception("Layer [" + layer_name + "] not currently loaded");
                     }
 
                     // Get the layer's id and use it
@@ -130,7 +131,7 @@ namespace EE_Analyzer.Utilities
 
                     trans.Commit();
 
-                    ed.WriteMessage("\n-- Polyline [" + obj.Handle.ToString() + "] successfully moved to layer [" + layer_name + "]");
+                    //ed.WriteMessage("\n-- Polyline [" + obj.Handle.ToString() + "] successfully moved to layer [" + layer_name + "]");
                 }
                 catch (System.Exception ex)
                 {
@@ -157,6 +158,7 @@ namespace EE_Analyzer.Utilities
                     if (!lt.Has(linetype_name))
                     {
                         ed.WriteMessage("\nLinetype [" + linetype_name + " not found in PolylineSetLinetype");
+                        throw new System.Exception("Linetype [" + linetype_name + "] not currently loaded");
                     }
 
                     ObjectId ltid = lt[linetype_name];
@@ -168,7 +170,7 @@ namespace EE_Analyzer.Utilities
 
                     trans.Commit();
 
-                    ed.WriteMessage("\n-- Polyline [" + obj.Handle.ToString() + "] successfully changed to linetype [" + linetype_name + "]");
+                    //ed.WriteMessage("\n-- Polyline [" + obj.Handle.ToString() + "] successfully changed to linetype [" + linetype_name + "]");
 
                 }
                 catch (System.Exception ex)

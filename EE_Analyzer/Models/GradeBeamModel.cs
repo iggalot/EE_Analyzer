@@ -15,16 +15,16 @@ namespace EE_Analyzer.Models
         private Vector3d vDirection { get; set; } = new Vector3d(1, 0, 0);
 
         // Depth of the grade beam
-        private double Depth { get; set; }
+        public double Depth { get; set; }
 
         // Width of the grade beam
-        private double Width { get; set; }
+        public double Width { get; set; }
 
         // Start point for the grade beam
-        private Point3d StartPt { get; set; }
+        public Point3d StartPt { get; set; }
 
         // End point for the grade beam
-        private Point3d EndPt { get; set; }
+        public Point3d EndPt { get; set; }
 
         private Point3d TagEnd { get; set; }
 
@@ -65,14 +65,12 @@ namespace EE_Analyzer.Models
             BeamNum = _beamNum++;  // update the grade beam number
         }
 
-
-
         /// <summary>
         /// Creates the grade beam object in AutoCAD and creates our GradeBeamModel object
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public void AddToAutoCADDatabase(Database db, Document doc)
+        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name = EE_Settings.DEFAULT_FDN_BEAMS_LAYER)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -82,9 +80,8 @@ namespace EE_Analyzer.Models
                 try
                 {
                     try {
-                        MoveLineToLayer(Centerline, EE_Settings.DEFAULT_FDN_BEAMS_LAYER);
+                        MoveLineToLayer(Centerline, layer_name);
                         LineSetLinetype(Centerline, "CENTERX2");
-                        //btr.AppendEntity(Centerline);
                     }
                     catch (System.Exception ex)
                     {
@@ -93,14 +90,11 @@ namespace EE_Analyzer.Models
                         return;
                     }
 
-                    //trans.AddNewlyCreatedDBObject(Centerline, true);
                     try
                     {
                         // edge 1
-                        MoveLineToLayer(Edge1, EE_Settings.DEFAULT_FDN_BEAMS_LAYER);
+                        MoveLineToLayer(Edge1, layer_name);
                         LineSetLinetype(Edge1, "HIDDENX2");
-                        //btr.AppendEntity(Edge1);
-                        //trans.AddNewlyCreatedDBObject(Edge1, true);
                     }
                     catch (System.Exception ex)
                     {
@@ -112,10 +106,8 @@ namespace EE_Analyzer.Models
                     // edge 2
                     try
                     {
-                        MoveLineToLayer(Edge2, EE_Settings.DEFAULT_FDN_BEAMS_LAYER);
+                        MoveLineToLayer(Edge2, layer_name);
                         LineSetLinetype(Edge2, "HIDDENX2");
-                        //btr.AppendEntity(Edge2);
-                        //trans.AddNewlyCreatedDBObject(Edge2, true);
                     }
                     catch (System.Exception ex)
                     {

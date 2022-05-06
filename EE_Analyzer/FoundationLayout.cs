@@ -163,17 +163,71 @@ namespace EE_Analyzer
             doc.Editor.WriteMessage("\nDrawing interior grade beams");
 
             // draw horizontal and vertical grade beams
-            DrawUntrimmedFoundationInteriorGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
-            DrawUntrimmedFoundationInteriorGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
+            CreateUntrimmedGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
+            CreateUntrimmedGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
             
-            doc.Editor.WriteMessage("\nDrawing Interior grade beams completed.");
+            doc.Editor.WriteMessage("\nDrawing Interior grade beams completed. " + lstInteriorGradeBeamsUntrimmed.Count + " grade beams created.");
+
             #endregion
 
 
-
-
-
             #region Trim Grade Beam Lines
+            int numVerts = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.NumberOfVertices;
+
+            foreach (GradeBeamModel beam in lstInteriorGradeBeamsUntrimmed)
+            {
+                int point_count = 0;
+
+                List<Point3d> points = new List<Point3d>();
+
+                for (int i = 0; i < numVerts; i++)
+                {
+                    // Get the untrimmed end points of the beam centerline
+                    Point3d b1 = beam.Centerline.StartPoint;
+                    Point3d b2 = beam.Centerline.EndPoint;
+
+                    // Get the ends of the current polyline segment
+                    Point3d p1 = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.GetPoint3dAt(i % numVerts);
+                    Point3d p2 = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.GetPoint3dAt((i + 1) % numVerts);
+                    double dist = MathHelpers.Distance3DBetween(p1, p2);
+
+                    Point3d intPt;
+                    intPt = FindPointOfIntersectLines_FromPoint3d(b1, b2, p1, p2);
+
+                    // If the distance from the intPt to both p1 and P2 is less than the distance between p1 and p2
+                    // the intPT must be between P1 and P2 
+                    if((MathHelpers.Distance3DBetween(intPt, p1) <= dist) && MathHelpers.Distance3DBetween(intPt, p2) <= dist)
+                    {
+                        points.Add(intPt);
+                        point_count++;
+                    }
+                }
+
+                // Now iterate through the list of points and draw new grade beams between them, subdividing as necessary.
+                // TODO:  Perform subdivision.
+                for (int j = 0; j < points.Count - 1; j = j + 2)
+                {
+                    // Mark the intersection points
+                    DrawCircle(points[j], 30);
+                    DrawCircle(points[j + 1], 30);
+                    lstInteriorGradeBeamsTrimmed.Add(new GradeBeamModel(points[j], points[j + 1], beam.Width, beam.Depth));
+                }
+                edt.WriteMessage("\n" + point_count.ToString() + " intersection points found");
+
+            }
+
+            doc.Editor.WriteMessage("\nPolyline has " + numVerts.ToString() + " vertices!");
+
+            edt.WriteMessage("\n" + lstInteriorGradeBeamsUntrimmed.Count + " grade beams untrimmed");
+            edt.WriteMessage("\n" + lstInteriorGradeBeamsTrimmed.Count + " grade beams trimmed");
+
+
+
+            // Now draw the new beams
+            foreach (GradeBeamModel model in lstInteriorGradeBeamsTrimmed)
+            {
+                model.AddToAutoCADDatabase(db, doc, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+            }
 
             // Trim the line to the physical edge of the slab (not the limits rectangle)
             //Line trimmedCenterLine = TrimLineToPolyline(centerLine, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
@@ -248,13 +302,15 @@ namespace EE_Analyzer
         }
 
         /// <summary>
-        /// Draws the interior grade beam
+        /// Draws the interior grade beam based on the basis point and the foundation boundary box.
+        /// These lines will be trimmed to the perimeter beam in a subsequent step.
         /// </summary>
-        /// <param name="spa"></param>
-        /// <param name="width"></param>
-        /// <param name="max_beams"></param>
-        private static void DrawUntrimmedFoundationInteriorGradeBeams(Database db, Document doc, Point3d basis, bool isHorizontal)
-//            double width, double spacing, double depth)
+        /// <param name="db"></param>
+        /// <param name="doc"></param>
+        /// <param name="basis">The basis point for the grade beam grid as <see cref="Point3d"/></param>
+        /// <param name="isHorizontal"></param>
+        /// <exception cref="System.Exception"></exception>
+        private static void CreateUntrimmedGradeBeams(Database db, Document doc, Point3d basis, bool isHorizontal)
         {
             double width, spacing, depth;
             // retrieve the bounding box
@@ -296,7 +352,7 @@ namespace EE_Analyzer
                     count++;
                 }
 
-                count = 0;
+                count = 1;  // start at 1 here to avoid double drawing the first beam
                 while (basis.Y - (count * spacing) > bbox_points[0].Y)
                 {
                     Point3d p1 = new Point3d(bbox_points[0].X, basis.Y - (count * spacing), 0);
@@ -315,7 +371,7 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
+                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, depth));
 
                     count++;
                 }
@@ -346,12 +402,12 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
+                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, depth));
 
                     count++;
                 }
 
-                count = 0;
+                count = 1;
                 while (basis.X - (count * spacing) > bbox_points[0].X)
                 {
                     Point3d p1 = new Point3d(basis.X - (count * spacing), bbox_points[0].Y, 0);
@@ -374,7 +430,6 @@ namespace EE_Analyzer
 
                     count++;
                 }
-
             }
 
             // Now add the grade beam entities to the drawing
