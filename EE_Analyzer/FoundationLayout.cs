@@ -136,7 +136,6 @@ namespace EE_Analyzer
             }
             #endregion
 
-
             #region Draw Foundation Perimeter Beam
             // TODO:  Return a GradeBeam object for the foundation perimeter?
             //////////////////////////////////////////////////////
@@ -150,6 +149,7 @@ namespace EE_Analyzer
 
             #region Find the Insert Point the GradeBeams
             doc.Editor.WriteMessage("\nGet grade beam insert point");
+            // TODO:  Bug in finding this point.  Does not find same point if the foundation is rotated?
             FDN_GRADE_BEAM_BASIS_POINT = FindGradeBeamInsertPoint(db, doc);
 
             // Add a marker for this point.
@@ -172,20 +172,22 @@ namespace EE_Analyzer
 
 
             #region Trim Grade Beam Lines
+            doc.Editor.WriteMessage("\nTrimming " + lstInteriorGradeBeamsUntrimmed.Count + " interior grade beams");
+
             int numVerts = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.NumberOfVertices;
 
             foreach (GradeBeamModel beam in lstInteriorGradeBeamsUntrimmed)
             {
                 int point_count = 0;
+                
+                // Get the untrimmed end points of the beam centerline
+                Point3d b1 = beam.Centerline.StartPoint;
+                Point3d b2 = beam.Centerline.EndPoint;
 
                 List<Point3d> points = new List<Point3d>();
 
                 for (int i = 0; i < numVerts; i++)
                 {
-                    // Get the untrimmed end points of the beam centerline
-                    Point3d b1 = beam.Centerline.StartPoint;
-                    Point3d b2 = beam.Centerline.EndPoint;
-
                     // Get the ends of the current polyline segment
                     Point3d p1 = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.GetPoint3dAt(i % numVerts);
                     Point3d p2 = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.GetPoint3dAt((i + 1) % numVerts);
@@ -203,14 +205,43 @@ namespace EE_Analyzer
                     }
                 }
 
-                // Now iterate through the list of points and draw new grade beams between them, subdividing as necessary.
-                // TODO:  Perform subdivision.
-                for (int j = 0; j < points.Count - 1; j = j + 2)
+                // Sort the points list 
+                // Sort the collection of points into an array sorted from descending to ascending
+                Point3d[] sorted_points;
+
+                // If the point is horizontal
+                if (Math.Abs(points[1].Y - points[0].Y) < DEFAULT_HORIZONTAL_TOLERANCE)
                 {
-                    // Mark the intersection points
-                    DrawCircle(points[j], 30);
-                    DrawCircle(points[j + 1], 30);
-                    lstInteriorGradeBeamsTrimmed.Add(new GradeBeamModel(points[j], points[j + 1], beam.Width, beam.Depth));
+                    //edt.WriteMessage("\nBeam " + beamCount + " is horizontal");
+                    sorted_points = sortPoint3dListByHorizontally(points);
+                }
+                // Otherwise it is vertical
+                else
+                {
+                    //edt.WriteMessage("\nBeam " + beamCount + " is vertical");
+                    sorted_points = sortPoint3dListByVertically(points);
+                }
+
+                if(sorted_points is null)
+                {
+                    throw new System.Exception("\nError sorting the intersection points in TrimLines method.");
+                }
+
+                for (int j = 0; j < sorted_points.Length - 1; j = j + 2)
+                {
+                    try{
+                        // Mark the intersection points
+                        DrawCircle(sorted_points[j], 30);
+                        DrawCircle(sorted_points[j + 1], 30);
+                        lstInteriorGradeBeamsTrimmed.Add(new GradeBeamModel(sorted_points[j], sorted_points[j + 1], beam.Width, beam.Depth));
+                    } catch (System.Exception e)
+                    {
+                        doc.Editor.WriteMessage("Error creating grade beam at " + sorted_points[j].X + ", " + sorted_points[j + 1].Y);
+                        DrawCircle(sorted_points[j], 50);
+                        DrawCircle(sorted_points[j], 40);
+                        DrawCircle(sorted_points[j], 60);
+                    }
+
                 }
                 edt.WriteMessage("\n" + point_count.ToString() + " intersection points found");
 
@@ -220,8 +251,6 @@ namespace EE_Analyzer
 
             edt.WriteMessage("\n" + lstInteriorGradeBeamsUntrimmed.Count + " grade beams untrimmed");
             edt.WriteMessage("\n" + lstInteriorGradeBeamsTrimmed.Count + " grade beams trimmed");
-
-
 
             // Now draw the new beams
             foreach (GradeBeamModel model in lstInteriorGradeBeamsTrimmed)
@@ -234,12 +263,7 @@ namespace EE_Analyzer
 
             //// Find the intersection sorted intersection points
             //Point3d[] sorted_points;
-
-            //// Mark intersection with a Circle
-            //foreach (Point3d pt in sorted_points)
-            //{
-            //    DrawCircle(pt, 20);
-            //}
+            doc.Editor.WriteMessage("\nDrawing Trimmed grade beams completed. " + lstInteriorGradeBeamsTrimmed.Count + " grade beams created.");
 
             #endregion
 
@@ -264,6 +288,37 @@ namespace EE_Analyzer
             #region Additional Steel
             #endregion
         }
+
+        /// <summary>
+        /// Takes a Point3DCollection and sorts the points from left to right and bottom to top and returns
+        /// an Point3d[]
+        /// </summary>
+        /// <param name="edt">AutoCAD editor object (for messaging)</param>
+        /// <param name="points">A <see cref="Points3dCollection"/> of points </param>
+        /// <returns>An array of Points3d[]</returns>
+        private static Point3d[] SortIntersectionPoint3DArray(Point3dCollection points)
+        {
+            // Sort the collection of points into an array sorted from descending to ascending
+            Point3d[] sorted_points = new Point3d[points.Count];
+
+            // If the point is horizontal
+            if (Math.Abs(points[1].Y - points[0].Y) < DEFAULT_HORIZONTAL_TOLERANCE)
+            {
+                //edt.WriteMessage("\nBeam " + beamCount + " is horizontal");
+                sorted_points = sortPoint3dByHorizontally(points);
+            }
+            // Otherwise it is vertical
+            else
+            {
+                //edt.WriteMessage("\nBeam " + beamCount + " is vertical");
+                sorted_points = sortPoint3dByVertically(points);
+            }
+
+            return sorted_points;
+        }
+
+
+
 
         /// <summary>
         /// Algorithm to find the insert point for drawing the grade beam grid.  

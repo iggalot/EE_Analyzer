@@ -2,6 +2,7 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using System;
+using System.Collections.Generic;
 
 namespace EE_Analyzer.Utilities
 {
@@ -33,6 +34,56 @@ namespace EE_Analyzer.Utilities
                 for (int i = 0; i < coll.Count - 1; i++)
                 {
                     if (sort_arr[i].X > sort_arr[i + 1].X)
+                    {
+                        temp = sort_arr[i + 1];
+                        sort_arr[i + 1] = sort_arr[i];
+                        sort_arr[i] = temp;
+                    }
+                }
+            }
+            return sort_arr;
+        }
+
+        /// <summary>
+        /// Sort an array of point3d[] by X value from smallest X to largest X
+        /// </summary>
+        /// <param name="arr"></param>
+        /// <returns></returns>
+        public static Point3d[] sortPoint3dListByHorizontally(List<Point3d> lst)
+        {
+            Point3d[] sort_arr = lst.ToArray();
+            Point3d temp;
+
+            for (int j = 0; j < lst.Count - 1; j++)
+            {
+                for (int i = 0; i < lst.Count - 1; i++)
+                {
+                    if (sort_arr[i].X > sort_arr[i + 1].X)
+                    {
+                        temp = sort_arr[i + 1];
+                        sort_arr[i + 1] = sort_arr[i];
+                        sort_arr[i] = temp;
+                    }
+                }
+            }
+            return sort_arr;
+        }
+
+        /// <summary>
+        /// Sort an array of point3d[] by X value from smallest Y to largest Y
+        /// </summary>
+        /// <param name="arr"></param>
+        /// <returns></returns>
+        public static Point3d[] sortPoint3dListByVertically(List<Point3d> lst)
+        {
+            Point3d[] sort_arr = lst.ToArray();
+            Point3d temp;
+
+            for (int j = 0; j < lst.Count - 1; j++)
+            {
+                for (int i = 0; i < lst.Count - 1; i++)
+                {
+                    if (sort_arr[i].Y > sort_arr[i + 1].Y)
                     {
                         temp = sort_arr[i + 1];
                         sort_arr[i + 1] = sort_arr[i];
