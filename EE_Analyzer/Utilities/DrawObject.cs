@@ -211,7 +211,7 @@ namespace EE_Analyzer.Utilities
                     btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                     // Specify the MText parameters (e.g. Textstring, insertionPoint)
-                    edt.WriteMessage("\nDrawing a Circle object at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z);
+                    //edt.WriteMessage("\nDrawing a Circle object at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z);
                     using (Circle circle = new Circle())
                     {
                         circle.Radius = circleRadius;

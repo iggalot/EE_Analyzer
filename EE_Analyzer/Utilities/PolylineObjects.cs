@@ -271,29 +271,23 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        public static Point2d[] FindLongestSegmentOnPolyline(Polyline pline, bool isHorizontal, double tol=0.01)
+        public static Point3d[] FindLongestSegmentOnPolyline(Polyline pline, bool isHorizontal, double tol=0.01)
         {
-            Point2d[] points = new Point2d[2];
-
+            Point3d[] points = new Point3d[2];
             int numVertices = pline.NumberOfVertices;
 
             if(numVertices < 2)
             {
-                MessageBox.Show("Polyline must have more than two vertices");
-                points[0] = new Point2d(0, 0);
-                points[1] = new Point2d(0, 0);
+                throw new System.Exception("Polyline must have at least two vertices");
             }
-
-            points[0] = pline.GetPoint2dAt(0);
-            points[1] = pline.GetPoint2dAt(0);
 
             double max_length = 0.0;
 
             for (int i = 0; i < numVertices; i++)
             {
-                Point2d p1 = pline.GetPoint2dAt(i % numVertices);
-                Point2d p2 = pline.GetPoint2dAt((i + 1) % numVertices);
-                var length = MathHelpers.Distance2DBetween(p1, p2);
+                Point3d p1 = pline.GetPoint3dAt(i % numVertices);
+                Point3d p2 = pline.GetPoint3dAt((i + 1) % numVertices);
+                var length = MathHelpers.Distance3DBetween(p1, p2);
 
                 // do current and next have same Y-coord?
                 if (isHorizontal)
@@ -320,6 +314,12 @@ namespace EE_Analyzer.Utilities
                         }
                     }
                 }
+            }
+
+            // Check to make sure we found a non-zero length
+            if(max_length == 0.0) 
+            {
+                throw new System.Exception("Polyline segment lengths all returned a zero value");
             }
 
             return points;

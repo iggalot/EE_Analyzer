@@ -38,6 +38,8 @@ namespace EE_Analyzer.Models
         // AutoCAD polyline object for the plan view of edge two
         public Line Edge2 { get; set; } = null;
 
+        public StrandModel StrandInfo { get; set; } = null;
+
         // The index number for the grade beam
         private int BeamNum { get; set; }
 
@@ -115,6 +117,9 @@ namespace EE_Analyzer.Models
                         trans.Abort();
                         return;
                     }
+
+                    // Add the strand info
+                    StrandInfo.AddToAutoCADDatabase(db, doc);
 
                     // commit the transaction
                     trans.Commit();

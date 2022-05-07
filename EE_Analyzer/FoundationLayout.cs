@@ -17,6 +17,7 @@ using static EE_Analyzer.Utilities.DrawObject;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using EE_Analyzer.Models;
 using EE_Analyzer.Utilities;
+using System.Windows;
 
 namespace EE_Analyzer
 {
@@ -43,11 +44,14 @@ namespace EE_Analyzer
 
         // Data storage Entities
         private static List<Line> BeamLines { get; set; } = new List<Line>();
-        private static List<Polyline> StrandLines { get; set; } = new List<Polyline>();
 
         // Stores the untrimmed grade beams for the foundation
         private static List<GradeBeamModel> lstInteriorGradeBeamsUntrimmed { get; set; } = new List<GradeBeamModel>();
         private static List<GradeBeamModel> lstInteriorGradeBeamsTrimmed { get; set; } = new List<GradeBeamModel>();
+
+        // Stores the strand info for the foundation
+        private static List<StrandModel> SlabStrandLines { get; set; } = new List<StrandModel>();
+        private static List<StrandModel> BeamStrandLines { get; set; } = new List<StrandModel>();
 
 
         #region PTI Slab Data Values
@@ -94,10 +98,10 @@ namespace EE_Analyzer
             int max_beams = 75;  // define the maximum number of beams in a given direction -- in case we get into an infinite loop situation.
 
             // Get our AutoCAD API objects
-            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor edt = doc.Editor;
-
+            
             #region Application Setup
             // Set up layers and linetypes and AutoCAD drawings items
             EE_ApplicationSetup(doc, db);
@@ -149,11 +153,23 @@ namespace EE_Analyzer
 
             #region Find the Insert Point the GradeBeams
             doc.Editor.WriteMessage("\nGet grade beam insert point");
-            // TODO:  Bug in finding this point.  Does not find same point if the foundation is rotated?
             FDN_GRADE_BEAM_BASIS_POINT = FindGradeBeamInsertPoint(db, doc);
+
+            // Check that the basis point isn't outside of foundation polyline.  If it is, set it to the lower left corner of the boundary box.
+            // TODO:  Figure out why this can happen sometime.  Possible the intersection point test is the cause?
+            if((FDN_GRADE_BEAM_BASIS_POINT.X < FDN_BOUNDARY_BOX.GetPoint2dAt(0).X) ||
+                (FDN_GRADE_BEAM_BASIS_POINT.X > FDN_BOUNDARY_BOX.GetPoint2dAt(3).X) ||
+                (FDN_GRADE_BEAM_BASIS_POINT.Y < FDN_BOUNDARY_BOX.GetPoint2dAt(0).Y) ||
+                (FDN_GRADE_BEAM_BASIS_POINT.Y < FDN_BOUNDARY_BOX.GetPoint2dAt(3).Y))
+            {
+                FDN_GRADE_BEAM_BASIS_POINT = FDN_BOUNDARY_BOX.GetPoint3dAt(0);
+                MessageBox.Show("Moving basis point to the lower left corner of the bounding box");
+            }
 
             // Add a marker for this point.
             DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 30);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 40);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 50);
             doc.Editor.WriteMessage("\n-Intersection of longest segments at :" + FDN_GRADE_BEAM_BASIS_POINT.X.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Y.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Z.ToString());
 
             doc.Editor.WriteMessage("\nGrade beam insert point computed succssfully");
@@ -169,7 +185,6 @@ namespace EE_Analyzer
             doc.Editor.WriteMessage("\nDrawing Interior grade beams completed. " + lstInteriorGradeBeamsUntrimmed.Count + " grade beams created.");
 
             #endregion
-
 
             #region Trim Grade Beam Lines
             doc.Editor.WriteMessage("\nTrimming " + lstInteriorGradeBeamsUntrimmed.Count + " interior grade beams");
@@ -206,19 +221,17 @@ namespace EE_Analyzer
                 }
 
                 // Sort the points list 
-                // Sort the collection of points into an array sorted from descending to ascending
+                // Sort the collection of points into an array sorted from descending to ascending X and Y values
                 Point3d[] sorted_points;
 
                 // If the point is horizontal
                 if (Math.Abs(points[1].Y - points[0].Y) < DEFAULT_HORIZONTAL_TOLERANCE)
                 {
-                    //edt.WriteMessage("\nBeam " + beamCount + " is horizontal");
                     sorted_points = sortPoint3dListByHorizontally(points);
                 }
                 // Otherwise it is vertical
                 else
                 {
-                    //edt.WriteMessage("\nBeam " + beamCount + " is vertical");
                     sorted_points = sortPoint3dListByVertically(points);
                 }
 
@@ -334,18 +347,19 @@ namespace EE_Analyzer
                 // Find the intersection of the longest edges of the perimeter beam in both vertical and horizontal direction
                 // and use that point as our basis point for drawing the interior gridlines.
                 // Finds the longest horizontal segement on the polyline
-                var longestSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, true);
-                Point3d insPoint1 = new Point3d(longestSegmentPoints[0].X, longestSegmentPoints[0].Y, 0);
-                //DrawCircle(insPoint1, 30);
-                doc.Editor.WriteMessage("\n-Longest horizontal segment at :" + insPoint1.X.ToString() + ", " + insPoint1.Y.ToString() + ", " + insPoint1.Z.ToString());
+                Point3d[] longestHorizontalSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, true);
+                Point3d[] longestVerticalSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, false);
 
-                // Finds the longest vertical segment on the poyline
-                longestSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, false);
-                Point3d insPoint2 = new Point3d(longestSegmentPoints[0].X, longestSegmentPoints[0].Y, 0);
-                //DrawCircle(insPoint2, 30);
-                doc.Editor.WriteMessage("\n-Longest vertical segment at :" + insPoint2.X.ToString() + ", " + insPoint2.Y.ToString() + ", " + insPoint2.Z.ToString());
+                if(longestHorizontalSegmentPoints.Length != 2 && longestVerticalSegmentPoints.Length != 2)
+                {
+                    throw new System.Exception("Invalid number of points for polyline segments.  Horizontal has " +
+                        longestHorizontalSegmentPoints.Length.ToString() + " and Vertical has " + longestVerticalSegmentPoints.Length.ToString());
+                }
 
-                return new Point3d(insPoint2.X, insPoint1.Y, 0);
+                Point3d intPt = FindPointOfIntersectLines_FromPoint3d(
+                    longestHorizontalSegmentPoints[0], longestHorizontalSegmentPoints[1], 
+                    longestVerticalSegmentPoints[0], longestVerticalSegmentPoints[1]);
+                return intPt;
             }
             catch (System.Exception ex)
             {
@@ -402,7 +416,11 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    lstInteriorGradeBeamsUntrimmed.Add(beam);
+                    StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
+                    beam.StrandInfo = strand;
+                    BeamStrandLines.Add(strand);
 
                     count++;
                 }
@@ -426,7 +444,11 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, depth));
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    lstInteriorGradeBeamsUntrimmed.Add(beam);
+                    StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
+                    beam.StrandInfo = strand;
+                    BeamStrandLines.Add(strand);
 
                     count++;
                 }
@@ -459,6 +481,12 @@ namespace EE_Analyzer
 
                     lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, depth));
 
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    lstInteriorGradeBeamsUntrimmed.Add(beam);
+                    StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
+                    beam.StrandInfo = strand;
+                    BeamStrandLines.Add(strand);
+
                     count++;
                 }
 
@@ -481,7 +509,11 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    lstInteriorGradeBeamsUntrimmed.Add(new GradeBeamModel(p1, p2, width, spacing));
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    lstInteriorGradeBeamsUntrimmed.Add(beam);
+                    StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
+                    beam.StrandInfo = strand;
+                    BeamStrandLines.Add(strand);
 
                     count++;
                 }

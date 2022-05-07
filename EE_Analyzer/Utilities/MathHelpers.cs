@@ -50,5 +50,13 @@ namespace EE_Analyzer.Utilities
             Vector3d v = new Vector3d(p2.X - p1.X, p2.Y - p1.Y, p2.Z - p1.Z);
             return Magnitude(v);
         }
+
+        public static Point2d Point2dTransformByAngle(Point2d p1, double angle)
+        {
+            double vx = p1.X * Math.Cos(angle) + p1.Y * Math.Sin(angle);
+            double vy = -p1.X * Math.Sin(angle) + p1.Y * Math.Cos(angle);
+
+            return new Point2d(vx, vy);
+        }
     }
 }
