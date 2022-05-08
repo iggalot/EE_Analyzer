@@ -46,13 +46,13 @@ namespace EE_Analyzer.Models
 
             Length = MathHelpers.Distance3DBetween(start, end);
 
-            string str = "";
+            string str = Qty + "x ";
             if (isBeamStrand)
             {
                 str += "B";
             }
 
-            Label = str + "S" + (Math.Ceiling(Length * 10).ToString());
+            Label = str + "S" + (Math.Ceiling(Length * 10 / 12).ToString());
         }
 
         public void AddToAutoCADDatabase(Database db, Document doc, string layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_LAYER)
@@ -139,13 +139,18 @@ namespace EE_Analyzer.Models
                     pl.AddVertexAt(0, pt1, 0, icon_thickness, icon_thickness);
 
                     // Specify the polyline parameters 
-                    for (int i = 0; i < Qty; i++)
+                    for (int i = 0; i < 2 * Qty; i++)
                     {
-                        Point2d pt2 = new Point2d(EndPt.X + (i + 1) * icon_size * Math.Cos(angle_reverse), EndPt.Y + (i + 1) * icon_size * Math.Sin(angle_reverse));
-                        pl.AddVertexAt(i + 1, pt2, 0, icon_thickness, icon_thickness);
+                        Point2d pt2 = new Point2d(EndPt.X + (i + 1) * (0.8 * icon_size) * Math.Cos(angle_reverse), EndPt.Y + (i + 1) * (0.8 * icon_size) * Math.Sin(angle_reverse));
+                        if (i % 2 != 0)
+                        {
+                            pl.AddVertexAt(i + 1, pt2, 0, icon_thickness, icon_thickness);
+                        }
+                        else
+                        {
+                            pl.AddVertexAt(i + 1, pt2, 0, 0, 0);
+                        }
                     }
-
-                    //pl.Closed = true;
 
                     // assign the layer
                     if (IsBeamStrand)
@@ -193,8 +198,9 @@ namespace EE_Analyzer.Models
                 try
                 {
                     mtx.Contents = Label;
-                    mtx.Location = insPt;
-                    mtx.TextHeight = 30;
+                    mtx.Location = new Point3d(insPt.X + Math.Sin(angle) * 0.8 * icon_size, insPt.Y - Math.Cos(angle) * 0.8 * icon_size, 0);
+                  //  mtx.Location = insPt;
+                    mtx.TextHeight = 0.75 * icon_size;
 
                     mtx.Layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_LAYER;
 
@@ -202,6 +208,8 @@ namespace EE_Analyzer.Models
 
                     btr.AppendEntity(mtx);
                     trans.AddNewlyCreatedDBObject(mtx, true);
+
+                    trans.Commit();
                 }
                 catch (System.Exception ex)
                 {
