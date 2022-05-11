@@ -113,12 +113,31 @@ namespace EE_Analyzer.Utilities
         }
 
         [CommandMethod("EEMtext")]
-        public static void DrawMText()
+        public static void DrawMTextTest()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
-            Editor edt = doc.Editor;
 
+            doc.Editor.WriteMessage("Drawing MText object.");
+
+            Point3d insPt = new Point3d(200, 200, 0);
+            string txt = "Hello AutoCAD from C#!";
+
+            DrawMtext(db, doc, insPt, txt, 10.0, "0", 0.0);
+        }
+
+        /// <summary>
+        /// Utility function to draw mtext
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="doc"></param>
+        /// <param name="pt"></param>
+        /// <param name="txt"></param>
+        /// <param name="size"></param>
+        /// <param name="layer"></param>
+        /// <param name="rot"></param>
+        public static void DrawMtext(Database db, Document doc, Point3d pt, string txt, double size, string layer, double rot = 0.0)
+        {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 try
@@ -129,16 +148,13 @@ namespace EE_Analyzer.Utilities
                     BlockTableRecord btr;
                     btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
-
-                    // Specify the MText parameters (e.g. Textstring, insertionPoint)
-                    edt.WriteMessage("Drawing MText object.");
-
-                    string txt = "Hello AutoCAD from C#!";
-                    Point3d insPt = new Point3d(200, 200, 0);
                     using (MText mtx = new MText())
                     {
+                        mtx.Location = pt;
                         mtx.Contents = txt;
-                        mtx.Location = insPt;
+                        mtx.Rotation = rot;
+                        mtx.TextHeight = size;
+                        mtx.Layer = layer;
 
                         btr.AppendEntity(mtx);
                         trans.AddNewlyCreatedDBObject(mtx, true);
@@ -148,7 +164,7 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    edt.WriteMessage("Error encountered: " + ex.Message);
+                    doc.Editor.WriteMessage("Error encountered creating MText: " + ex.Message);
                     trans.Abort();
                 }
             }

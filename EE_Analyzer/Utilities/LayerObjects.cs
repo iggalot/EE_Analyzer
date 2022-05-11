@@ -72,6 +72,45 @@ namespace EE_Analyzer.Utilities
             }
         }
 
+        // Creates the necessary layers
+        public static void HideLayer(string name, Document doc, Database db)
+        {
+            string layerName = name;
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                LayerTable layTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
+
+                try
+                {
+                    if (layTable.Has(name))
+                    {
+                        // Upgrade the layer table for write
+                        layTable.UpgradeOpen();
+
+                        LayerTableRecord ltr = trans.GetObject(layTable[name], OpenMode.ForWrite) as LayerTableRecord;
+                        ltr.IsOff = true;
+
+                        doc.Editor.WriteMessage("\nLayer [" + name + "] is hidden.");
+
+                        trans.Commit();
+                    }
+                    else
+                    {
+                        doc.Editor.WriteMessage("\nLayer [" + name + "] does not exist.");
+
+                        trans.Abort();
+                    }
+
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("Error hiding layer [" + name + "]: " + ex.Message);
+                    trans.Abort();
+                }
+            }
+        }
+
 
     }
 }
