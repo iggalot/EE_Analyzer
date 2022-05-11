@@ -4,6 +4,8 @@ using Autodesk.AutoCAD.Geometry;
 using EE_Analyzer.Utilities;
 using System;
 using static EE_Analyzer.Utilities.LineObjects;
+using static EE_Analyzer.Utilities.EE_Helpers;
+
 
 namespace EE_Analyzer.Models
 {
@@ -44,13 +46,43 @@ namespace EE_Analyzer.Models
         // The index number for the grade beam
         public int BeamNum { get; set; }
 
+        public bool IsTrimmed { get; set; } = false;
+
         private string Label { get; } = "GB" + _beamNum.ToString();
 
-        public GradeBeamModel(Point3d start, Point3d end, double width = 12.0, double depth = 24.0)
+        public GradeBeamModel(Point3d start, Point3d end, Polyline boundary, int num_strands, bool is_trimmed, double width = 12.0, double depth = 24.0)
         {
             // Set basic info
-            StartPt = start;
-            EndPt = end;
+
+            // swap the start point and end point based on lowest X then lowest Y
+            bool shouldSwap = false;
+            if (start.X > end.X)
+            {
+                shouldSwap = true;
+            }
+            else if (start.X == end.X)
+            {
+                if (start.Y > end.Y)
+                {
+                    shouldSwap = true;
+                }
+            }
+            else
+            {
+                shouldSwap = false;
+            }
+
+            if (shouldSwap is true)
+            {
+                StartPt = end;
+                EndPt = start;
+            }
+            else
+            {
+                StartPt = start;
+                EndPt = end;
+            }
+
             Width = width;
             Depth = depth;
 
@@ -65,6 +97,9 @@ namespace EE_Analyzer.Models
             Edge1 = OffsetLine(Centerline, width * 0.5) as Line;
             Edge2 = OffsetLine(Centerline, -width * 0.5) as Line;
 
+            StrandInfo = new StrandModel(Centerline.StartPoint, Centerline.EndPoint, num_strands, true, is_trimmed);
+            IsTrimmed = is_trimmed;
+
             BeamNum = _beamNum++;  // update the grade beam number
         }
 
@@ -73,8 +108,10 @@ namespace EE_Analyzer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
+        public void AddToAutoCADDatabase(Database db, Document doc)
         {
+            string layer_name = GetDrawingLayer();
+
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -132,8 +169,7 @@ namespace EE_Analyzer.Models
                 try
                 {
                     // Add the strand info
-                    doc.Editor.WriteMessage("\nAdding Strand Info for Strand #" + StrandInfo.Id);
-                    StrandInfo.AddToAutoCADDatabase(db, doc, layer_name);
+                    StrandInfo.AddToAutoCADDatabase(db, doc);
                 }
                 catch (System.Exception ex)
                 {
@@ -185,6 +221,25 @@ namespace EE_Analyzer.Models
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Retrieves the necessary layer name for the strands being drawn
+        /// </summary>
+        /// <returns></returns>
+        private string GetDrawingLayer()
+        {
+            string strand_layer = "";
+            if (IsTrimmed == true)
+            {
+                strand_layer = EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
+            }
+            else
+            {
+                strand_layer = EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER;
+            }
+
+            return strand_layer;
         }
     }
 }

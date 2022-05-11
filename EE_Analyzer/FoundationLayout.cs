@@ -177,57 +177,27 @@ namespace EE_Analyzer
             doc.Editor.WriteMessage("\nGrade beam insert point computed succssfully");
             #endregion
             
-            #region Draw Untrimmed Grade Beams
-            doc.Editor.WriteMessage("\nDrawing interior grade beams");
+            #region Draw Untrimmed Grade Beams and Beam Strands
+            doc.Editor.WriteMessage("\nDrawing untrimmed interior grade beams");
 
             // draw horizontal and vertical grade beams
             CreateUntrimmedGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
             CreateUntrimmedGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
             
-            doc.Editor.WriteMessage("\nDrawing Interior grade beams completed. " + lstInteriorGradeBeamsUntrimmed.Count + " grade beams created.");
+            doc.Editor.WriteMessage("\n-- Completed drawing Interior grade beams. " + lstInteriorGradeBeamsUntrimmed.Count + " grade beams created.");
 
             #endregion
 
-            #region Trim Grade Beam Lines
-            doc.Editor.WriteMessage("\nTrimming " + lstInteriorGradeBeamsUntrimmed.Count + " interior grade beams");
+            #region Trim Grade Beam and Beam Strand Lines
+            doc.Editor.WriteMessage("\nDrawing trimmed " + lstInteriorGradeBeamsUntrimmed.Count + " interior grade beams");
 
             CreateTrimmedGradeBeams(db, doc, lstInteriorGradeBeamsUntrimmed);
 
-            edt.WriteMessage("\n" + lstInteriorGradeBeamsUntrimmed.Count + " grade beams untrimmed");
-            edt.WriteMessage("\n" + lstInteriorGradeBeamsTrimmed.Count + " grade beams trimmed");
-
-            // Now draw the new beams
-            doc.Editor.WriteMessage("\nDraw trimmed grade beams");
-            foreach (GradeBeamModel model in lstInteriorGradeBeamsTrimmed)
-            {
-                try
-                {
-                    doc.Editor.WriteMessage("\n-- Adding trimmed grade beam #" + model.BeamNum.ToString());
-                    model.AddToAutoCADDatabase(db, doc, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                } catch (System.Exception e)
-                {
-                    doc.Editor.WriteMessage("\nError adding adding trimmed grade beam to AutoCAD database: " + e.Message);
-                }
-            }
-            doc.Editor.WriteMessage("\n-- Completed drawing trimmed grade beams");
-
-
-            // Trim the line to the physical edge of the slab (not the limits rectangle)
-            //Line trimmedCenterLine = TrimLineToPolyline(centerLine, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
-
-            //// Find the intersection sorted intersection points
-            //Point3d[] sorted_points;
-            doc.Editor.WriteMessage("\nDrawing Trimmed grade beams completed. " + lstInteriorGradeBeamsTrimmed.Count + " grade beams created.");
+            doc.Editor.WriteMessage("\n-- Completed drawing trimmed grade beams. " + lstInteriorGradeBeamsTrimmed.Count + " grade beams created.");
 
             #endregion
 
-            #region Draw Strands
-            #endregion
-
-            #region Draw Beam Labels
-            #endregion
-
-            #region Draw Strand Labels
+            #region Draw Slab Strands
             #endregion
 
             #region Bill of Materials
@@ -309,19 +279,19 @@ namespace EE_Analyzer
                     longestSegmentPoints[0], longestSegmentPoints[1],
                     longestSegmentPoints[2], longestSegmentPoints[3]);
 
-                DrawCircle(longestSegmentPoints[0], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                DrawCircle(longestSegmentPoints[1], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                DrawCircle(longestSegmentPoints[2], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                DrawCircle(longestSegmentPoints[3], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                //DrawCircle(longestSegmentPoints[0], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                //DrawCircle(longestSegmentPoints[1], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                //DrawCircle(longestSegmentPoints[2], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                //DrawCircle(longestSegmentPoints[3], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
 
                 if (intPt != null)
                 {
-                    MessageBox.Show("Found a basis point");
+                    //MessageBox.Show("Found a basis point");
                     basis_pt = intPt;
                 }
                 else
                 {
-                    MessageBox.Show("Basis point was null.  Using default.");
+                    //MessageBox.Show("Basis point was null.  Using default.");
                     basis_pt = default_basis_pt;
                 }
             }
@@ -364,6 +334,8 @@ namespace EE_Analyzer
                 int count = 0;
                 while (basis.Y + (count * spacing) < bbox_points[1].Y)
                 {
+                    int num_strands = Beam_X_Strand_Qty;
+
                     Point3d p1 = new Point3d(bbox_points[0].X, basis.Y + (count * spacing), 0);
                     Point3d p2 = new Point3d(bbox_points[3].X, basis.Y + (count * spacing), 0);
 
@@ -380,11 +352,11 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_X_Strand_Qty, false, width, depth);
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
-                    StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
-                    beam.StrandInfo = strand;
-                    BeamStrandLines.Add(strand);
+                    //StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
+                    //beam.StrandInfo = strand;
+                    //BeamStrandLines.Add(strand);
 
                     count++;
                 }
@@ -408,11 +380,11 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_X_Strand_Qty, false, width, depth);
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
-                    StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
-                    beam.StrandInfo = strand;
-                    BeamStrandLines.Add(strand);
+                    //StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
+                    //beam.StrandInfo = strand;
+                    //BeamStrandLines.Add(strand);
 
                     count++;
                 }
@@ -443,11 +415,11 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_Y_Strand_Qty, false, width, depth);
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
-                    StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
-                    beam.StrandInfo = strand;
-                    BeamStrandLines.Add(strand);
+                    //StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
+                    //beam.StrandInfo = strand;
+                    //BeamStrandLines.Add(strand);
 
                     count++;
                 }
@@ -471,11 +443,11 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, width, depth);
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_Y_Strand_Qty, false, width, depth);
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
-                    StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
-                    beam.StrandInfo = strand;
-                    BeamStrandLines.Add(strand);
+                   // StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
+                   // beam.StrandInfo = strand;
+                   // BeamStrandLines.Add(strand);
 
                     count++;
                 }
@@ -484,9 +456,8 @@ namespace EE_Analyzer
             // Now add the grade beam entities to the drawing
             foreach (GradeBeamModel beam in lstInteriorGradeBeamsUntrimmed)
             {
-                beam.AddToAutoCADDatabase(db, doc, EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER);
+                beam.AddToAutoCADDatabase(db, doc);
             }
-
         }
 
 
@@ -496,15 +467,11 @@ namespace EE_Analyzer
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        /// <param name="basis">The basis point for the grade beam grid as <see cref="Point3d"/></param>
-        /// <param name="isHorizontal"></param>
         /// <exception cref="System.Exception"></exception>
         private static void CreateTrimmedGradeBeams(Database db, Document doc, List<GradeBeamModel> list)
         {
             int numVerts_inner = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.NumberOfVertices;
             int numVerts_outer = FDN_PERIMETER_POLYLINE.NumberOfVertices;
-
-
 
             ///////////////////////////////////////////////////////////////////
             ///  Get the trimmed grade beam intersection points with the FDN_PERIMETER_INTERIOR_EDGE_POLYLINE
@@ -512,7 +479,6 @@ namespace EE_Analyzer
             // Create new models for each of the untrimmed grade beam models
             foreach (GradeBeamModel untr_beam in list)
             {
-                int point_count = 0;
                 double width = untr_beam.Width;
                 double depth = untr_beam.Depth;
 
@@ -520,13 +486,11 @@ namespace EE_Analyzer
                 Point3d b1 = untr_beam.Centerline.StartPoint;
                 Point3d b2 = untr_beam.Centerline.EndPoint;
 
-                List<Point3d> beam_points, strand_points;
                 Point3d[] sorted_grade_beam_points = null;
                 Point3d[] sorted_strand_points = null;
 
                 try
                 {
-
                     // Get the intersection for the trimmed grade beam with the inner edge polyline
                     sorted_grade_beam_points = TrimAndSortIntersectionPoints(b1, b2, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
                     if(sorted_grade_beam_points != null)
@@ -566,20 +530,97 @@ namespace EE_Analyzer
                 }
 
                 doc.Editor.WriteMessage("\n" + sorted_grade_beam_points.Length.ToString() + " sorted beam points and " + sorted_strand_points.Length.ToString() + " sorted strand points.");
-                //doc.Editor.WriteMessage("\n" + beam_points.Count.ToString() + " beam points and " + strand_points.Count.ToString() + " strand points.");
 
                 for (int j = 0; j < sorted_grade_beam_points.Length - 1; j = j + 2)
                 {
                     try
                     {
-                        // Mark the intersection points
+                        // Mark the intersection points for the beam centerline
                         DrawCircle(sorted_grade_beam_points[j], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
                         DrawCircle(sorted_grade_beam_points[j + 1], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
 
-                        GradeBeamModel beam = new GradeBeamModel(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1], width, depth);
-                        StrandModel strand = new StrandModel(sorted_strand_points[j], sorted_strand_points[j + 1], Beam_X_Strand_Qty, true);
-                        beam.StrandInfo = strand;
-                        lstInteriorGradeBeamsTrimmed.Add(beam);
+                        // check if the grade beam is long enough for PT
+                        if (MathHelpers.Distance3DBetween(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1]) > EE_Settings.DEFAULT_DONT_DRAW_PT_LENGTH)
+                        {
+                            GradeBeamModel beam = new GradeBeamModel(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1], FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
+
+                            // Modify the trimmed edge lines of the new grade beam
+                            Point3d[] intPoints_edge1 = TrimAndSortIntersectionPoints(beam.Edge1.StartPoint, beam.Edge1.EndPoint, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+                            Point3d[] intPoints_edge2 = TrimAndSortIntersectionPoints(beam.Edge2.StartPoint, beam.Edge2.EndPoint, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+
+                            if (intPoints_edge1 != null && intPoints_edge2 != null)
+                            {
+                                if (intPoints_edge1 == intPoints_edge2)
+                                {
+                                    // Both edges of the trimmed beam are fully contained within the inner perimeter line
+                                    // So its safe to adjust their end points
+                                    // first for edge 1
+                                    using (Transaction trans = db.TransactionManager.StartTransaction())
+                                    {
+                                        try
+                                        {
+                                            BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                                            BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                                            var obj = trans.GetObject(beam.Edge1.ObjectId, OpenMode.ForRead);
+                                            var pl = obj as Line;
+
+                                            // Now let's make sure we can edit the line
+                                            pl.UpgradeOpen();
+
+                                            pl.StartPoint = intPoints_edge1[j];
+                                            pl.EndPoint = intPoints_edge1[j + 1];
+
+                                            trans.Commit();
+                                        }
+                                        catch (System.Exception ex)
+                                        {
+                                            doc.Editor.WriteMessage("\nError encountered moving Edge1 end points on trimmed grade beam #" + beam.BeamNum + ": " + ex.Message);
+                                            trans.Abort();
+                                        }
+                                    }
+
+                                    // then for edge 2
+                                    using (Transaction trans = db.TransactionManager.StartTransaction())
+                                    {
+                                        try
+                                        {
+                                            BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                                            BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                                            var obj = trans.GetObject(beam.Edge2.ObjectId, OpenMode.ForRead);
+                                            var pl = obj as Line;
+
+                                            // Now let's make sure we can edit the line
+                                            pl.UpgradeOpen();
+
+                                            pl.StartPoint = intPoints_edge2[j];
+                                            pl.EndPoint = intPoints_edge2[j + 1];
+
+                                            trans.Commit();
+                                        }
+                                        catch (System.Exception ex)
+                                        {
+                                            doc.Editor.WriteMessage("\nError encountered moving Edge2 end points on trimmed grade beam #" + beam.BeamNum + ": " + ex.Message);
+                                            trans.Abort();
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // Otherwise, one of the edge lines is outside the perimeter line so we'll just keep the grade beam as untrimmed
+                                    // i.e. do Nothing for now
+                                    // TODO:  Fix this case where one edge line is outside of the bounday while the other is not
+                                }
+
+                                lstInteriorGradeBeamsTrimmed.Add(beam);
+                            }
+                            else
+                            {
+                                doc.Editor.WriteMessage("\nGrade beam at " + sorted_grade_beam_points[j].X + " , " + sorted_grade_beam_points[j].Y + "is less than minimum [" + EE_Settings.DEFAULT_DONT_DRAW_PT_LENGTH + "] for post tensioning. Skipping grade beam here.");
+                            }
+                        }
+
                     }
                     catch (System.Exception e)
                     {
@@ -589,160 +630,23 @@ namespace EE_Analyzer
                         DrawCircle(sorted_grade_beam_points[j], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
                     }
                 }
-
-                //doc.Editor.WriteMessage("\n" + point_count.ToString() + " intersection points found");
             }
 
             // Now add the grade beam entities to the drawing
             foreach (GradeBeamModel beam in lstInteriorGradeBeamsTrimmed)
             {
-                beam.AddToAutoCADDatabase(db, doc, EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER);
-            }
-
-        }
-
-        /// <summary>
-        /// Finds all of the intersection points of a line segment crossing a closed polygon
-        /// </summary>
-        /// <param name="b1">first point on the line segment</param>
-        /// <param name="b2">second point on the line segment</param>
-        /// <param name="poly">the closed polyline to evaluate</param>
-        /// <returns>A point3d[] array of the points sorted from lowest X to highest X or from lowest Y to highest Y</returns>
-        /// <exception cref="System.Exception"></exception>
-        private static Point3d[] TrimAndSortIntersectionPoints(Point3d b1, Point3d b2, Polyline poly)
-        {
-            int numVerts = poly.NumberOfVertices;
-
-            List<Point3d> beam_points = new List<Point3d>();
-
-            for (int i = 0; i < numVerts; i++)
-            {
                 try
                 {
-                    // Get the ends of the interior current polyline segment
-                    Point3d p1 = poly.GetPoint3dAt(i % numVerts);
-                    Point3d p2 = poly.GetPoint3dAt((i + 1) % numVerts);
-
-                    if(p1 == b1 || p1 == b2)
-                    {
-                        beam_points.Add(p1);
-                        continue;
-                    }
-                    if (p2 == b1 || p2 == b2)
-                    {
-                        beam_points.Add(p2);
-                        continue;
-                    }
-
-                    double dist = MathHelpers.Distance3DBetween(p1, p2);
-
-                    Point3d grade_beam_intPt;
-                    grade_beam_intPt = FindPointOfIntersectLines_FromPoint3d(
-                        b1,
-                        b2,
-                        p1,
-                        p2);
-
-                    if (grade_beam_intPt == null)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        double slope1_line_segment = EE_Helpers.GetSlopeOfPts(b1, b2);
-                        double slope2_line_segment = EE_Helpers.GetSlopeOfPts(b2, b1);
-                        double slope_polyline_segment = EE_Helpers.GetSlopeOfPts(p1, p2);
-                        // if the slope of the two line segments are parallel and the X or Y coordinates match, add the intersection as the average of the two polyline segment end points 
-                        if ((slope1_line_segment == slope_polyline_segment) || (slope2_line_segment == slope_polyline_segment))
-                        {
-                            // if the vertices of the polyline are on the line segment
-                            //     (vertical segment test)       ||      (horizontal segment test)
-                            if((b1.X == p1.X && b1.X == p2.X && b2.X == p1.X && b2.X == p2.X) 
-                                || (b1.Y == p1.Y && b1.Y == p2.Y && b2.Y == p1.Y && b2.Y == p2.Y))
-                            {
-                                // assign the midpoint of the polyline segment as the intersection point
-                                beam_points.Add(new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0));
-                                continue;
-                            }
-                        }
-
-                        // If the distance from the intPt to both p1 and P2 is less than the distance between p1 and p2
-                        // the intPT must be between P1 and P2 
-                            if ((MathHelpers.Distance3DBetween(grade_beam_intPt, p1) <= dist) && (MathHelpers.Distance3DBetween(grade_beam_intPt, p2) <= dist))
-                        {
-                            beam_points.Add(grade_beam_intPt);
-                        }
-                    }
+                    beam.AddToAutoCADDatabase(db, doc);
                 }
                 catch (System.Exception e)
                 {
-                    MessageBox.Show("\nError finding unsorted intersection poin");
-                    return null;
+                    doc.Editor.WriteMessage("\nError adding trimmed grade beam to AutoCAD database: " + e.Message);
                 }
             }
-
-            try
-            {
-                if (beam_points is null) 
-                {
-                    return null;
-                }
-                else if (beam_points.Count < 2)
-                {
-                    if (beam_points.Count == 0)
-                    {
-                        //MessageBox.Show("No intersection points found");
-                        return null;
-                    }
-                    else
-                    {
-                        //MessageBox.Show(beam_points.Count.ToString() + " intersection point found at " + beam_points[0].X + " , " + beam_points[0].Y);
-                        Point3d[] sorted_points = new Point3d[beam_points.Count];
-                        beam_points.CopyTo(sorted_points, 0);
-                        return sorted_points;
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        Point3d[] sorted_points = new Point3d[beam_points.Count];
-
-                        // If the point is horizontal
-                        if (Math.Abs(beam_points[1].Y - beam_points[0].Y) < EE_Settings.DEFAULT_HORIZONTAL_TOLERANCE)
-                        {
-                            sorted_points = sortPoint3dListByHorizontally(beam_points);
-                        }
-                        // Otherwise it is vertical
-                        else
-                        {
-                            sorted_points = sortPoint3dListByVertically(beam_points);
-                        }
-
-                        if (sorted_points is null)
-                        {
-                            throw new System.Exception("\nError sorting the intersection points in TrimLines method.");
-                        }
-
-                        return sorted_points;
-                    }
-                    catch (System.Exception e)
-                    {
-                        MessageBox.Show("\nError finding sorted intersection points");
-                        return null;
-                    }
-
-                }
-            }
-            catch (System.Exception e)
-            {
-                MessageBox.Show("\nError in TrimAndSortIntersectionPoints function");
-                return null;
-            }
-
-            return null;
-
         }
+
+
 
 
 

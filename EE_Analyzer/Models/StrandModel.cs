@@ -31,18 +31,48 @@ namespace EE_Analyzer.Models
         public Polyline DeadEndIcon;
 
         public bool IsBeamStrand { get; set; } = false;
+        public bool IsTrimmed { get; set; } = false; 
 
-        public StrandModel(Point3d start, Point3d end, int qty, bool isBeamStrand)
+        public StrandModel(Point3d start, Point3d end, int qty, bool isBeamStrand, bool isTrimmed)
         {
             Id = _id;
             _id++;
 
-            StartPt = start;
-            EndPt = end;
+            // swap the start point and end point based on lowest X then lowest Y
+            bool shouldSwap = false;
+            if (start.X > end.X)
+            {
+                shouldSwap = true;
+            }
+            else if (start.X == end.X)
+            {
+                if (start.Y > end.Y)
+                {
+                    shouldSwap = true;
+                }
+            } else
+            {
+                shouldSwap = false;
+            }
+
+            if (shouldSwap is true)
+            {
+                StartPt = end;
+                EndPt = start;
+            }
+            else
+            {
+                StartPt = start;
+                EndPt = end;
+            }
+
             IsBeamStrand = isBeamStrand;
-            Qty= qty;
+            IsTrimmed = isTrimmed;
+            Qty = qty;
 
             Centerline = OffsetLine(new Line(start, end), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
+            MoveLineToLayer(Centerline, GetDrawingLayer());
+            LineSetLinetype(Centerline, "CENTERX2");
 
             Length = MathHelpers.Distance3DBetween(start, end);
 
@@ -55,13 +85,45 @@ namespace EE_Analyzer.Models
             Label = str + "S" + (Math.Ceiling(Length * 10 / 12).ToString());
         }
 
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
+        /// <summary>
+        /// Retrieves the necessary layer name for the strands being drawn
+        /// </summary>
+        /// <returns></returns>
+        private string GetDrawingLayer()
         {
-            doc.Editor.WriteMessage("Drawing LiveEnd");
+            string strand_layer = "";
+            if (IsBeamStrand is true && IsTrimmed == true)
+            {
+                strand_layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER;
+            }
+            else if (IsBeamStrand is false && IsTrimmed == true)
+            {
+                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER;
+
+            }
+            else if (IsBeamStrand is true && IsTrimmed == false)
+            {
+                strand_layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER;
+            }
+            else
+            {
+                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER;
+            }
+
+            return strand_layer;
+        }
+
+        public void AddToAutoCADDatabase(Database db, Document doc)
+        {
+            //doc.Editor.WriteMessage("\nAdding Strand Info for Strand #" + Id);
+
+            string layer_name = GetDrawingLayer();
+
+            //doc.Editor.WriteMessage("Drawing LiveEnd");
             DrawLiveEndIcon(db, doc, layer_name);
-            doc.Editor.WriteMessage("Drawing DeadEnd");
+            //doc.Editor.WriteMessage("Drawing DeadEnd");
             DrawDeadEndIcon(db, doc, layer_name);
-            doc.Editor.WriteMessage("Drawing StrandLabel");
+            //doc.Editor.WriteMessage("Drawing StrandLabel");
             DrawStrandLabel(db, doc, layer_name);
         }
 

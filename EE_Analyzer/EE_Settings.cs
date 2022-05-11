@@ -18,6 +18,7 @@
         // Default settings
         public const double DEFAULT_INTERSECTION_CIRCLE_RADIUS = 8; // diameter of the intersection marker circle
         public const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal
+        public const double DEFAULT_DONT_DRAW_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
 
     }
 }
