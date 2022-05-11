@@ -153,9 +153,9 @@ namespace EE_Analyzer
             // Check that the basis point isn't outside of foundation polyline.  If it is, set it to the lower left corner of the boundary box.
             // TODO:  Figure out why this can happen sometime.  Possible the intersection point test is the cause?
             if((FDN_GRADE_BEAM_BASIS_POINT.X < FDN_BOUNDARY_BOX.GetPoint2dAt(0).X) ||
-                (FDN_GRADE_BEAM_BASIS_POINT.X > FDN_BOUNDARY_BOX.GetPoint2dAt(3).X) ||
+                (FDN_GRADE_BEAM_BASIS_POINT.X > FDN_BOUNDARY_BOX.GetPoint2dAt(2).X) ||
                 (FDN_GRADE_BEAM_BASIS_POINT.Y < FDN_BOUNDARY_BOX.GetPoint2dAt(0).Y) ||
-                (FDN_GRADE_BEAM_BASIS_POINT.Y < FDN_BOUNDARY_BOX.GetPoint2dAt(3).Y))
+                (FDN_GRADE_BEAM_BASIS_POINT.Y > FDN_BOUNDARY_BOX.GetPoint2dAt(2).Y))
             {
                 // Set the basis point to the lower left and then offset by half the width of the perimeter beam
                 Point3d lower_left = FDN_BOUNDARY_BOX.GetPoint3dAt(0);
@@ -271,9 +271,6 @@ namespace EE_Analyzer
             return sorted_points;
         }
 
-
-
-
         /// <summary>
         /// Algorithm to find the insert point for drawing the grade beam grid.  
         /// Currently finds the intersection of the longest line segments. Default will be the lower left corner of the bounding box
@@ -283,32 +280,58 @@ namespace EE_Analyzer
         /// <param name="doc"></param>
         private static Point3d FindGradeBeamInsertPoint(Database db, Document doc)
         {
+            if (FDN_BOUNDARY_BOX == null)
+            {
+                throw new System.Exception("\nInvalid boundary box polyline in FindGradeBeamInsertPoint()");
+            }
+
+            Point3d lower_left = FDN_BOUNDARY_BOX.GetPoint3dAt(0);
+            Point3d basis_pt = new Point3d();
+
+            // if something goes wrong...
+            Point3d default_basis_pt = new Point3d(lower_left.X + 0.5 * Beam_X_Width, lower_left.Y + 0.5 * Beam_X_Width, lower_left.Z);
+
             try
             {
                 // Find the intersection of the longest edges of the perimeter beam in both vertical and horizontal direction
                 // and use that point as our basis point for drawing the interior gridlines.
                 // Finds the longest horizontal segement on the polyline
-                Point3d[] longestHorizontalSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, true);
-                Point3d[] longestVerticalSegmentPoints = FindLongestSegmentOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE, false);
+                Point3d[] longestSegmentPoints = FindTwoLongestNonParallelSegmentsOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE);
 
-                if(longestHorizontalSegmentPoints.Length != 2 && longestVerticalSegmentPoints.Length != 2)
+                // if there aren't at least two points, return the lower left of the bounding box (offset by the width of the beam).
+                if(longestSegmentPoints.Length != 4)
                 {
-                    throw new System.Exception("Invalid number of points for polyline segments.  Horizontal has " +
-                        longestHorizontalSegmentPoints.Length.ToString() + " and Vertical has " + longestVerticalSegmentPoints.Length.ToString());
+                    doc.Editor.WriteMessage("Invalid number of points for polyline segments."); 
+                    basis_pt = default_basis_pt;
                 }
 
                 Point3d intPt = FindPointOfIntersectLines_FromPoint3d(
-                    longestHorizontalSegmentPoints[0], longestHorizontalSegmentPoints[1], 
-                    longestVerticalSegmentPoints[0], longestVerticalSegmentPoints[1]);
-                return intPt;
+                    longestSegmentPoints[0], longestSegmentPoints[1],
+                    longestSegmentPoints[2], longestSegmentPoints[3]);
+
+                DrawCircle(longestSegmentPoints[0], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                DrawCircle(longestSegmentPoints[1], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                DrawCircle(longestSegmentPoints[2], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                DrawCircle(longestSegmentPoints[3], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+
+                if (intPt != null)
+                {
+                    MessageBox.Show("Found a basis point");
+                    basis_pt = intPt;
+                }
+                else
+                {
+                    MessageBox.Show("Basis point was null.  Using default.");
+                    basis_pt = default_basis_pt;
+                }
             }
             catch (System.Exception ex)
             {
-                doc.Editor.WriteMessage("\nError encountered finding the grade beam grid insertion point: " + ex.Message);
-
-                // Otherwise return the lower left of the bounding box
-                return new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z);
+                doc.Editor.WriteMessage("\nError encountered finding the grade beam grid insertion point.  Using the lower left instead.: " + ex.Message);
+                basis_pt = default_basis_pt;
             }
+
+            return basis_pt;
         }
 
         /// <summary>

@@ -271,56 +271,72 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        public static Point3d[] FindLongestSegmentOnPolyline(Polyline pline, bool isHorizontal, double tol=0.01)
+        public static Point3d[] FindTwoLongestNonParallelSegmentsOnPolyline(Polyline pline)
         {
-            Point3d[] points = new Point3d[2];
+            // create array to store the four points  points[0] and points[1] contain the longest and points[2]
+            // and points[3] contain the second longest.
+            Point3d[] points = new Point3d[4];
             int numVertices = pline.NumberOfVertices;
 
-            if(numVertices < 2)
+            if(numVertices < 3)
             {
-                throw new System.Exception("Polyline must have at least two vertices");
+                throw new System.Exception("Polyline must have at least two segements (requires three vertices)");
             }
 
-            double max_length = 0.0;
+            double max_length_1 = 0.0; // the longest length segment
+            double max_length_2 = 0.0; // the second longest length segment
 
-            for (int i = 0; i < numVertices; i++)
+            Point3d p1_longest_1 = pline.GetPoint3dAt(0);
+            Point3d p2_longest_1 = pline.GetPoint3dAt(1);
+
+            Point3d p1_longest_2 = pline.GetPoint3dAt(0);
+            Point3d p2_longest_2 = pline.GetPoint3dAt(1);
+
+            for (int i = 2; i < numVertices; i++)
             {
                 Point3d p1 = pline.GetPoint3dAt(i % numVertices);
                 Point3d p2 = pline.GetPoint3dAt((i + 1) % numVertices);
-                var length = MathHelpers.Distance3DBetween(p1, p2);
+                double length = MathHelpers.Distance3DBetween(p1, p2);
 
-                // do current and next have same Y-coord?
-                if (isHorizontal)
+                if(length >= max_length_1)
                 {
-                    if (Math.Abs(p1.Y) < Math.Abs(p2.Y) + tol)
+                    // check if our test segment is not parallel to the current longest
+                    if(EE_Helpers.GetSlopeOfPts(p1,p2) != EE_Helpers.GetSlopeOfPts(p1_longest_1, p2_longest_1))
                     {
-                        if (length > max_length)
-                        {
-                            points[0] = p1;
-                            points[1] = p2;
-                            max_length = length;
-                        }
+                        // first move the first point to the second
+                        p1_longest_2 = p1_longest_1;
+                        p2_longest_2 = p2_longest_1;
+                        max_length_2 = max_length_1;
+
+                        // then store the new longest info in the first
+                        p1_longest_1 = p1;
+                        p2_longest_1 = p2;
+                        max_length_1 = length;
                     }
-                }
-                else
+
+                } else if (length >= max_length_2)
                 {
-                    if (Math.Abs(p1.X) < Math.Abs(p2.X) + tol)
+                    // check if our test segment is not parallel to the current longest
+                    if (EE_Helpers.GetSlopeOfPts(p1, p2) != EE_Helpers.GetSlopeOfPts(p1_longest_2, p2_longest_2))
                     {
-                        if (length > max_length)
-                        {
-                            points[0] = p1;
-                            points[1] = p2;
-                            max_length = length;
-                        }
+                        // first point is unchanged but second point needs to be changed
+                        p1_longest_2 = p1;
+                        p2_longest_2 = p2;
+                        max_length_2 = length;
                     }
                 }
             }
 
             // Check to make sure we found a non-zero length
-            if(max_length == 0.0) 
+            if(max_length_1 == 0.0 || max_length_2 == 0.0) 
             {
                 throw new System.Exception("Polyline segment lengths all returned a zero value");
             }
+
+            points[0] = p1_longest_1;
+            points[1] = p2_longest_1;
+            points[2] = p1_longest_2;
+            points[3] = p2_longest_2;
 
             return points;
         }
