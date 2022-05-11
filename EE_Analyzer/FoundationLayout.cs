@@ -44,9 +44,8 @@ namespace EE_Analyzer
         private static List<GradeBeamModel> lstInteriorGradeBeamsUntrimmed { get; set; } = new List<GradeBeamModel>();
         private static List<GradeBeamModel> lstInteriorGradeBeamsTrimmed { get; set; } = new List<GradeBeamModel>();
 
-        // Stores the strand info for the foundation
-        private static List<StrandModel> SlabStrandLines { get; set; } = new List<StrandModel>();
-        private static List<StrandModel> BeamStrandLines { get; set; } = new List<StrandModel>();
+        private static List<StrandModel> lstSlabStrandsUntrimmed { get; set; } = new List<StrandModel>();
+        private static List<StrandModel> lstSlabStrandsTrimmed { get; set; } = new List<StrandModel>();
 
 
         #region PTI Slab Data Values
@@ -189,7 +188,7 @@ namespace EE_Analyzer
             #endregion
 
             #region Trim Grade Beam and Beam Strand Lines
-            doc.Editor.WriteMessage("\nDrawing trimmed " + lstInteriorGradeBeamsUntrimmed.Count + " interior grade beams");
+            doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed interior grade beams");
 
             CreateTrimmedGradeBeams(db, doc, lstInteriorGradeBeamsUntrimmed);
 
@@ -197,7 +196,22 @@ namespace EE_Analyzer
 
             #endregion
 
-            #region Draw Slab Strands
+            #region Draw Untrimmed Slab Strands
+
+            doc.Editor.WriteMessage("\nDrawing untrimmed slab strands beams");
+
+            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
+            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
+
+            doc.Editor.WriteMessage("\n-- Completed drawing untrimmed slab strands. " + lstSlabStrandsUntrimmed.Count + " untrimmed slab strands created.");
+
+            #endregion
+
+            #region Trim Slab Strands
+            doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed slab strands");
+            CreateTrimmedSlabStrands(db, doc, lstSlabStrandsUntrimmed);
+            doc.Editor.WriteMessage("\n-- Completed drawing trimmed slab strands. " + lstSlabStrandsTrimmed.Count + " trimmed slab strands created.");
+
             #endregion
 
             #region Bill of Materials
@@ -213,32 +227,163 @@ namespace EE_Analyzer
             #endregion
         }
 
-        /// <summary>
-        /// Takes a Point3DCollection and sorts the points from left to right and bottom to top and returns
-        /// an Point3d[]
-        /// </summary>
-        /// <param name="edt">AutoCAD editor object (for messaging)</param>
-        /// <param name="points">A <see cref="Points3dCollection"/> of points </param>
-        /// <returns>An array of Points3d[]</returns>
-        private static Point3d[] SortIntersectionPoint3DArray(Point3dCollection points)
+        private static void CreateTrimmedSlabStrands(Database db, Document doc, List<StrandModel> list)
         {
-            // Sort the collection of points into an array sorted from descending to ascending
-            Point3d[] sorted_points = new Point3d[points.Count];
+            int numVerts_outer = FDN_PERIMETER_POLYLINE.NumberOfVertices;
 
-            // If the point is horizontal
-            if (Math.Abs(points[1].Y - points[0].Y) < EE_Settings.DEFAULT_HORIZONTAL_TOLERANCE)
+            ///////////////////////////////////////////////////////////////////
+            ///  Get the trimmed grade beam intersection points with the FDN_PERIMETER_INTERIOR_EDGE_POLYLINE
+            ///////////////////////////////////////////////////////////////////
+            // Create new models for each of the untrimmed grade beam models
+            foreach (StrandModel untr_strand in list)
             {
-                //edt.WriteMessage("\nBeam " + beamCount + " is horizontal");
-                sorted_points = sortPoint3dByHorizontally(points);
+                // Get the untrimmed end points of the beam centerline
+                Point3d b1 = untr_strand.Centerline.StartPoint;
+                Point3d b2 = untr_strand.Centerline.EndPoint;
+
+                Point3d[] sorted_strand_points = null;
+
+                try
+                {
+                    // Get the intersection for the trimmed grade beam with the inner edge polyline
+                    sorted_strand_points = TrimAndSortIntersectionPoints(b1, b2, FDN_PERIMETER_POLYLINE);
+                    if (sorted_strand_points != null)
+                    {
+                        doc.Editor.WriteMessage("\n--Found " + sorted_strand_points.Length.ToString() + " strand intersection points.");
+                    }
+                    else
+                    {
+                        // Null sorted points list returned, so skip this beam and continue
+                        continue;
+                    }
+                }
+                catch
+                {
+                    doc.Editor.WriteMessage("\n-Error finding trimmed slab strand points.");
+                }
+
+                for (int j = 0; j < sorted_strand_points.Length - 1; j = j + 2)
+                {
+                    try
+                    {
+                        // Mark the intersection points for the beam centerline
+                        DrawCircle(sorted_strand_points[j], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER);
+                        DrawCircle(sorted_strand_points[j + 1], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER);
+
+                        // check if the grade beam is long enough for PT
+                        if (MathHelpers.Distance3DBetween(sorted_strand_points[j], sorted_strand_points[j + 1]) > EE_Settings.DEFAULT_DONT_DRAW_PT_LENGTH)
+                        {
+                            StrandModel strand = new StrandModel(sorted_strand_points[j], sorted_strand_points[j + 1], 1, false, true);
+                            lstSlabStrandsTrimmed.Add(strand);
+                        }
+                    }
+                    catch (System.Exception e)
+                    {
+                        doc.Editor.WriteMessage("\nError creating trimmed slab strand at " + sorted_strand_points[j].X + ", " + sorted_strand_points[j + 1].Y);
+                        DrawCircle(sorted_strand_points[j], 40, EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER);
+                        DrawCircle(sorted_strand_points[j], 50, EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER);
+                        DrawCircle(sorted_strand_points[j], 60, EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER);
+                    }
+                }
             }
-            // Otherwise it is vertical
+
+            // Now add the grade beam entities to the drawing
+            foreach (StrandModel strand in lstSlabStrandsTrimmed)
+            {
+                try
+                {
+                    strand.AddToAutoCADDatabase(db, doc);
+                }
+                catch (System.Exception e)
+                {
+                    doc.Editor.WriteMessage("\nError adding trimmed slab strand to AutoCAD database: " + e.Message);
+                }
+            }
+        }
+
+        private static void CreateUntrimmedSlabStrands(Database db, Document doc, Point3d basis, bool isHorizontal)
+        {
+            double width, spacing, depth;
+            // retrieve the bounding box
+            var bbox_points = GetVertices(FDN_BOUNDARY_BOX);
+
+            if (bbox_points is null || (bbox_points.Count != 4))
+            {
+                throw new System.Exception("\nFoundation bounding box must have four points");
+            }
+
+            if (isHorizontal is true)
+            {
+                int num_strands = Beam_X_Slab_Strand_Qty + 1;  // one added since the first spacing is half a spacing from bottom edge of boundaing box
+
+                spacing = (FDN_BOUNDARY_BOX.GetPoint3dAt(1).Y-FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y) / num_strands;
+
+                // grade beams to the upper boundary box horizontal edge
+                int count = 0;
+                while (bbox_points[0].Y + 0.5 * spacing + (count * spacing) < bbox_points[1].Y)
+                {
+
+                    Point3d p1 = new Point3d(bbox_points[0].X, bbox_points[0].Y + 0.5 * spacing + (count * spacing), 0);
+                    Point3d p2 = new Point3d(bbox_points[3].X, bbox_points[0].Y + 0.5 * spacing + (count * spacing), 0);
+
+                    if (p1 == p2)
+                    {
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skippingslab strand here.");
+                        continue;
+                    }
+                    // reverse the points so the smallest X is on the left
+                    if (p1.X > p2.X)
+                    {
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
+                    }
+
+                    StrandModel strand = new StrandModel(p1, p2, 1, false, false);
+                    lstSlabStrandsUntrimmed.Add(strand);
+
+                    count++;
+                }
+            }
             else
             {
-                //edt.WriteMessage("\nBeam " + beamCount + " is vertical");
-                sorted_points = sortPoint3dByVertically(points);
+                // for vertical beams
+                int num_strands = Beam_Y_Slab_Strand_Qty + 1;
+
+                spacing = (FDN_BOUNDARY_BOX.GetPoint3dAt(3).X - FDN_BOUNDARY_BOX.GetPoint3dAt(0).X) / num_strands;
+
+
+                int count = 0;
+                while (bbox_points[0].X + 0.5 * spacing + (count * spacing) < bbox_points[3].X)
+                {
+                    Point3d p1 = new Point3d(bbox_points[0].X + 0.5 * spacing + (count * spacing), bbox_points[0].Y, 0);
+                    Point3d p2 = new Point3d(bbox_points[0].X + 0.5 * spacing + (count * spacing), bbox_points[1].Y, 0);
+
+                    if (p1 == p2)
+                    {
+                        doc.Editor.WriteMessage("\nStrand line end points are the same.  Skipping strand here.");
+                        continue;
+                    }
+                    // reverse the points so the smallest Y is on the bottom
+                    if (p1.Y > p2.Y)
+                    {
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
+                    }
+
+                    StrandModel strand = new StrandModel(p1, p2, 1, false, false);
+                    lstSlabStrandsUntrimmed.Add(strand);
+
+                    count++;
+                }
             }
 
-            return sorted_points;
+            // Now add the grade beam entities to the drawing
+            foreach (StrandModel strand in lstSlabStrandsUntrimmed)
+            {
+                strand.AddToAutoCADDatabase(db, doc);
+            }
         }
 
         /// <summary>
@@ -878,10 +1023,13 @@ namespace EE_Analyzer
             CreateLayer(EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER, doc, db, 140); // blue
             CreateLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER, doc, db, 1);  // green
             CreateLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER, doc, db, 3);  // green
-            CreateLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER, doc, db, 2);  // yellow
             CreateLayer(EE_Settings.DEFAULT_FDN_TEXTS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db, 1); // red
+            CreateLayer(EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER, doc, db, 2); // red
+
         }
 
 

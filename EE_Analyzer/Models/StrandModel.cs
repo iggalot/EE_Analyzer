@@ -98,7 +98,7 @@ namespace EE_Analyzer.Models
             }
             else if (IsBeamStrand is false && IsTrimmed == true)
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER;
+                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER;
 
             }
             else if (IsBeamStrand is true && IsTrimmed == false)
@@ -107,7 +107,7 @@ namespace EE_Analyzer.Models
             }
             else
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER;
+                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER;
             }
 
             return strand_layer;
