@@ -10,6 +10,7 @@ namespace EE_Analyzer.Models
     public class GradeBeamModel
     {
         private static int _beamNum = 0;
+        private const double _labelHt = 5;
 
         // Unit vector for the direction of the grade beam
         private Vector3d vDirection { get; set; } = new Vector3d(1, 0, 0);
@@ -41,9 +42,9 @@ namespace EE_Analyzer.Models
         public StrandModel StrandInfo { get; set; } = null;
 
         // The index number for the grade beam
-        private int BeamNum { get; set; }
+        public int BeamNum { get; set; }
 
-        private string Label { get; } = "B" + _beamNum.ToString();
+        private string Label { get; } = "GB" + _beamNum.ToString();
 
         public GradeBeamModel(Point3d start, Point3d end, double width = 12.0, double depth = 24.0)
         {
@@ -72,61 +73,114 @@ namespace EE_Analyzer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name = EE_Settings.DEFAULT_FDN_BEAMS_LAYER)
+        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                
+                try {
+                    MoveLineToLayer(Centerline, layer_name);
+                    LineSetLinetype(Centerline, "CENTERX2");
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                    trans.Abort();
+                    return;
+                }
 
                 try
                 {
-                    try {
-                        MoveLineToLayer(Centerline, layer_name);
-                        LineSetLinetype(Centerline, "CENTERX2");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                        trans.Abort();
-                        return;
-                    }
+                    // edge 1
+                    MoveLineToLayer(Edge1, layer_name);
+                    LineSetLinetype(Edge1, "HIDDENX2");
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("\nError encountered while adding EdgeLine1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                    trans.Abort();
+                    return;
+                }
 
-                    try
-                    {
-                        // edge 1
-                        MoveLineToLayer(Edge1, layer_name);
-                        LineSetLinetype(Edge1, "HIDDENX2");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered while adding EdgeLine1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                        trans.Abort();
-                        return;
-                    }
+                // edge 2
+                try
+                {
+                    MoveLineToLayer(Edge2, layer_name);
+                    LineSetLinetype(Edge2, "HIDDENX2");
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("\nError encountered while adding EdgeLine2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                    trans.Abort();
+                    return;
+                }
 
-                    // edge 2
-                    try
-                    {
-                        MoveLineToLayer(Edge2, layer_name);
-                        LineSetLinetype(Edge2, "HIDDENX2");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered while adding EdgeLine2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                        trans.Abort();
-                        return;
-                    }
+                try
+                {
+                    // Draw the beam label
+                    DrawBeamLabel(db, doc, layer_name);
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("\nError adding beam labels to Gradebeam entities to AutoCAD DB: " + ex.Message);
+                    trans.Abort();
+                    return;
+                }
 
+                try
+                {
                     // Add the strand info
-                    StrandInfo.AddToAutoCADDatabase(db, doc);
+                    doc.Editor.WriteMessage("\nAdding Strand Info for Strand #" + StrandInfo.Id);
+                    StrandInfo.AddToAutoCADDatabase(db, doc, layer_name);
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("\nError adding strand info to Gradebeam entities to AutoCAD DB: " + ex.Message);
+                    trans.Abort();
+                    return;
+                }
 
-                    // commit the transaction
+                // commit the transaction
+                trans.Commit();
+            }
+        }
+
+        // Add number labels for each line segment
+        private void DrawBeamLabel(Database db, Document doc, string layer_name)
+        {
+            // at this point we know an entity has been selected and it is a Polyline
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                Point3d insPt = StartPt;
+
+                // Get the angle of the polyline
+                var angle = Math.Atan((EndPt.Y - StartPt.Y) / (EndPt.X - StartPt.X));
+
+                try
+                {
+                MText mtx = new MText();
+
+                    mtx.Contents = Label;
+                    mtx.Location = new Point3d(insPt.X - Math.Sin(angle) * 1.25* Width, insPt.Y + Math.Cos(angle) * 1.25 * Width, 0);
+                    mtx.TextHeight = _labelHt;
+
+                    mtx.Layer = layer_name;
+
+                    mtx.Rotation = angle;
+
+                    btr.AppendEntity(mtx);
+                    trans.AddNewlyCreatedDBObject(mtx, true);
+
                     trans.Commit();
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError encountered while adding GradeBeamModel entities to AutoCAD DB: " + ex.Message);
+                    doc.Editor.WriteMessage("\nError encountered while adding beam label objects: " + ex.Message);
                     trans.Abort();
                     return;
                 }

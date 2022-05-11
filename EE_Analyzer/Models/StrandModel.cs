@@ -55,14 +55,17 @@ namespace EE_Analyzer.Models
             Label = str + "S" + (Math.Ceiling(Length * 10 / 12).ToString());
         }
 
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_LAYER)
+        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
-            DrawLiveEndIcon(db, doc);
-            DrawDeadEndIcon(db, doc);
-            DrawStrandLabel(db, doc);
+            doc.Editor.WriteMessage("Drawing LiveEnd");
+            DrawLiveEndIcon(db, doc, layer_name);
+            doc.Editor.WriteMessage("Drawing DeadEnd");
+            DrawDeadEndIcon(db, doc, layer_name);
+            doc.Editor.WriteMessage("Drawing StrandLabel");
+            DrawStrandLabel(db, doc, layer_name);
         }
 
-        public Polyline DrawLiveEndIcon(Database db, Document doc)
+        public Polyline DrawLiveEndIcon(Database db, Document doc, string layer_name)
         {
             // at this point we know an entity has been selected and it is a Polyline
             using (Transaction trans = db.TransactionManager.StartTransaction())
@@ -92,11 +95,7 @@ namespace EE_Analyzer.Models
                     //pl.Closed = true;
 
                     // assign the layer
-                    if (IsBeamStrand)
-                        pl.Layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_LAYER;
-                    else
-                        pl.Layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER;
-
+                    pl.Layer = layer_name;
 
                     // Set the default properties
                     pl.SetDatabaseDefaults();
@@ -116,7 +115,7 @@ namespace EE_Analyzer.Models
             }
         }
 
-        public Polyline DrawDeadEndIcon(Database db, Document doc)
+        public Polyline DrawDeadEndIcon(Database db, Document doc, string layer_name)
         {
             // at this point we know an entity has been selected and it is a Polyline
             using (Transaction trans = db.TransactionManager.StartTransaction())
@@ -153,11 +152,7 @@ namespace EE_Analyzer.Models
                     }
 
                     // assign the layer
-                    if (IsBeamStrand)
-                        pl.Layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_LAYER;
-                    else
-                        pl.Layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_LAYER;
-
+                    pl.Layer = layer_name;
                     
                     // Set the default properties
                     pl.SetDatabaseDefaults();
@@ -177,7 +172,7 @@ namespace EE_Analyzer.Models
             }
         }
 
-        private void DrawStrandLabel(Database db, Document doc)
+        private void DrawStrandLabel(Database db, Document doc, string layer_name)
         {
             Vector3d vector = StartPt.GetVectorTo(EndPt);
 
@@ -199,10 +194,9 @@ namespace EE_Analyzer.Models
                 {
                     mtx.Contents = Label;
                     mtx.Location = new Point3d(insPt.X + Math.Sin(angle) * 0.8 * icon_size, insPt.Y - Math.Cos(angle) * 0.8 * icon_size, 0);
-                  //  mtx.Location = insPt;
                     mtx.TextHeight = 0.75 * icon_size;
 
-                    mtx.Layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_LAYER;
+                    mtx.Layer = layer_name;
 
                     mtx.Rotation = angle;
 

@@ -101,7 +101,7 @@ namespace EE_Analyzer.Utilities
             {
                 try
                 {
-                    DrawCircle(new Point3d(100, 100, 0), 100);
+                    DrawCircle(new Point3d(100, 100, 0), 100, "0");
                     trans.Commit();
                 }
                 catch (System.Exception ex)
@@ -191,7 +191,7 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        public static void DrawCircle(Point3d centerPt, double circleRadius)
+        public static void DrawCircle(Point3d centerPt, double circleRadius, string layer_name)
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -216,6 +216,7 @@ namespace EE_Analyzer.Utilities
                     {
                         circle.Radius = circleRadius;
                         circle.Center = centerPt;
+                        circle.Layer = layer_name;
 
                         btr.AppendEntity(circle);
                         trans.AddNewlyCreatedDBObject(circle, true);
