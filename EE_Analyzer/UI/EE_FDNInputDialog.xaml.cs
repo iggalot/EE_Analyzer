@@ -13,37 +13,17 @@ namespace EE_Analyzer
     /// </summary>
     public partial class EE_FDNInputDialog : Window
     {
-        // private field
-        double radius;
 
-        /// <summary>
-        /// Gets the selected layer name.
-        /// </summary>
-        public string Layer => (string)cbxLayer.SelectedItem;
+        public static string VERSION_INFO { get; } = EE_Settings.CURRENT_VERSION_NUM;
+        public static string COPYRIGHT_INFO { get; } = EE_Settings.SIGNATURE_LABEL;
 
-        /// <summary>
-        /// Gets the radius.
-        /// </summary>
-        public double Radius => radius;
-
-        /// <summary>
-        /// Creates a new instance of ModalWpfDialog.
-        /// </summary>
-        /// <param name="layers">Layer names collection.</param>
-        /// <param name="layer">Default layer name.</param>
-        /// <param name="radius">Default radius</param>
-
-//        public EE_FDNInputDialog(List<string> layers, string layer, double radius, 
         public EE_FDNInputDialog(
             int x_qty = 5, double x_spa=120, double x_width=12, double x_depth=24,
             int y_qty = 7, double y_spa = 120, double y_width = 12, double y_depth = 24,
-            int beam_x_strand_qty=2, int slab_x_strand_qty=8, int beam_y_strand_qty=2, int slab_y_strand_qty=8)
+            int beam_x_strand_qty=2, int slab_x_strand_qty=8, int beam_y_strand_qty=2, int slab_y_strand_qty=8, double neglect_pt_dim=120)
         {
             InitializeComponent();
-            //this.radius = radius;
-            //cbxLayer.ItemsSource = layers;
-            //cbxLayer.SelectedItem = layer;
-            //txtRadius.Text = radius.ToString();
+            DataContext = this;
 
             BEAM_X_QTY.Text = x_qty.ToString();
             BEAM_X_SPACING.Text = x_spa.ToString();
@@ -59,25 +39,8 @@ namespace EE_Analyzer
             BEAM_Y_STRAND_QTY.Text = beam_y_strand_qty.ToString();
             SLAB_Y_STRAND_QTY.Text = slab_y_strand_qty.ToString();
 
-        }
+            NEGLECT_PT_DIM.Text = neglect_pt_dim.ToString();
 
-        /// <summary>
-        /// Handles the 'Click' event of the 'Radius' button.
-        /// </summary>
-        /// <param name="sender">Event source.</param>
-        /// <param name="e">Event data.</param>
-        private void btnRadius_Click(object sender, RoutedEventArgs e)
-        {
-            // prompt the user to specify distance
-            var ed = AcAp.DocumentManager.MdiActiveDocument.Editor;
-            var opts = new PromptDistanceOptions("\nSpecify the radius: ");
-            opts.AllowNegative = false;
-            opts.AllowZero = false;
-            var pdr = ed.GetDistance(opts);
-            if (pdr.Status == PromptStatus.OK)
-            {
-                txtRadius.Text = pdr.Value.ToString();
-            }
         }
 
         /// <summary>
@@ -102,6 +65,8 @@ namespace EE_Analyzer
             double y_width;
             int beam_y_strand_qty;
             int slab_y_strand_qty;
+
+            double neglect_pt_dim;
 
             bool resultOK = true;
             // Grab the values from the dialog and check for validity
@@ -178,14 +143,20 @@ namespace EE_Analyzer
                 {
                     MessageBox.Show("Error reading Y-dir beam width");
                     resultOK = false;
-                } 
+                }
+
+                if (Double.TryParse(NEGLECT_PT_DIM.Text, out neglect_pt_dim) is false)
+                {
+                    MessageBox.Show("Error reading Neglect PT dimension");
+                    resultOK = false;
+                }
 
                 if (resultOK)
                 {
                     FoundationLayout.DrawFoundationDetails(
                         x_qty, x_spa, x_depth, x_width, 
                         y_qty, y_spa, y_depth, y_width, 
-                        beam_x_strand_qty, slab_x_strand_qty, beam_y_strand_qty, slab_y_strand_qty);
+                        beam_x_strand_qty, slab_x_strand_qty, beam_y_strand_qty, slab_y_strand_qty, neglect_pt_dim);
                 } else
                 {
                     MessageBox.Show("Error parsing dialog window values");
@@ -197,16 +168,6 @@ namespace EE_Analyzer
             }
 
             //FoundationLayout.DrawFoundationDetails(10, 120, 12, 12, 10, 120, 12, 12);
-        }
-
-        /// <summary>
-        /// Handles the 'TextChanged' event ot the 'Radius' TextBox.
-        /// </summary>
-        /// <param name="sender">Event source.</param>
-        /// <param name="e">Event data.</param>
-        private void txtRadius_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            btnOK.IsEnabled = double.TryParse(txtRadius.Text, out radius);
         }
     }
 }

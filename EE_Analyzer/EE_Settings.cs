@@ -2,6 +2,11 @@
 {
     public static class EE_Settings
     {
+        // VERSION INFO
+        public const string CURRENT_VERSION_NUM = "Foundation Detailer Ver. 0.9";
+        public const string SIGNATURE_LABEL = "Copyright 2022-5-12 by Jay3";
+
+
         // Default layers
         public const string DEFAULT_FDN_BOUNDINGBOX_LAYER = "_EE_FDN_BOUNDINGBOX"; // Contains the bounding box 
         public const string DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER = "_EE_FDN_PERIMETER";  // Contains the polyline for the perimeter of the foundation
@@ -21,7 +26,6 @@
         // Default settings
         public const double DEFAULT_INTERSECTION_CIRCLE_RADIUS = 8; // diameter of the intersection marker circle
         public const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal
-        public const double DEFAULT_DONT_DRAW_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
         public const double DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE = 5;  // the size of the text in the bill of materials.
 
     }

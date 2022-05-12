@@ -23,6 +23,7 @@ namespace EE_Analyzer
 {
     public class FoundationLayout
     {
+        public static double DEFAULT_DONT_DRAW_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
 
 
         // Holds the primary foundation perimeter polyline object.
@@ -67,11 +68,10 @@ namespace EE_Analyzer
         #endregion
 
 
-        [CommandMethod("EE_FDN")]
         public static void DrawFoundationDetails(
             int x_qty, double x_spa, double x_depth, double x_width,
             int y_qty, double y_spa, double y_depth, double y_width,
-            int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty)
+            int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty, double neglect_dimension)
         {
             Beam_X_Spacing = x_spa;  // spacing between horizontal beams
             Beam_X_Width = x_width;  // horizontal beam width
@@ -86,6 +86,8 @@ namespace EE_Analyzer
             Beam_Y_Qty = y_qty;         // vertical beam qty 
             Beam_Y_Strand_Qty = by_strand_qty;  // number of strands in each y-direction beam
             Beam_Y_Slab_Strand_Qty = sy_strand_qty;  // number of strands in y-direction slab
+
+            DEFAULT_DONT_DRAW_PT_LENGTH = neglect_dimension;
 
             double circle_radius = Beam_X_Spacing * 0.1; // for marking the intersections of beams and strands with the foundation polyline
 
@@ -228,35 +230,14 @@ namespace EE_Analyzer
             #endregion
         }
 
+        /// <summary>
+        /// Creates a crude bill of materials for the strand info.
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="doc"></param>
         private static void CreateBillOfMaterials(Database db, Document doc)
         {
             Point3d base_pt = FDN_BOUNDARY_BOX.GetPoint3dAt(2);
-
-            //for (int i = 0; i < lstSlabStrandsTrimmed.Count; i++)
-            //{
-            //    string str = lstSlabStrandsTrimmed[i].Label;
-
-            //    int qty_index = str.IndexOf('x');
-            //    string qty_str = str.Substring(0, qty_index);
-
-            //    int length_index = str.IndexOf('S');
-            //    string length_str = str.Substring(length_index + 1);
-            //    string label_str = str.Substring(length_index);
-
-            //    // Draw label
-            //    Point3d pt1 = new Point3d(base_pt.X + 10.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
-            //                                base_pt.Y - i * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
-            //    DrawObject.DrawMtext(db, doc, pt1, label_str, EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
-
-            //    // Draw qty
-            //    Point3d pt2 = new Point3d(pt1.X + 8 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt1.Y, 0);
-            //    DrawObject.DrawMtext(db, doc, pt2, qty_str, EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
-
-            //    // Draw length
-            //    Point3d pt3 = new Point3d(pt2.X + 4 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
-            //    DrawObject.DrawMtext(db, doc, pt3, length_str, EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
-
-            //}
 
             // display slab strand info
             int count = 1;
@@ -281,7 +262,6 @@ namespace EE_Analyzer
                 // Draw length
                 Point3d pt3 = new Point3d(pt2.X + 4 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
                 DrawObject.DrawMtext(db, doc, pt3, (Math.Ceiling(item.Length / 12.0)).ToString(), EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
-
 
                 total_length += Math.Ceiling(item.Length) * item.Qty;
                 count++;
@@ -372,7 +352,7 @@ namespace EE_Analyzer
                         DrawCircle(sorted_strand_points[j + 1], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER);
 
                         // check if the grade beam is long enough for PT
-                        if (MathHelpers.Distance3DBetween(sorted_strand_points[j], sorted_strand_points[j + 1]) > EE_Settings.DEFAULT_DONT_DRAW_PT_LENGTH)
+                        if (MathHelpers.Distance3DBetween(sorted_strand_points[j], sorted_strand_points[j + 1]) > DEFAULT_DONT_DRAW_PT_LENGTH)
                         {
                             StrandModel strand = new StrandModel(sorted_strand_points[j], sorted_strand_points[j + 1], 1, false, true);
                             lstSlabStrandsTrimmed.Add(strand);
@@ -793,7 +773,7 @@ namespace EE_Analyzer
                         DrawCircle(sorted_grade_beam_points[j + 1], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
 
                         // check if the grade beam is long enough for PT
-                        if (MathHelpers.Distance3DBetween(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1]) > EE_Settings.DEFAULT_DONT_DRAW_PT_LENGTH)
+                        if (MathHelpers.Distance3DBetween(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1]) > DEFAULT_DONT_DRAW_PT_LENGTH)
                         {
                             GradeBeamModel beam = new GradeBeamModel(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1], FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
 
@@ -870,7 +850,8 @@ namespace EE_Analyzer
                             }
                             else
                             {
-                                doc.Editor.WriteMessage("\nGrade beam at " + sorted_grade_beam_points[j].X + " , " + sorted_grade_beam_points[j].Y + "is less than minimum [" + EE_Settings.DEFAULT_DONT_DRAW_PT_LENGTH + "] for post tensioning. Skipping grade beam here.");
+                                doc.Editor.WriteMessage("\nGrade beam at " + sorted_grade_beam_points[j].X + " , " + sorted_grade_beam_points[j].Y + 
+                                    "is less than minimum [" + DEFAULT_DONT_DRAW_PT_LENGTH + "] for post tensioning. Skipping grade beam here.");
                             }
                         }
 
@@ -1137,7 +1118,7 @@ namespace EE_Analyzer
         /// <summary>
         /// Command line to run the foundation detailing progam
         /// </summary>
-        [CommandMethod("JIM")]
+        [CommandMethod("EEFDN")]
         public void ShowModalWpfDialogCmd()
         {
             Document doc = AcAp.DocumentManager.MdiActiveDocument;
