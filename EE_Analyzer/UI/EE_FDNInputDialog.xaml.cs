@@ -169,5 +169,10 @@ namespace EE_Analyzer
 
             //FoundationLayout.DrawFoundationDetails(10, 120, 12, 12, 10, 120, 12, 12);
         }
+
+        private void Button_Click()
+        {
+
+        }
     }
 }

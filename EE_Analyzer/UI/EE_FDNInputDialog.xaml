@@ -6,10 +6,9 @@
              xmlns:local="clr-namespace:EE_Analyzer"
              mc:Ignorable="d" 
              Title="Foundation Detailer" 
-             Width="400" Height="500"
        
-            WindowStyle="ToolWindow"
-            WindowStartupLocation="CenterOwner"
+                WindowStyle="ToolWindow"
+                WindowStartupLocation="CenterOwner"
         >
     <StackPanel Margin="0,0,0,-6">
         <Grid Background="WhiteSmoke">
@@ -21,15 +20,17 @@
         </Grid>
 
         <StackPanel Orientation="Vertical">
-            <StackPanel Orientation="Vertical">
-                <Label Content="X-DIR Grade Beams (horizontal)"/>
-                <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Vertical" 
+                        Background="LightGray"
+                        Margin="10">
+                <Label Content="X-DIR Grade Beams (horizontal)" FontWeight="ExtraBold"/>
+                <StackPanel Orientation="Horizontal" Name="spX_DIR_DEFAULT">
                     <StackPanel Orientation="Horizontal">
                         <Label>Qty</Label>
                         <TextBox Name="BEAM_X_QTY" Width="40" Height="20"></TextBox>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <Label>Spacing (ft)</Label>
+                        <Label>Spacing (in.)</Label>
                         <TextBox Name="BEAM_X_SPACING" Width="40" Height="20"></TextBox>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
@@ -37,25 +38,74 @@
                         <TextBox Name="BEAM_X_DEPTH" Width="40" Height="20"></TextBox>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <Label>Width (in)</Label>
+                        <Label>Width (in.)</Label>
                         <TextBox Name="BEAM_X_WIDTH" Width="40" Height="20"></TextBox>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Strands per Beam</Label>
-                        <TextBox Name="BEAM_X_STRAND_QTY" Width="40" Height="20"></TextBox>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Strands per Slab</Label>
-                        <TextBox Name="SLAB_X_STRAND_QTY" Width="40" Height="20"></TextBox>
+
+                
+                <StackPanel Orientation="Vertical">
+                    <Button Margin="10" Background="White" Click="X_Detail_Button_Click">Specify X-DIR Spacings</Button>
+                    <StackPanel Visibility="Collapsed" Name="spX_DIR_DETAILS">
+                        <StackPanel Orientation="Horizontal">
+                            <Label>1.</Label>
+                            <TextBox Name="X_SPA_1_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="X_SPA_1_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>2.</Label>
+                            <TextBox Name="X_SPA_2_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="X_SPA_2_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>3.</Label>
+                            <TextBox Name="X_SPA_3_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="X_SPA_3_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>4.</Label>
+                            <TextBox Name="X_SPA_4_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="X_SPA_4_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>5.</Label>
+                            <TextBox Name="X_SPA_5_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="X_SPA_5_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
+
+                <StackPanel Orientation="Vertical">
+                    <Label FontWeight="Bold">Strand Info</Label>
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Strands per Beam</Label>
+                            <TextBox Name="BEAM_X_STRAND_QTY" Width="40" Height="20"></TextBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Strands per Slab</Label>
+                            <TextBox Name="SLAB_X_STRAND_QTY" Width="40" Height="20"></TextBox>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
             </StackPanel>
 
-            <StackPanel Orientation="Vertical">
-                <Label Content="Y-DIR Grade Beams (vertical)"/>
-                <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Vertical"
+                        Background="MediumTurquoise"
+                        Margin="10">
+                <Label Content="Y-DIR Grade Beams (vertical)" FontWeight="ExtraBold"/>
+                <StackPanel Orientation="Horizontal" Name="spY_DIR_DEFAULT">
                     <StackPanel Orientation="Horizontal">
                         <Label>Qty</Label>
                         <TextBox Name="BEAM_Y_QTY" Width="40" Height="20"></TextBox>
@@ -73,25 +123,77 @@
                         <TextBox Name="BEAM_Y_WIDTH" Width="40" Height="20"></TextBox>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Strands per Beam</Label>
-                        <TextBox Name="BEAM_Y_STRAND_QTY" Width="40" Height="20"></TextBox>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Strands per Slab</Label>
-                        <TextBox Name="SLAB_Y_STRAND_QTY" Width="40" Height="20"></TextBox>
+
+                <StackPanel Orientation="Vertical">
+                    <Button Margin="10" Background="White" Click="Y_Detail_Button_Click">Specify Y-DIR Spacings</Button>
+                    <StackPanel Visibility="Collapsed" Name="spY_DIR_DETAILS">
+                        <StackPanel Orientation="Horizontal">
+                            <Label>1.</Label>
+                            <TextBox Name="Y_SPA_1_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="Y_SPA_1_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>2.</Label>
+                            <TextBox Name="Y_SPA_2_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="Y_SPA_2_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>3.</Label>
+                            <TextBox Name="Y_SPA_3_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="Y_SPA_3_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>4.</Label>
+                            <TextBox Name="Y_SPA_4_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="Y_SPA_4_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>5.</Label>
+                            <TextBox Name="Y_SPA_5_QTY" Width="40" Height="20"></TextBox>
+                            <Label>Spacing At</Label>
+                            <TextBox Name="Y_SPA_5_SPA" Width="40" Height="20"></TextBox>
+                            <Label>(in.)</Label>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
+
+                <StackPanel Orientation="Vertical">
+                    <Label FontWeight="Bold">Strand Info</Label>
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Strands per Beam</Label>
+                            <TextBox Name="BEAM_Y_STRAND_QTY" Width="40" Height="20"></TextBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Strands per Slab</Label>
+                            <TextBox Name="SLAB_Y_STRAND_QTY" Width="40" Height="20"></TextBox>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+
+
+            <StackPanel Margin="20">
                 <StackPanel Orientation="Horizontal">
                     <StackPanel Orientation="Horizontal">
-                        <Label>Neglect Grade Beams Less Than </Label>
+                        <Label>Neglect Grade Beams Less Than</Label>
                         <TextBox Name="NEGLECT_PT_DIM" Width="40" Height="20"></TextBox>
                         <Label>inches long</Label>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
+            
         </StackPanel>
+        
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
