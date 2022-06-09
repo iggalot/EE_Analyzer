@@ -12,14 +12,14 @@ namespace EE_Analyzer.Models
 {
     public class StrandModel
     {
-        private static int _id = 0;
+        private int _id = 0;
         private const double icon_size = 12;
         private const double icon_thickness = 8;
         public int Id { get; set; }
 
         public Point3d StartPt { get; set; }
         public Point3d EndPt { get; set; }
-        public string Label { get; set; }
+        public string Label { get; set; } = "SXX";
         public double Length { get; set; }
 
         public Line Centerline { get; set; }
@@ -35,8 +35,7 @@ namespace EE_Analyzer.Models
 
         public StrandModel(Point3d start, Point3d end, int qty, bool isBeamStrand, bool isTrimmed)
         {
-            Id = _id;
-            _id++;
+
 
             // swap the start point and end point based on lowest X then lowest Y
             bool shouldSwap = false;
@@ -83,6 +82,9 @@ namespace EE_Analyzer.Models
             }
 
             Label = str + "S" + (Math.Ceiling(Length * 10 / 12).ToString());
+
+            Id = _id;
+            _id++;
         }
 
         /// <summary>

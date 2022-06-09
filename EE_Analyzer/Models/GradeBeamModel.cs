@@ -11,7 +11,7 @@ namespace EE_Analyzer.Models
 {
     public class GradeBeamModel
     {
-        private static int _beamNum = 0;
+        private int _beamNum = 0;
         private const double _labelHt = 5;
 
         // Unit vector for the direction of the grade beam
@@ -31,7 +31,6 @@ namespace EE_Analyzer.Models
 
         private Point3d TagEnd { get; set; }
 
-
         // AutoCAD Centerline object for the grade beam
         public Line Centerline { get; set; } = null;
 
@@ -48,7 +47,8 @@ namespace EE_Analyzer.Models
 
         public bool IsTrimmed { get; set; } = false;
 
-        private string Label { get; } = "GB" + _beamNum.ToString();
+        // A label for the grade beam
+        private string Label { get; set; } = "GBXX";
 
         public GradeBeamModel(Point3d start, Point3d end, Polyline boundary, int num_strands, bool is_trimmed, double width = 12.0, double depth = 24.0)
         {
@@ -101,6 +101,8 @@ namespace EE_Analyzer.Models
             IsTrimmed = is_trimmed;
 
             BeamNum = _beamNum++;  // update the grade beam number
+
+            Label = "GB" + BeamNum.ToString();
         }
 
         /// <summary>

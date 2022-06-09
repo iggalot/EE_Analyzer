@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:EE_Analyzer"
              mc:Ignorable="d" 
              Title="Foundation Detailer" 
-       
+             Height="Auto" Width="Auto"
                 WindowStyle="ToolWindow"
                 WindowStartupLocation="CenterOwner"
         >

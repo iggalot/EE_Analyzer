@@ -13,6 +13,7 @@ namespace EE_Analyzer
     /// </summary>
     public partial class EE_FDNInputDialog : Window
     {
+        private FoundationLayout CurrentFoundationLayout { get; set; }
 
         public static string VERSION_INFO { get; } = EE_Settings.CURRENT_VERSION_NUM;
         public static string COPYRIGHT_INFO { get; } = EE_Settings.SIGNATURE_LABEL;
@@ -41,6 +42,8 @@ namespace EE_Analyzer
 
             NEGLECT_PT_DIM.Text = neglect_pt_dim.ToString();
 
+            // Create our foundation layout object
+            
         }
 
         /// <summary>
@@ -50,6 +53,7 @@ namespace EE_Analyzer
         /// <param name="e">Event data.</param>
         private void btnOK_Click(object sender, RoutedEventArgs e)
         {
+
             DialogResult = true;
 
             int x_qty;
@@ -153,7 +157,9 @@ namespace EE_Analyzer
 
                 if (resultOK)
                 {
-                    FoundationLayout.DrawFoundationDetails(
+                    CurrentFoundationLayout = new FoundationLayout();
+
+                    CurrentFoundationLayout.DrawFoundationDetails(
                         x_qty, x_spa, x_depth, x_width, 
                         y_qty, y_spa, y_depth, y_width, 
                         beam_x_strand_qty, slab_x_strand_qty, beam_y_strand_qty, slab_y_strand_qty, neglect_pt_dim);
@@ -166,13 +172,37 @@ namespace EE_Analyzer
             {
                 MessageBox.Show("Error in reading dialog information:  " + ex.Message);
             }
-
-            //FoundationLayout.DrawFoundationDetails(10, 120, 12, 12, 10, 120, 12, 12);
         }
 
-        private void Button_Click()
+        private void X_Detail_Button_Click(object sender, RoutedEventArgs e)
         {
+            if(spX_DIR_DETAILS.Visibility == Visibility.Collapsed)
+            {
+                spX_DIR_DETAILS.Visibility = Visibility.Visible;
+                spX_DIR_DEFAULT.Visibility = Visibility.Collapsed;
+            } else
+            {
+                {
+                    spX_DIR_DETAILS.Visibility = Visibility.Collapsed;
+                    spX_DIR_DEFAULT.Visibility = Visibility.Visible;
+                }
+            }
+        }
 
+        private void Y_Detail_Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (spY_DIR_DETAILS.Visibility == Visibility.Collapsed)
+            {
+                spY_DIR_DETAILS.Visibility = Visibility.Visible;
+                spY_DIR_DEFAULT.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                {
+                    spY_DIR_DETAILS.Visibility = Visibility.Collapsed;
+                    spY_DIR_DEFAULT.Visibility = Visibility.Visible;
+                }
+            }
         }
     }
 }

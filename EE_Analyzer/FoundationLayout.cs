@@ -23,52 +23,52 @@ namespace EE_Analyzer
 {
     public class FoundationLayout
     {
-        public static double DEFAULT_DONT_DRAW_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
+        public double DEFAULT_DONT_DRAW_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
 
 
         // Holds the primary foundation perimeter polyline object.
-        public static Polyline FDN_PERIMETER_POLYLINE { get; set; } = new Polyline();
-        public static Polyline FDN_PERIMETER_CENTERLINE_POLYLINE { get; set; } = new Polyline();
+        public Polyline FDN_PERIMETER_POLYLINE { get; set; } = new Polyline();
+        public Polyline FDN_PERIMETER_CENTERLINE_POLYLINE { get; set; } = new Polyline();
 
-        public static Polyline FDN_PERIMETER_INTERIOR_EDGE_POLYLINE { get; set; } = new Polyline();
+        public Polyline FDN_PERIMETER_INTERIOR_EDGE_POLYLINE { get; set; } = new Polyline();
 
         // Hold the bounding box for the foundation extents
-        public static Polyline FDN_BOUNDARY_BOX { get; set; } = new Polyline();
+        public Polyline FDN_BOUNDARY_BOX { get; set; } = new Polyline();
 
         // Holds the basis point for the grade beam grid
-        public static Point3d FDN_GRADE_BEAM_BASIS_POINT { get; set; } = new Point3d();
+        public Point3d FDN_GRADE_BEAM_BASIS_POINT { get; set; } = new Point3d();
 
         // Data storage Entities
-        private static List<Line> BeamLines { get; set; } = new List<Line>();
+        private List<Line> BeamLines { get; set; } = new List<Line>();
 
         // Stores the untrimmed grade beams for the foundation
-        private static List<GradeBeamModel> lstInteriorGradeBeamsUntrimmed { get; set; } = new List<GradeBeamModel>();
-        private static List<GradeBeamModel> lstInteriorGradeBeamsTrimmed { get; set; } = new List<GradeBeamModel>();
+        private List<GradeBeamModel> lstInteriorGradeBeamsUntrimmed { get; set; } = new List<GradeBeamModel>();
+        private List<GradeBeamModel> lstInteriorGradeBeamsTrimmed { get; set; } = new List<GradeBeamModel>();
 
-        private static List<StrandModel> lstSlabStrandsUntrimmed { get; set; } = new List<StrandModel>();
-        private static List<StrandModel> lstSlabStrandsTrimmed { get; set; } = new List<StrandModel>();
+        private List<StrandModel> lstSlabStrandsUntrimmed { get; set; } = new List<StrandModel>();
+        private List<StrandModel> lstSlabStrandsTrimmed { get; set; } = new List<StrandModel>();
 
 
         #region PTI Slab Data Values
-        public static int Beam_X_Qty { get; set; }
-        public static int Beam_X_Strand_Qty { get; set; }
-        public static int Beam_X_Slab_Strand_Qty { get; set; }
+        public int Beam_X_Qty { get; set; }
+        public int Beam_X_Strand_Qty { get; set; }
+        public int Beam_X_Slab_Strand_Qty { get; set; }
 
-        public static double Beam_X_Spacing { get; set; }
-        public static double Beam_X_Width { get; set; }
-        public static double Beam_X_Depth { get; set; }
+        public double Beam_X_Spacing { get; set; }
+        public double Beam_X_Width { get; set; }
+        public double Beam_X_Depth { get; set; }
 
-        public static int Beam_Y_Qty { get; set; }
-        public static int Beam_Y_Strand_Qty { get; set; }
-        public static int Beam_Y_Slab_Strand_Qty { get; set; }
+        public int Beam_Y_Qty { get; set; }
+        public int Beam_Y_Strand_Qty { get; set; }
+        public int Beam_Y_Slab_Strand_Qty { get; set; }
 
-        public static double Beam_Y_Spacing { get; set; }
-        public static double Beam_Y_Width { get; set; }
-        public static double Beam_Y_Depth { get; set; }
+        public double Beam_Y_Spacing { get; set; }
+        public double Beam_Y_Width { get; set; }
+        public double Beam_Y_Depth { get; set; }
         #endregion
 
 
-        public static void DrawFoundationDetails(
+        public void DrawFoundationDetails(
             int x_qty, double x_spa, double x_depth, double x_width,
             int y_qty, double y_spa, double y_depth, double y_width,
             int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty, double neglect_dimension)
@@ -235,7 +235,7 @@ namespace EE_Analyzer
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        private static void CreateBillOfMaterials(Database db, Document doc)
+        private void CreateBillOfMaterials(Database db, Document doc)
         {
             Point3d base_pt = FDN_BOUNDARY_BOX.GetPoint3dAt(2);
 
@@ -308,7 +308,7 @@ namespace EE_Analyzer
         /// <param name="db"></param>
         /// <param name="doc"></param>
         /// <param name="list">list of untrimmed <see cref="StrandModel"/> to be trimmed</param>
-        private static void CreateTrimmedSlabStrands(Database db, Document doc, List<StrandModel> list)
+        private void CreateTrimmedSlabStrands(Database db, Document doc, List<StrandModel> list)
         {
             int numVerts_outer = FDN_PERIMETER_POLYLINE.NumberOfVertices;
 
@@ -390,7 +390,7 @@ namespace EE_Analyzer
         /// <param name="basis"></param>
         /// <param name="isHorizontal"></param>
         /// <exception cref="System.Exception"></exception>
-        private static void CreateUntrimmedSlabStrands(Database db, Document doc, Point3d basis, bool isHorizontal)
+        private void CreateUntrimmedSlabStrands(Database db, Document doc, Point3d basis, bool isHorizontal)
         {
             double width, spacing, depth;
             // retrieve the bounding box
@@ -482,7 +482,7 @@ namespace EE_Analyzer
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        private static Point3d FindGradeBeamInsertPoint(Database db, Document doc)
+        private Point3d FindGradeBeamInsertPoint(Database db, Document doc)
         {
             if (FDN_BOUNDARY_BOX == null)
             {
@@ -547,7 +547,7 @@ namespace EE_Analyzer
         /// <param name="basis">The basis point for the grade beam grid as <see cref="Point3d"/></param>
         /// <param name="isHorizontal"></param>
         /// <exception cref="System.Exception"></exception>
-        private static void CreateUntrimmedGradeBeams(Database db, Document doc, Point3d basis, bool isHorizontal)
+        private void CreateUntrimmedGradeBeams(Database db, Document doc, Point3d basis, bool isHorizontal)
         {
             double width, spacing, depth;
             // retrieve the bounding box
@@ -701,7 +701,7 @@ namespace EE_Analyzer
         /// <param name="db"></param>
         /// <param name="doc"></param>
         /// <exception cref="System.Exception"></exception>
-        private static void CreateTrimmedGradeBeams(Database db, Document doc, List<GradeBeamModel> list)
+        private void CreateTrimmedGradeBeams(Database db, Document doc, List<GradeBeamModel> list)
         {
             int numVerts_inner = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.NumberOfVertices;
             int numVerts_outer = FDN_PERIMETER_POLYLINE.NumberOfVertices;
@@ -887,7 +887,7 @@ namespace EE_Analyzer
         /// <param name="db">AutoCAD database</param>
         /// <param name="doc">AutoCAD document</param>
         /// <param name="beam_x_width">Width of the grade beam</param>
-        private static void DrawFoundationPerimeterBeam(Database db, Document doc, double beam_x_width)
+        private void DrawFoundationPerimeterBeam(Database db, Document doc, double beam_x_width)
         {
             // at this point we know an entity has been selected and it is a Polyline
             using (Transaction trans = db.TransactionManager.StartTransaction())
@@ -934,7 +934,7 @@ namespace EE_Analyzer
         /// <param name="result">result from the entity selection in AutoCAD</param>
         /// <param name="foundationPerimeterPolyline">stores the foundation perimeter polyline</param>
         /// <exception cref="System.Exception"></exception>
-        private static Polyline ProcessFoundationPerimeter(Database db, Editor edt, PromptEntityResult result)
+        private Polyline ProcessFoundationPerimeter(Database db, Editor edt, PromptEntityResult result)
         {
             Polyline foundationPerimeterPolyline = new Polyline();
             if (result.Status == PromptStatus.OK)
@@ -1002,7 +1002,7 @@ namespace EE_Analyzer
         /// <param name="lstVertices"></param>
         /// <returns></returns>
         /// <exception cref="System.Exception"></exception>
-        private static Polyline CreateFoundationBoundingBox(Database db, Editor edt, List<Point2d> lstVertices)
+        private Polyline CreateFoundationBoundingBox(Database db, Editor edt, List<Point2d> lstVertices)
         {
             if(lstVertices is null)
             {
@@ -1085,7 +1085,7 @@ namespace EE_Analyzer
         /// </summary>
         /// <param name="doc"></param>
         /// <param name="db"></param>
-        private static void EE_ApplicationSetup(Document doc, Database db)
+        private void EE_ApplicationSetup(Document doc, Database db)
         {
             // Load our linetype
             LoadLineTypes("CENTER", doc, db);
@@ -1113,7 +1113,6 @@ namespace EE_Analyzer
             CreateLayer(EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER, doc, db, 2); // red
 
         }
-
 
         /// <summary>
         /// Command line to run the foundation detailing progam
