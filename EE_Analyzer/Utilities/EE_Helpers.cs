@@ -266,16 +266,16 @@ namespace EE_Analyzer.Utilities
                     Point3d p1 = poly.GetPoint3dAt(i % numVerts);
                     Point3d p2 = poly.GetPoint3dAt((i + 1) % numVerts);
 
-                    if (p1 == b1 || p1 == b2)
-                    {
-                        beam_points.Add(p1);
-                        continue;
-                    }
-                    if (p2 == b1 || p2 == b2)
-                    {
-                        beam_points.Add(p2);
-                        continue;
-                    }
+                    //if (p1 == b1 || p1 == b2)
+                    //{
+                    //    beam_points.Add(p1);
+                    //    continue;
+                    //}
+                    //if (p2 == b1 || p2 == b2)
+                    //{
+                    //    beam_points.Add(p2);
+                    //    continue;
+                    //}
 
                     double dist = MathHelpers.Distance3DBetween(p1, p2);
 
@@ -292,29 +292,38 @@ namespace EE_Analyzer.Utilities
                     }
                     else
                     {
-                        double slope1_line_segment = EE_Helpers.GetSlopeOfPts(b1, b2);
-                        double slope2_line_segment = EE_Helpers.GetSlopeOfPts(b2, b1);
-                        double slope_polyline_segment = EE_Helpers.GetSlopeOfPts(p1, p2);
-                        // if the slope of the two line segments are parallel and the X or Y coordinates match, add the intersection as the average of the two polyline segment end points 
-                        if ((slope1_line_segment == slope_polyline_segment) || (slope2_line_segment == slope_polyline_segment))
+                        //double slope1_line_segment = EE_Helpers.GetSlopeOfPts(b1, b2);
+                        //double slope2_line_segment = EE_Helpers.GetSlopeOfPts(b2, b1);
+                        //double slope_polyline_segment = EE_Helpers.GetSlopeOfPts(p1, p2);
+                        //// if the slope of the two line segments are parallel and the X or Y coordinates match, add the intersection as the average of the two polyline segment end points 
+                        //if ((slope1_line_segment == slope_polyline_segment) || (slope2_line_segment == slope_polyline_segment))
+                        //{
+                        //    // if the vertices of the polyline are on the line segment
+                        //    //     (vertical segment test)       ||      (horizontal segment test)
+                        //    if ((b1.X == p1.X && b1.X == p2.X && b2.X == p1.X && b2.X == p2.X)
+                        //        || (b1.Y == p1.Y && b1.Y == p2.Y && b2.Y == p1.Y && b2.Y == p2.Y))
+                        //    {
+                        //        // assign the midpoint of the polyline segment as the intersection point
+                        //        beam_points.Add(new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0));
+                        //        continue;
+                        //    }
+                        //}
+
+                        // If the first point is exactly a vertex point, add it to the list
+                        if (p1 == b1 || p1 == b2)
                         {
-                            // if the vertices of the polyline are on the line segment
-                            //     (vertical segment test)       ||      (horizontal segment test)
-                            if ((b1.X == p1.X && b1.X == p2.X && b2.X == p1.X && b2.X == p2.X)
-                                || (b1.Y == p1.Y && b1.Y == p2.Y && b2.Y == p1.Y && b2.Y == p2.Y))
+                            beam_points.Add(p1);
+                            continue;
+                        } else
+                        {
+                            // If the distance from the intPt to both p1 and P2 is less than the distance between p1 and p2
+                            // the intPT must be between P1 and P2 
+                            if ((MathHelpers.Distance3DBetween(grade_beam_intPt, p1) <= dist) && (MathHelpers.Distance3DBetween(grade_beam_intPt, p2) <= dist))
                             {
-                                // assign the midpoint of the polyline segment as the intersection point
-                                beam_points.Add(new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0));
-                                continue;
+                                beam_points.Add(grade_beam_intPt);
                             }
                         }
 
-                        // If the distance from the intPt to both p1 and P2 is less than the distance between p1 and p2
-                        // the intPT must be between P1 and P2 
-                        if ((MathHelpers.Distance3DBetween(grade_beam_intPt, p1) <= dist) && (MathHelpers.Distance3DBetween(grade_beam_intPt, p2) <= dist))
-                        {
-                            beam_points.Add(grade_beam_intPt);
-                        }
                     }
                 }
                 catch (System.Exception e)

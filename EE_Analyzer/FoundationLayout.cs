@@ -193,7 +193,6 @@ namespace EE_Analyzer
             doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed interior grade beams");
 
             CreateTrimmedGradeBeams(db, doc, lstInteriorGradeBeamsUntrimmed);
-
             doc.Editor.WriteMessage("\n-- Completed drawing trimmed grade beams. " + lstInteriorGradeBeamsTrimmed.Count + " grade beams created.");
 
             #endregion
@@ -706,12 +705,20 @@ namespace EE_Analyzer
             int numVerts_inner = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.NumberOfVertices;
             int numVerts_outer = FDN_PERIMETER_POLYLINE.NumberOfVertices;
 
+
             ///////////////////////////////////////////////////////////////////
             ///  Get the trimmed grade beam intersection points with the FDN_PERIMETER_INTERIOR_EDGE_POLYLINE
             ///////////////////////////////////////////////////////////////////
             // Create new models for each of the untrimmed grade beam models
+            doc.Editor.WriteMessage("\nAnalyzing " + list.Count + " untrimmed beams.");
+            doc.Editor.WriteMessage("\nInner polyline has " + numVerts_inner.ToString() + " vertices.");
+            doc.Editor.WriteMessage("\nPerimeter polyline has " + numVerts_outer.ToString() + " vertices.");
+
+            int count =0;
             foreach (GradeBeamModel untr_beam in list)
             {
+                count++;
+
                 double width = untr_beam.Width;
                 double depth = untr_beam.Depth;
 
@@ -724,11 +731,16 @@ namespace EE_Analyzer
 
                 try
                 {
-                    // Get the intersection for the trimmed grade beam with the inner edge polyline
+                    // Get the intersection for the trimmed grade beam centerline with the inner edge polyline
                     sorted_grade_beam_points = TrimAndSortIntersectionPoints(b1, b2, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
                     if(sorted_grade_beam_points != null)
                     {
-                        doc.Editor.WriteMessage("\n--Found " + sorted_grade_beam_points.Length.ToString() + " grade beam intersection points.");
+                        doc.Editor.WriteMessage("\n--Beam " + count.ToString() + " -- Found " + sorted_grade_beam_points.Length.ToString() + " grade beam intersection points.");
+
+                        foreach(Point3d point in sorted_grade_beam_points)
+                        {
+                            DrawCircle(point, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                        }
                     }
                     else
                     {
@@ -737,133 +749,136 @@ namespace EE_Analyzer
                     }
                 } catch
                 {
-                    doc.Editor.WriteMessage("\n-Error finding trimmed grade beam points.");
+                    doc.Editor.WriteMessage("\n-Error finding trimmed grade beam points from centerline data.");
                 }
 
-                try
-                {
-                    // Get the intersection for the trimmed strand with the outer edge polyline
-                    sorted_strand_points = TrimAndSortIntersectionPoints(b1, b2, FDN_PERIMETER_POLYLINE);
-                    if (sorted_grade_beam_points != null)
-                    {
-                        doc.Editor.WriteMessage("\n--Found " + sorted_strand_points.Length.ToString() + " strand intersection points.");
-                    }
-                    else
-                    {
-                        // Null sorted points list returned, so skip this beam and continue
-                        continue;
-                    }
+                //try
+                //{
+                //    // Get the intersection for the trimmed strand with the outer edge polyline
+                //    sorted_strand_points = TrimAndSortIntersectionPoints(b1, b2, FDN_PERIMETER_POLYLINE);
+                //    if (sorted_grade_beam_points != null)
+                //    {
+                //        doc.Editor.WriteMessage("\n--Found " + sorted_strand_points.Length.ToString() + " strand intersection points.");
+                //    }
+                //    else
+                //    {
+                //        // Null sorted points list returned, so skip this beam and continue
+                //        continue;
+                //    }
 
-                }
-                catch
-                {
-                    doc.Editor.WriteMessage("\n-Error finding trimmed strand points.");
-                    doc.Editor.WriteMessage("\n" + sorted_grade_beam_points.Length.ToString() + " sorted beam points and " + sorted_strand_points.Length.ToString() + " sorted strand points.");
+                //}
+                //catch
+                //{
+                //    doc.Editor.WriteMessage("\n-Error finding trimmed grade beam strand points.");
+                //    doc.Editor.WriteMessage("\n" + sorted_grade_beam_points.Length.ToString() + " sorted beam points and " + sorted_strand_points.Length.ToString() + " sorted strand points.");
 
-                }
+                //}
 
-                doc.Editor.WriteMessage("\n" + sorted_grade_beam_points.Length.ToString() + " sorted beam points and " + sorted_strand_points.Length.ToString() + " sorted strand points.");
+                //doc.Editor.WriteMessage("\n" + sorted_grade_beam_points.Length.ToString() + " sorted beam points and " + sorted_strand_points.Length.ToString() + " sorted strand points.");
 
-                for (int j = 0; j < sorted_grade_beam_points.Length - 1; j = j + 2)
-                {
-                    try
-                    {
-                        // Mark the intersection points for the beam centerline
-                        DrawCircle(sorted_grade_beam_points[j], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(sorted_grade_beam_points[j + 1], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+ //               for (int j = 0; j < sorted_grade_beam_points.Length - 1; j = j + 2)
+ //               {
+ //                   try
+ //                   {
+ //                       // Mark the intersection points for the beam centerline
+ //                       DrawCircle(sorted_grade_beam_points[j], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+ //                       DrawCircle(sorted_grade_beam_points[j + 1], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
 
-                        // check if the grade beam is long enough for PT
-                        if (MathHelpers.Distance3DBetween(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1]) > DEFAULT_DONT_DRAW_PT_LENGTH)
-                        {
-                            GradeBeamModel beam = new GradeBeamModel(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1], FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
+ //                       // check if the grade beam is long enough for PT
+ //                       if (MathHelpers.Distance3DBetween(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1]) > DEFAULT_DONT_DRAW_PT_LENGTH)
+ //                       {
+ //                           GradeBeamModel beam = new GradeBeamModel(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1], FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
 
-                            // Modify the trimmed edge lines of the new grade beam
-                            Point3d[] intPoints_edge1 = TrimAndSortIntersectionPoints(beam.Edge1.StartPoint, beam.Edge1.EndPoint, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
-                            Point3d[] intPoints_edge2 = TrimAndSortIntersectionPoints(beam.Edge2.StartPoint, beam.Edge2.EndPoint, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+ //                           // Modify the trimmed edge lines of the new grade beam
+ //                           Point3d[] intPoints_edge1 = TrimAndSortIntersectionPoints(beam.Edge1.StartPoint, beam.Edge1.EndPoint, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+ //                           Point3d[] intPoints_edge2 = TrimAndSortIntersectionPoints(beam.Edge2.StartPoint, beam.Edge2.EndPoint, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
 
-                            if (intPoints_edge1 != null && intPoints_edge2 != null)
-                            {
-                                if (intPoints_edge1 == intPoints_edge2)
-                                {
-                                    // Both edges of the trimmed beam are fully contained within the inner perimeter line
-                                    // So its safe to adjust their end points
-                                    // first for edge 1
-                                    using (Transaction trans = db.TransactionManager.StartTransaction())
-                                    {
-                                        try
-                                        {
-                                            BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                                            BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+ //                           int num_trimmed = 0;
 
-                                            var obj = trans.GetObject(beam.Edge1.ObjectId, OpenMode.ForRead);
-                                            var pl = obj as Line;
+ //                           if (intPoints_edge1 != null && intPoints_edge2 != null)
+ //                           {
+ ////                               if (intPoints_edge1 == intPoints_edge2)
+ ////                               {
+ //                                   // Both edges of the trimmed beam are fully contained within the inner perimeter line
+ //                                   // So its safe to adjust their end points
+ //                                   // first for edge 1
+ //                                   using (Transaction trans = db.TransactionManager.StartTransaction())
+ //                                   {
+ //                                       try
+ //                                       {
+ //                                           BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+ //                                           BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
-                                            // Now let's make sure we can edit the line
-                                            pl.UpgradeOpen();
+ //                                           var obj = trans.GetObject(beam.Edge1.ObjectId, OpenMode.ForRead);
+ //                                           var pl = obj as Line;
 
-                                            pl.StartPoint = intPoints_edge1[j];
-                                            pl.EndPoint = intPoints_edge1[j + 1];
+ //                                           // Now let's make sure we can edit the line
+ //                                           pl.UpgradeOpen();
 
-                                            trans.Commit();
-                                        }
-                                        catch (System.Exception ex)
-                                        {
-                                            doc.Editor.WriteMessage("\nError encountered moving Edge1 end points on trimmed grade beam #" + beam.BeamNum + ": " + ex.Message);
-                                            trans.Abort();
-                                        }
-                                    }
+ //                                           pl.StartPoint = intPoints_edge1[j];
+ //                                           pl.EndPoint = intPoints_edge1[j + 1];
+ //                                           trans.Commit();
+ //                                       }
+ //                                       catch (System.Exception ex)
+ //                                       {
+ //                                           doc.Editor.WriteMessage("\nError encountered moving Edge1 end points on trimmed grade beam #" + beam.BeamNum + ": " + ex.Message);
+ //                                           trans.Abort();
+ //                                       }
+ //                                   }
 
-                                    // then for edge 2
-                                    using (Transaction trans = db.TransactionManager.StartTransaction())
-                                    {
-                                        try
-                                        {
-                                            BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                                            BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+ //                                   // then for edge 2
+ //                                   using (Transaction trans = db.TransactionManager.StartTransaction())
+ //                                   {
+ //                                       try
+ //                                       {
+ //                                           BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+ //                                           BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
-                                            var obj = trans.GetObject(beam.Edge2.ObjectId, OpenMode.ForRead);
-                                            var pl = obj as Line;
+ //                                           var obj = trans.GetObject(beam.Edge2.ObjectId, OpenMode.ForRead);
+ //                                           var pl = obj as Line;
 
-                                            // Now let's make sure we can edit the line
-                                            pl.UpgradeOpen();
+ //                                           // Now let's make sure we can edit the line
+ //                                           pl.UpgradeOpen();
 
-                                            pl.StartPoint = intPoints_edge2[j];
-                                            pl.EndPoint = intPoints_edge2[j + 1];
+ //                                           pl.StartPoint = intPoints_edge2[j];
+ //                                           pl.EndPoint = intPoints_edge2[j + 1];
 
-                                            trans.Commit();
-                                        }
-                                        catch (System.Exception ex)
-                                        {
-                                            doc.Editor.WriteMessage("\nError encountered moving Edge2 end points on trimmed grade beam #" + beam.BeamNum + ": " + ex.Message);
-                                            trans.Abort();
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    // Otherwise, one of the edge lines is outside the perimeter line so we'll just keep the grade beam as untrimmed
-                                    // i.e. do Nothing for now
-                                    // TODO:  Fix this case where one edge line is outside of the bounday while the other is not
-                                }
+ //                                           trans.Commit();
+ //                                       }
+ //                                       catch (System.Exception ex)
+ //                                       {
+ //                                           doc.Editor.WriteMessage("\nError encountered moving Edge2 end points on trimmed grade beam #" + beam.BeamNum + ": " + ex.Message);
+ //                                           trans.Abort();
+ //                                       }
+ //                                   }
+ //                               //}
+ //                               //else
+ //                               //{
+ //                               //    // Otherwise, one of the edge lines is outside the perimeter line so we'll just keep the grade beam as untrimmed
+ //                               //    // i.e. do Nothing for now
+ //                               //    // TODO:  Fix this case where one edge line is outside of the bounday while the other is not
+ //                               //    doc.Editor.WriteMessage("\n-- Grade beam edge is outside boundary polying for trimmed grade beam #" + beam.BeamNum);
 
-                                lstInteriorGradeBeamsTrimmed.Add(beam);
-                            }
-                            else
-                            {
-                                doc.Editor.WriteMessage("\nGrade beam at " + sorted_grade_beam_points[j].X + " , " + sorted_grade_beam_points[j].Y + 
-                                    "is less than minimum [" + DEFAULT_DONT_DRAW_PT_LENGTH + "] for post tensioning. Skipping grade beam here.");
-                            }
-                        }
+ //                               //}
 
-                    }
-                    catch (System.Exception e)
-                    {
-                        doc.Editor.WriteMessage("\nError creating grade beam at " + sorted_grade_beam_points[j].X + ", " + sorted_grade_beam_points[j + 1].Y);
-                        DrawCircle(sorted_grade_beam_points[j], 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(sorted_grade_beam_points[j], 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(sorted_grade_beam_points[j], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                    }
-                }
+ //                               lstInteriorGradeBeamsTrimmed.Add(beam);
+ //                           }
+ //                           else
+ //                           {
+ //                               doc.Editor.WriteMessage("\nGrade beam at " + sorted_grade_beam_points[j].X + " , " + sorted_grade_beam_points[j].Y + 
+ //                                   "is less than minimum [" + DEFAULT_DONT_DRAW_PT_LENGTH + "] for post tensioning. Skipping grade beam here.");
+ //                           }
+ //                       }
+
+ //                   }
+ //                   catch (System.Exception e)
+ //                   {
+ //                       doc.Editor.WriteMessage("\nError creating grade beam at " + sorted_grade_beam_points[j].X + ", " + sorted_grade_beam_points[j + 1].Y);
+ //                       DrawCircle(sorted_grade_beam_points[j], 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+ //                       DrawCircle(sorted_grade_beam_points[j], 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+ //                       DrawCircle(sorted_grade_beam_points[j], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+ //                   }
+ //               }
             }
 
             // Now add the grade beam entities to the drawing
