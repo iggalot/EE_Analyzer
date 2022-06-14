@@ -170,12 +170,14 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        [CommandMethod("EELine")]
-        public static void DrawLine()
+        public static void DrawLine(Point3d pt1, Point3d pt2, string layer_name)
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor edt = doc.Editor;
+
+            if (pt1 == null || pt2 == null)
+                throw new System.Exception("\nInvalid point data received at DrawLine");
 
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -188,20 +190,25 @@ namespace EE_Analyzer.Utilities
                     btr=trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                     // Send a message to the user
-                    edt.WriteMessage("\nDrawing a Line object: ");
+                    // edt.WriteMessage("\nDrawing a Line object: ");
 
-                    Point3d pt1 = new Point3d(0, 0, 0);
-                    Point3d pt2 = new Point3d(100, 100, 0);
-                    Line ln = new Line(pt1, pt2);
-                    ln.ColorIndex = 1;  // Color is red
-                    btr.AppendEntity(ln);
-                    trans.AddNewlyCreatedDBObject(ln, true);
+                    // pt1 = new Point3d(0, 0, 0);
+                    //Point3d pt2 = new Point3d(100, 100, 0);
+                    using (Line ln = new Line())
+                    {
+                        ln.StartPoint = pt1;
+                        ln.EndPoint = pt2;
+                        ln.Layer = layer_name;
+
+                        btr.AppendEntity(ln);
+                        trans.AddNewlyCreatedDBObject(ln, true);
+                    }
                     trans.Commit();
 
                 }
                 catch (System.Exception ex)
                 {
-                    edt.WriteMessage("Error encountered: " + ex.Message);
+                    edt.WriteMessage("Error encountered drawing line from " + pt1.X + "," + pt1.Y + " to " + pt2.X + "," + pt2.Y +" -- " + ex.Message);
                     trans.Abort();
                 }
             }

@@ -58,5 +58,11 @@ namespace EE_Analyzer.Utilities
 
             return new Point2d(vx, vy);
         }
+
+        public static Point3d GetMidpoint(Point3d p1, Point3d p2)
+        {
+            Point3d p = new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0.5 * (p1.Z + p2.Z));
+            return p;
+        }
     }
 }

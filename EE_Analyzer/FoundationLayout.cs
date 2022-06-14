@@ -192,41 +192,162 @@ namespace EE_Analyzer
             #region Trim Grade Beam and Beam Strand Lines
             doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed interior grade beams");
 
-            CreateTrimmedGradeBeams(db, doc, lstInteriorGradeBeamsUntrimmed);
+            int tr_count = 0;
+            foreach(var beam in lstInteriorGradeBeamsUntrimmed)
+            {
+                beam.BeamNum = tr_count;
+                CreateTrimmedGradeBeam(db, doc, beam, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+                DrawMtext(db, doc, beam.StartPt, beam.BeamNum.ToString(), 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+
+                tr_count++;
+            }
+//            CreateTrimmedGradeBeams(db, doc, lstInteriorGradeBeamsUntrimmed);
             doc.Editor.WriteMessage("\n-- Completed drawing trimmed grade beams. " + lstInteriorGradeBeamsTrimmed.Count + " grade beams created.");
 
             #endregion
 
-            #region Draw Untrimmed Slab Strands
+            //#region Draw Untrimmed Slab Strands
 
-            doc.Editor.WriteMessage("\nDrawing untrimmed slab strands beams");
+            //doc.Editor.WriteMessage("\nDrawing untrimmed slab strands beams");
 
-            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
-            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
+            //CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
+            //CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
 
-            doc.Editor.WriteMessage("\n-- Completed drawing untrimmed slab strands. " + lstSlabStrandsUntrimmed.Count + " untrimmed slab strands created.");
+            //doc.Editor.WriteMessage("\n-- Completed drawing untrimmed slab strands. " + lstSlabStrandsUntrimmed.Count + " untrimmed slab strands created.");
 
-            #endregion
+            //#endregion
 
-            #region Trim Slab Strands
-            doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed slab strands");
-            CreateTrimmedSlabStrands(db, doc, lstSlabStrandsUntrimmed);
-            doc.Editor.WriteMessage("\n-- Completed drawing trimmed slab strands. " + lstSlabStrandsTrimmed.Count + " trimmed slab strands created.");
+            //#region Trim Slab Strands
+            //doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed slab strands");
+            //CreateTrimmedSlabStrands(db, doc, lstSlabStrandsUntrimmed);
+            //doc.Editor.WriteMessage("\n-- Completed drawing trimmed slab strands. " + lstSlabStrandsTrimmed.Count + " trimmed slab strands created.");
 
-            #endregion
+            //#endregion
 
-            #region Bill of Materials
-            // compute concrete volumes
-            CreateBillOfMaterials(db, doc);
+            //#region Bill of Materials
+            //// compute concrete volumes
+            //CreateBillOfMaterials(db, doc);
 
-            // compute strand quantities
-            #endregion
+            //// compute strand quantities
+            //#endregion
 
-            #region Section Details
-            #endregion
+            //#region Section Details
+            //#endregion
 
-            #region Additional Steel
-            #endregion
+            //#region Additional Steel
+            //#endregion
+        }
+
+        private void CreateTrimmedGradeBeam(Database db, Document doc, GradeBeamModel beam, Polyline poly)
+        {
+            List<Point3d> intPtList= new List<Point3d>();
+
+            Point3d b1 = beam.StartPt;
+            Point3d b2 = beam.EndPt;
+
+
+            int numVerts = poly.NumberOfVertices;
+            bool isClosed = poly.Closed;
+
+            if(isClosed is false)
+            {
+                throw new System.Exception("Invalid polyline received in Create TrimmedGradeBeams. Polyline must be closed");
+            }
+
+            if (numVerts < 2)
+            {
+                throw new System.Exception("Invalid polyline received in Create TrimmedGradeBeams. Polyline must have more than two vertices");
+            }
+
+            doc.Editor.WriteMessage("\nBeam #" + beam.BeamNum);
+            doc.Editor.WriteMessage("\n- Testing beam at " + b1.X + "," + b1.Y + " to " + b2.X + "," + b2.Y);
+
+            Point3d p1 = poly.GetPoint3dAt(0);
+            Point3d p2 = poly.GetPoint3dAt(1);
+
+            // Loop through the polyline segments and find the intersecting points.
+            for (int i = 0; i < numVerts; i++)
+            {
+                p1 = poly.GetPoint3dAt(i);
+                p2 = poly.GetPoint3dAt((i + 1) % numVerts);
+
+                DrawMtext(db, doc, MathHelpers.GetMidpoint(p1, p2), i.ToString(), 6, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                Point3d grade_beam_intPt;
+
+
+                IntersectPointData intersectPtData = FindPointOfIntersectLines_FromPoint3d(
+                    b1,
+                    b2,
+                    p1,
+                    p2);
+                grade_beam_intPt = intersectPtData.Point;
+
+
+                if ((grade_beam_intPt == null) || ((grade_beam_intPt.X == double.MaxValue) && (grade_beam_intPt.Y == double.MaxValue)))
+                {
+                    doc.Editor.WriteMessage("\n-- No intersection point found");
+                    continue;
+                } else
+                {
+                    doc.Editor.WriteMessage("\n-- intersection point at " + grade_beam_intPt.X + "," + grade_beam_intPt.Y);
+
+                    double dist = MathHelpers.Distance3DBetween(p1, p2);
+
+                    // If the distance from the intPt to both p1 and p2 is less than the distance between p1 and p2
+                    // the intPT must be between P1 and P2 
+
+                    // TODO:::
+                    // ERROR IN DETERMINING IF THE INTERSECTION POINT IS BETWEEN THE END POINTS OF THE LINE SEGMENT
+                    //                   if ((MathHelpers.Distance3DBetween(grade_beam_intPt, p1) <= dist) && (MathHelpers.Distance3DBetween(grade_beam_intPt, p2) <= dist))
+                    bool validIntersection = true;
+
+                    //// is the intersection point at the first end point?
+                    //if(grade_beam_intPt.X == p1.X && grade_beam_intPt.Y == p1.Y)
+                    //{
+                    //    intPtList.Add(grade_beam_intPt);
+                    //    doc.Editor.WriteMessage("-- seg " + i + " YES");
+
+                    //    continue;
+                    //}
+
+                    //// is the intersection point at the first end point?
+                    //if (grade_beam_intPt.X == p2.X && grade_beam_intPt.Y == p2.Y)
+                    //{
+                    //    intPtList.Add(grade_beam_intPt);
+                    //    doc.Editor.WriteMessage("-- seg " + i + " YES");
+
+                    //    continue;
+                    //}
+
+                    if ((grade_beam_intPt.X < p1.X && grade_beam_intPt.X < p2.X) ||
+                        (grade_beam_intPt.X > p1.X && grade_beam_intPt.X > p2.X) ||
+                        (grade_beam_intPt.Y < p1.Y && grade_beam_intPt.Y < p2.Y) ||
+                        (grade_beam_intPt.Y > p1.Y && grade_beam_intPt.Y > p2.Y))
+                    {
+                        //doc.Editor.WriteMessage("-- seg " + i + " NO");
+                        validIntersection = false; ;
+                    }
+
+                    if (validIntersection)
+                    {
+                        doc.Editor.WriteMessage("\n-- seg " + i + "YES");
+                        intPtList.Add(grade_beam_intPt);
+                        continue;
+                    }
+                }
+            }
+
+            int numPts = intPtList.Count;
+            doc.Editor.WriteMessage("-- " + numPts.ToString() + " intersection points found");
+            for (int i = 0; i < numPts-1; i = i + 2)
+            {
+                DrawLine(intPtList[i], intPtList[i+1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                DrawMtext(db, doc, intPtList[i], beam.BeamNum.ToString(), 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+
+            }
+
+
+            //            DrawLine(b1, b2, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
         }
 
         /// <summary>
@@ -508,9 +629,12 @@ namespace EE_Analyzer
                     basis_pt = default_basis_pt;
                 }
 
-                Point3d intPt = FindPointOfIntersectLines_FromPoint3d(
+
+                IntersectPointData intersectData = FindPointOfIntersectLines_FromPoint3d(
                     longestSegmentPoints[0], longestSegmentPoints[1],
                     longestSegmentPoints[2], longestSegmentPoints[3]);
+
+                Point3d intPt = intersectData.Point;
 
                 //DrawCircle(longestSegmentPoints[0], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
                 //DrawCircle(longestSegmentPoints[1], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
@@ -705,7 +829,6 @@ namespace EE_Analyzer
             int numVerts_inner = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.NumberOfVertices;
             int numVerts_outer = FDN_PERIMETER_POLYLINE.NumberOfVertices;
 
-
             ///////////////////////////////////////////////////////////////////
             ///  Get the trimmed grade beam intersection points with the FDN_PERIMETER_INTERIOR_EDGE_POLYLINE
             ///////////////////////////////////////////////////////////////////
@@ -718,6 +841,7 @@ namespace EE_Analyzer
             foreach (GradeBeamModel untr_beam in list)
             {
                 count++;
+                doc.Editor.WriteMessage("\n" + count.ToString());
 
                 double width = untr_beam.Width;
                 double depth = untr_beam.Depth;
@@ -733,23 +857,37 @@ namespace EE_Analyzer
                 {
                     // Get the intersection for the trimmed grade beam centerline with the inner edge polyline
                     sorted_grade_beam_points = TrimAndSortIntersectionPoints(b1, b2, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+
                     if(sorted_grade_beam_points != null)
                     {
+                        doc.Editor.WriteMessage(sorted_grade_beam_points.Length + " points in list");
+
+                        if (sorted_grade_beam_points.Length < 2)
+                        {
+                            doc.Editor.WriteMessage("\n--Only " + sorted_grade_beam_points.Length + " intersection points found - no grade beam possible for grade beam between ("
+                                + "\n" + b1.X.ToString() + "," + b1.Y.ToString() + ") and \n("
+                                + b2.X.ToString() + "," + b2.Y.ToString() + ") -- skipping grade beam");
+                            continue;
+                        }
+
                         doc.Editor.WriteMessage("\n--Beam " + count.ToString() + " -- Found " + sorted_grade_beam_points.Length.ToString() + " grade beam intersection points.");
 
                         foreach(Point3d point in sorted_grade_beam_points)
                         {
+                            doc.Editor.WriteMessage("--Drawing intersection markers");
                             DrawCircle(point, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
                         }
                     }
                     else
                     {
+                        doc.Editor.WriteMessage("\n--Intersection point list was null.");
+
                         // Null sorted points list returned, so skip this beam and continue
                         continue;
                     }
-                } catch
+                } catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\n-Error finding trimmed grade beam points from centerline data.");
+                    doc.Editor.WriteMessage("\n-Error finding trimmed grade beam points from centerline data: " + ex.Message);
                 }
 
                 //try
@@ -1151,6 +1289,343 @@ namespace EE_Analyzer
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER, doc, db);
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER, doc, db);
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER, doc, db);
+
+        }
+
+        [CommandMethod("EEINT")]
+        public void MarkIntersection()
+        {
+            Polyline FDN_POLY = new Polyline();
+
+            Document doc = AcAp.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor edt = doc.Editor;
+
+            // Parse the polyline object in the drawing
+            var options = new PromptEntityOptions("\nSelect Foundation Polyline");
+            options.SetRejectMessage("\nSelected object is not a polyline.");
+            options.AddAllowedClass(typeof(Polyline), true);
+
+            // Select the polyline for the foundation
+            var polyresult = edt.GetEntity(options);
+
+            Polyline poly = new Polyline();
+            if (polyresult.Status == PromptStatus.OK)
+            {
+                // at this point we know an entity has been selected and it is a Polyline
+                using (Transaction trans = db.TransactionManager.StartTransaction())
+                {
+                    try
+                    {
+                        BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                        BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                        poly = trans.GetObject(polyresult.ObjectId, OpenMode.ForRead) as Polyline;
+                        trans.Commit();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        trans.Abort();
+                    }
+                }
+            }
+
+            // process the foundation line to correct the winding order
+            FDN_POLY = ProcessFoundationPerimeter(db, edt, polyresult);
+
+            var options2 = new PromptEntityOptions("\nSelect Line Object");
+            options2.SetRejectMessage("\nSelected object is not a line.");
+            options2.AddAllowedClass(typeof(Line), true);
+
+            // Select the polyline for the foundation
+            var lnresult = edt.GetEntity(options2);
+
+            Line ln = new Line();
+            if (lnresult.Status == PromptStatus.OK)
+            {
+                // at this point we know an entity has been selected and it is a Polyline
+                using (Transaction trans = db.TransactionManager.StartTransaction())
+                {
+                    try
+                    {
+                        BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                        BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                        ln = trans.GetObject(lnresult.ObjectId, OpenMode.ForRead) as Line;
+                        trans.Commit();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        trans.Abort();
+                    }
+                }
+            }
+
+            int numVerts = poly.NumberOfVertices;
+
+            Point3d b1 = ln.StartPoint;
+            Point3d b2 = ln.EndPoint;
+
+            // Add markers for debugging and labelling
+            DrawCircle(b1, 8, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+            DrawMtext(db, doc, b1, "LA", 6, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+            DrawCircle(b2, 8, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+            DrawMtext(db, doc, b2, "LB", 6, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+
+            List<Point3d> intPtList = new List<Point3d>();
+
+            for (int i = 0; i < numVerts; i++)
+            {
+                doc.Editor.WriteMessage("\nseg " + i.ToString());
+                bool isValid = true;
+                string str = "c";
+                Point3d p1 = poly.GetPoint3dAt(i % numVerts);
+                Point3d p2 = poly.GetPoint3dAt((i + 1) % numVerts);
+
+                // Label the polyline segments on the drawing.
+                DrawMtext(db, doc, MathHelpers.GetMidpoint(p1, p2), i.ToString(), 6, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+
+                // Label end points of polyline segments
+                DrawCircle(p1, 8, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                DrawMtext(db, doc, p1, "A", 6, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                DrawCircle(p2, 8, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                DrawMtext(db, doc, p2, "B", 6, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+
+                //Determine if the intersection point is a valid point within the polyline segment.
+                IntersectPointData intersectPointData = (EE_Helpers.FindPointOfIntersectLines_FromPoint3d(b1, b2, p1, p2));
+                Point3d intPt = intersectPointData.Point;
+                doc.Editor.WriteMessage("\n--intPt " + intPt.X + "," + intPt.Y);
+                doc.Editor.WriteMessage("\n--b1 " + b1.X + "," + b1.Y);
+                doc.Editor.WriteMessage("\n--b2 " + b2.X + "," + b2.Y);
+                doc.Editor.WriteMessage("\n--p1 " + p1.X + "," + p1.Y);
+                doc.Editor.WriteMessage("\n--p2 " + p2.X + "," + p2.Y);
+
+                // if the intersection point is within the two line segments (meaining that the cross)
+                if (intersectPointData.isWithinSegment is true)
+                {
+                    doc.Editor.WriteMessage("\nintersection point was within the line segment.");
+                }
+                else
+                {
+                    doc.Editor.WriteMessage("\nintersection point not within segment");
+                }
+                doc.Editor.WriteMessage("\n--" + intersectPointData.logMessage);
+
+
+                if (intersectPointData.isParallel is true)
+                {
+                    doc.Editor.WriteMessage("\nline segment " + i.ToString() + " was parallel");
+                    // skip since intersection points are not possible for parallel lines
+                    continue;
+                }
+
+
+                //if (p1.X == p2.X && p1.Y == p2.Y)
+                //{
+                //    // Case 0 - points are the same
+                //    str += "0";
+                //    isValid = false;
+                //}
+                //else if (p1.X < p2.X && p1.Y == p2.Y)
+                //{
+                //    // Case 1 - horizontal with point 1 left of point 2
+                //    str += "1";
+
+                //    if (intPt.X < p1.X && intPt.X < p2.X)
+                //    {
+                //        isValid = false;
+                //    }
+                //    else if (intPt.X > p1.X && intPt.X > p2.X)
+                //    {
+                //        isValid = false;
+                //    }
+                //    else
+                //    {
+                //        continue;
+                //    }
+                //}
+                //else if (p2.X < p1.X && p2.Y == p1.Y)
+                //{
+                //    str += "2";
+
+                //    // Case 2 - horizontal with point 2 left of point 1
+                //    if (intPt.X < p1.X && intPt.X < p2.X)
+                //    {
+                //        isValid = false;
+                //    }
+                //    else if (intPt.X > p1.X && intPt.X > p2.X)
+                //    {
+                //        isValid = false;
+                //    }
+                //    else
+                //    {
+                //        continue;
+                //    }
+                //}
+
+                //else
+                //if (p1.Y > p2.Y && p2.X == p1.X)
+                //{
+                //    str += "3";
+
+                //    // Case 3 - vertical with point 1 above point 2
+                //    if (intPt.X == p1.X && intPt.X == p2.X)
+                //    {
+                //        if (intPt.Y <= p1.Y && intPt.Y >= p2.Y)
+                //        {
+                //            // do nothing
+                //        }
+                //        else
+                //        {
+                //            isValid = false;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        isValid = false;
+                //    }
+                //}
+
+                //else
+                //if (p2.Y > p1.Y && p2.X == p1.X)
+                //{
+                //    str += "4";
+
+                //    // Case 4 - vertical with point 2 above point 1
+                //    if (intPt.X == p1.X && intPt.X == p2.X)
+                //    {
+                //        if (intPt.Y <= p2.Y && intPt.Y >= p1.Y)
+                //        {
+                //            // do nothing
+                //        }
+                //        else
+                //        {
+                //            isValid = false;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        isValid = false;
+                //    }
+                //}
+
+                //else if (p1.Y > p2.Y && p1.X < p2.X)
+                //{
+                //    str += "5";
+
+                //    // Case 5 - diagonal with point 1 above and left of point 2
+                //    if (intPt.X >= p1.X && intPt.X <= p2.X)
+                //    {
+                //        if (intPt.Y <= p1.Y && intPt.Y >= p2.Y)
+                //        {
+                //            // do nothing
+                //        }
+                //        else
+                //        {
+                //            isValid = false;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        isValid = false;
+                //    }
+                //}
+
+                //else if (p1.Y < p2.Y && p1.X < p2.X)
+                //{
+                //    str += "6";
+
+                //    // Case 6 - diagonal with point 1 below and left of point 2
+                //    if (intPt.X >= p1.X && intPt.X <= p2.X)
+                //    {
+                //        if (intPt.Y >= p1.Y && intPt.Y <= p2.Y)
+                //        {
+                //            // do nothing
+                //        }
+                //        else
+                //        {
+                //            isValid = false;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        isValid = false;
+                //    }
+                //}
+
+                //else if (p2.Y > p1.Y && p1.X > p2.X)
+                //{
+                //    str += "7";
+
+                //    // Case 7 - diagonal with point 2 above and left of point 1
+                //    if (intPt.X >= p2.X && intPt.X <= p1.X)
+                //    {
+                //        if (intPt.Y <= p2.Y && intPt.Y >= p1.Y)
+                //        {
+                //            // do nothing
+                //        }
+                //        else
+                //        {
+                //            isValid = false;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        isValid = false;
+                //    }
+                //}
+
+                //else if (p1.Y < p2.Y && p1.X < p2.X)
+                //{
+                //    str += "8";
+
+                //    // Case 8 - diagonal with point 1 above and left of point 2
+                //    if (intPt.X >= p1.X && intPt.X <= p2.X)
+                //    {
+                //        if (intPt.Y >= p1.Y && intPt.Y <= p2.Y)
+                //        {
+                //            // do nothing
+                //        }
+                //        else
+                //        {
+                //            isValid = false;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        isValid = false;
+                //    }
+                //}
+
+                DrawMtext(db, doc, intersectPointData.Point, i.ToString() + ":" + str, 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+
+                // If the lines were parallel, the intersection point was listed as the max double values for both X and Y
+                // Skip adding this here.
+                //if((intPt.X == double.MaxValue) || (intPt.Y == double.MaxValue))
+                //{
+                //    intPt = new Point3d(0,0,0);
+
+                //    DrawCircle(new Point3d(0, 0, 0), 5, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                //    DrawCircle(new Point3d(0, 0, 0), 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                //    DrawCircle(new Point3d(0, 0, 0), 15, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                //    DrawCircle(new Point3d(0, 0, 0), 20, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                //    isValid = false;
+                //}
+
+
+                if (intersectPointData.isWithinSegment is true)
+                {
+                    intPtList.Add(intersectPointData.Point);
+                    DrawCircle(intersectPointData.Point, 15, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                    DrawMtext(db, doc, intersectPointData.Point, i.ToString() + ":" + str, 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                    continue;
+                }
+            }
+
+            //foreach (Point3d item in intPtList)
+            //{
+            //    DrawCircle(item, 15, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+            //}
 
         }
     }

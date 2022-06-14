@@ -60,53 +60,53 @@ namespace EE_Analyzer.TestingFunctions
             }
         }
 
-        [CommandMethod("Test2")]
-        public void Test2()
-        {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor edt = doc.Editor;
+        //[CommandMethod("Test2")]
+        //public void Test2()
+        //{
+        //    Document doc = Application.DocumentManager.MdiActiveDocument;
+        //    Database db = doc.Database;
+        //    Editor edt = doc.Editor;
 
-            var options1 = new PromptEntityOptions("\nSelect Polyline");
-            options1.SetRejectMessage("\nSelected object is not a polyline.");
-            options1.AddAllowedClass(typeof(Polyline), true);
+        //    var options1 = new PromptEntityOptions("\nSelect Polyline");
+        //    options1.SetRejectMessage("\nSelected object is not a polyline.");
+        //    options1.AddAllowedClass(typeof(Polyline), true);
 
-            var options2 = new PromptEntityOptions("\nSelect Line");
-            options2.SetRejectMessage("\nSelected object is not a line.");
-            options2.AddAllowedClass(typeof(Line), true);
+        //    var options2 = new PromptEntityOptions("\nSelect Line");
+        //    options2.SetRejectMessage("\nSelected object is not a line.");
+        //    options2.AddAllowedClass(typeof(Line), true);
 
-            var pline_result = edt.GetEntity(options1);
-            var line_result = edt.GetEntity(options2);
+        //    var pline_result = edt.GetEntity(options1);
+        //    var line_result = edt.GetEntity(options2);
 
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                var modelSpace = (BlockTableRecord)trans.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+        //    using (Transaction trans = db.TransactionManager.StartTransaction())
+        //    {
+        //        var modelSpace = (BlockTableRecord)trans.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
 
-                if (pline_result.Status == PromptStatus.OK && line_result.Status == PromptStatus.OK)
-                {
-                    var pline = trans.GetObject(pline_result.ObjectId, OpenMode.ForRead) as Polyline;
-                    var line = trans.GetObject(line_result.ObjectId, OpenMode.ForRead) as Line;
+        //        if (pline_result.Status == PromptStatus.OK && line_result.Status == PromptStatus.OK)
+        //        {
+        //            var pline = trans.GetObject(pline_result.ObjectId, OpenMode.ForRead) as Polyline;
+        //            var line = trans.GetObject(line_result.ObjectId, OpenMode.ForRead) as Line;
 
-                    Point3dCollection points = IntersectionPointsOnPolyline(line, pline);
-                    edt.WriteMessage("\n" + points.Count + " intersection points found");
+        //            Point3dCollection points = IntersectionPointsOnPolyline(line, pline);
+        //            edt.WriteMessage("\n" + points.Count + " intersection points found");
 
-                    // draw the circles
-                    double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
-                    foreach (Point3d point in points)
-                    {
-                        var circle = new Circle(point, Vector3d.ZAxis, radius);
-                        circle.ColorIndex = 1;
-                        modelSpace.AppendEntity(circle);
-                        trans.AddNewlyCreatedDBObject(circle, true);
-                    }
-                    trans.Commit();
-                }
-                else
-                {
-                    trans.Abort();
-                }
-            }
-        }
+        //            // draw the circles
+        //            double radius = (db.Extmax.Y - db.Extmin.Y) / 100.0;
+        //            foreach (Point3d point in points)
+        //            {
+        //                var circle = new Circle(point, Vector3d.ZAxis, radius);
+        //                circle.ColorIndex = 1;
+        //                modelSpace.AppendEntity(circle);
+        //                trans.AddNewlyCreatedDBObject(circle, true);
+        //            }
+        //            trans.Commit();
+        //        }
+        //        else
+        //        {
+        //            trans.Abort();
+        //        }
+        //    }
+        //}
 
         [CommandMethod("EELayerList")]
         public static void LayerList()

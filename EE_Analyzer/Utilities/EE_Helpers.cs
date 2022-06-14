@@ -3,9 +3,20 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Windows;
+using static EE_Analyzer.Utilities.DrawObject;
+
 
 namespace EE_Analyzer.Utilities
 {
+    public class IntersectPointData
+    {
+        public Point3d Point;
+        public bool isParallel;
+        public bool isWithinSegment;
+        public string logMessage = "";
+    }
+
     public static class EE_Helpers
     {
         public static string DisplayPrint3DCollection(Point3dCollection coll)
@@ -120,75 +131,124 @@ namespace EE_Analyzer.Utilities
             return sort_arr;
         }
 
-        public static Point3dCollection IntersectionPointsOnPolyline(Line ln, Polyline pline)
-        {
-            var doc = Application.DocumentManager.MdiActiveDocument;
-            var db = doc.Database;
-            var ed = doc.Editor;
+        //public static Point3dCollection IntersectionPointsOnPolyline(Line ln, Polyline pline)
+        //{
+        //    var doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+        //    var db = doc.Database;
+        //    var ed = doc.Editor;
 
-            var points = new Point3dCollection();
+        //    var points = new Point3dCollection();
 
-            var curves = ln;
-            for (int i = 0; i < curves.Length - 1; i++)
-            {
-                curves.IntersectWith(pline, Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
-            }
-            return points;
-        }
+        //    var curves = ln;
+        //    for (int i = 0; i < curves.Length - 1; i++)
+        //    {
+        //        curves.IntersectWith(pline, Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
+        //    }
+        //    return points;
+        //}
 
-        // Find the point where two line segments intersect
         /// <summary>
-        /// 
+        /// Find the location where two line segements intersect
         /// </summary>
-        /// <param name="l1"></param>
-        /// <param name="l2"></param>
-        /// <param name="isParallel"></param>
+        /// <param name="l1">autocad line object #1</param>
+        /// <param name="l2">autocad line objtxt #2</param>
+        /// <param name="withinSegment">The coordinate must be within the line segments</param>
+        /// <param name="areParallel">returns if the lines are parallel. This needs to be checked everytime as the intersection point defaults to a really large value otherwise</param>
         /// <returns></returns>
-        public static Point3d FindPointOfIntersectLines_2D(Line l1, Line l2)
+        public static IntersectPointData FindPointOfIntersectLines_2D(Line l1, Line l2)
         {
-            var A1 = l1.EndPoint.Y - l1.StartPoint.Y;
-            var B1 = l1.EndPoint.X - l1.StartPoint.X;
-            var C1 = (A1 * l1.StartPoint.X + B1 * l1.StartPoint.Y);
-
-            var A2 = l2.EndPoint.Y - l2.StartPoint.Y;
-            var B2 = l2.EndPoint.X - l2.StartPoint.X;
-            var C2 = (A2 * l2.StartPoint.X + B2 * l2.StartPoint.Y);
+            double tol = 0.001;  // a tolerance fudge factor since autocad is having issues with rounding at the 9th and 10th decimal place
+            double A1 = l1.EndPoint.Y - l1.StartPoint.Y;
+            double A2 = l2.EndPoint.Y - l2.StartPoint.Y;
+            double B1 = l1.StartPoint.X - l1.EndPoint.X;
+            double B2 = l2.StartPoint.X - l2.EndPoint.X;
+            double C1 = A1 * l1.StartPoint.X + B1 * l1.StartPoint.Y;
+            double C2 = A2 * l2.StartPoint.X + B2 * l2.StartPoint.Y;
 
             // compute the determinant
-            var delta = A1 * B2 - A2 * B1;
+            double det = A1 * B2 - A2 * B1;
+
             double intX, intY;
 
-            
-            if (delta == 0)
+            IntersectPointData intPtData = new IntersectPointData();
+            intPtData.isParallel = LinesAreParallel(l1, l2);
+
+            if (intPtData.isParallel is true)
             {
-                // Lines are parallel, but are they the same line?z
+                // Lines are parallel, but are they the same line?
                 intX = double.MaxValue;
                 intY = double.MaxValue;
+                intPtData.isWithinSegment = false; // cant intersect if the lines are parallel
+                //MessageBox.Show("segment is parallel");
+                //MessageBox.Show("A1: " + A1 + "\n" + "  B1: " + B1 + "\n" + "  C1: " + C1 + "\n" +
+                //    "A2: " + A2 + "\n" + "  B2: " + B2 + "\n" + "  C2: " + C2 + "\n" +
+                //    "delta: " + delta);
             }
             else
             {
-                intX = (B2 * C1 - B1 * C2) / delta;
-                intY = (A1 * C2 - A2 * C1) / delta;
+                intX = (B2 * C1 - B1 * C2) / det;
+                intY = (A1 * C2 - A2 * C1) / det;
 
+                intPtData.isWithinSegment = true;
+                string msg = "";
+                //// Check that the intersection point is between the endpoints of both lines assuming it isnt
+                if (((Math.Min(l1.StartPoint.X, l1.EndPoint.X) - tol <= intX) && (Math.Max(l1.StartPoint.X, l1.EndPoint.X) + tol >= intX)) is false)
+                {
+                    intPtData.isWithinSegment = false;
+                    msg += "line 1 X - failed";
+                }
+                else if (((Math.Min(l2.StartPoint.X, l2.EndPoint.X) - tol <= intX) && (Math.Max(l2.StartPoint.X, l2.EndPoint.X) + tol >= intX)) is false)
+                {
+                    intPtData.isWithinSegment = false;
+                    msg += "line 2 X - failed";
+
+                }
+                else if (((Math.Min(l1.StartPoint.Y, l1.EndPoint.Y) - tol <= intY) && (Math.Max(l1.StartPoint.Y, l1.EndPoint.Y) + tol >= intY)) is false)
+                {
+                    intPtData.isWithinSegment = false;
+                    msg += "line 3 X - failed";
+
+                }
+                else if (((Math.Min(l2.StartPoint.Y, l2.EndPoint.Y) - tol <= intY) && (Math.Max(l2.StartPoint.Y, l2.EndPoint.Y) + tol >= intY)) is false)
+                {
+                    intPtData.isWithinSegment = false;
+                    msg += "line 4 X - failed";
+
+                }
+                else
+                {
+                    intPtData.isWithinSegment = true;
+                    msg += "intersection point is within line segment limits";
+
+                }
             }
-            return new Point3d(intX, intY, 0);
+
+            intPtData.Point = new Point3d(intX, intY, 0);
+
+            return intPtData;
         }
 
-        public static Point3d FindPointOfIntersectLines_FromPoint3d(Point3d A1, Point3d A2, Point3d B1, Point3d B2)
+        public static IntersectPointData FindPointOfIntersectLines_FromPoint3d(Point3d A1, Point3d A2, Point3d B1, Point3d B2)
         {
-            Line l1 = new Line(A1, A2);
-            Line l2 = new Line(B1, B2);
-
-            // If the two lines are collinear, return the average of B1 and B2
-            if(PtsAreColinear_2D(A1, A2, B1) && PtsAreColinear_2D(A1, A2, B2))
+            Line l1, l2;
+            if(A1.X < A2.X)
             {
-                return new Point3d(0.5 * (B1.X + B2.X), 0.5 * (B1.Y + B2.Y), 0.5 * (B1.Z + B2.Z));
-                
+                l1 = new Line(A1, A2);
             } else
             {
-                Point3d point = FindPointOfIntersectLines_2D(l1, l2);
-                return point;
+                l1 = new Line(A2, A1);
             }
+
+            if (B1.X < B2.X)
+            {
+                l2 = new Line(B1, B2);
+            }
+            else
+            {
+                l2 = new Line(B2, B1);
+            }
+
+            return FindPointOfIntersectLines_2D(l1, l2);
         }
 
         /// <summary>
@@ -228,6 +288,19 @@ namespace EE_Analyzer.Utilities
             return (Math.Atan((p2.Y - p1.Y) / (p2.X - p1.X)));
         }
 
+        public static bool LinesAreParallel(Line l1, Line l2)
+        {
+            double A1 = l1.EndPoint.Y - l1.StartPoint.Y;
+            double A2 = l2.EndPoint.Y - l2.StartPoint.Y;
+            double B1 = l1.StartPoint.X - l1.EndPoint.X;
+            double B2 = l2.StartPoint.X - l2.EndPoint.X;
+            double C1 = A1 * l1.StartPoint.X + B1 * l1.StartPoint.Y;
+            double C2 = A2 * l2.StartPoint.X + B2 * l2.StartPoint.Y;
+
+            double det = A1 * B2 - A2 * B1;
+            return det == 0;
+        }
+
         //public static Line TrimLineToPolyline(Line ln, Polyline pl)
         //{
         //    // find segment of polyline that brackets the line to be trimmed
@@ -258,6 +331,7 @@ namespace EE_Analyzer.Utilities
 
             List<Point3d> beam_points = new List<Point3d>();
 
+            //MessageBox.Show("Polyline has " + numVerts.ToString() + " vertices");
             for (int i = 0; i < numVerts; i++)
             {
                 try
@@ -265,6 +339,7 @@ namespace EE_Analyzer.Utilities
                     // Get the ends of the interior current polyline segment
                     Point3d p1 = poly.GetPoint3dAt(i % numVerts);
                     Point3d p2 = poly.GetPoint3dAt((i + 1) % numVerts);
+                    //DrawCircle(p1, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
 
                     //if (p1 == b1 || p1 == b2)
                     //{
@@ -280,41 +355,57 @@ namespace EE_Analyzer.Utilities
                     double dist = MathHelpers.Distance3DBetween(p1, p2);
 
                     Point3d grade_beam_intPt;
-                    grade_beam_intPt = FindPointOfIntersectLines_FromPoint3d(
+
+                    IntersectPointData intersectPtData = FindPointOfIntersectLines_FromPoint3d(
                         b1,
                         b2,
                         p1,
-                        p2);
+                        p2
+                        );
+
+                    grade_beam_intPt = intersectPtData.Point;
 
                     if (grade_beam_intPt == null)
                     {
+                        //MessageBox.Show("No intersection point found");
                         continue;
                     }
                     else
                     {
-                        //double slope1_line_segment = EE_Helpers.GetSlopeOfPts(b1, b2);
-                        //double slope2_line_segment = EE_Helpers.GetSlopeOfPts(b2, b1);
-                        //double slope_polyline_segment = EE_Helpers.GetSlopeOfPts(p1, p2);
-                        //// if the slope of the two line segments are parallel and the X or Y coordinates match, add the intersection as the average of the two polyline segment end points 
-                        //if ((slope1_line_segment == slope_polyline_segment) || (slope2_line_segment == slope_polyline_segment))
-                        //{
-                        //    // if the vertices of the polyline are on the line segment
-                        //    //     (vertical segment test)       ||      (horizontal segment test)
-                        //    if ((b1.X == p1.X && b1.X == p2.X && b2.X == p1.X && b2.X == p2.X)
-                        //        || (b1.Y == p1.Y && b1.Y == p2.Y && b2.Y == p1.Y && b2.Y == p2.Y))
-                        //    {
-                        //        // assign the midpoint of the polyline segment as the intersection point
-                        //        beam_points.Add(new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0));
-                        //        continue;
-                        //    }
-                        //}
+                        //DrawCircle(grade_beam_intPt, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+
+                        //MessageBox.Show("-- intersection point found");
+
+  //                      beam_points.Add(grade_beam_intPt);
+
+                        double slope1_line_segment = EE_Helpers.GetSlopeOfPts(b1, b2);
+                        double slope2_line_segment = EE_Helpers.GetSlopeOfPts(b2, b1);
+                        double slope_polyline_segment = EE_Helpers.GetSlopeOfPts(p1, p2);
+                        // if the slope of the two line segments are parallel and the X or Y coordinates match, add the intersection as the average of the two polyline segment end points 
+                        if ((slope1_line_segment == slope_polyline_segment) || (slope2_line_segment == slope_polyline_segment))
+                        {
+                            // if the vertices of the polyline are on the line segment
+                            //     (vertical segment test)       ||      (horizontal segment test)
+                            if ((b1.X == p1.X && b1.X == p2.X && b2.X == p1.X && b2.X == p2.X)
+                                || (b1.Y == p1.Y && b1.Y == p2.Y && b2.Y == p1.Y && b2.Y == p2.Y))
+                            {
+                                // add both points to the list
+                                beam_points.Add(p1);
+                                beam_points.Add(p2);
+//                                // assign the midpoint of the polyline segment as the intersection point
+//                                beam_points.Add(new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0));
+                                continue;
+                            }
+                        }
 
                         // If the first point is exactly a vertex point, add it to the list
+                        // We wont do it for the second point as it should only be assigned to one segment
                         if (p1 == b1 || p1 == b2)
                         {
                             beam_points.Add(p1);
                             continue;
-                        } else
+                        }
+                        else
                         {
                             // If the distance from the intPt to both p1 and P2 is less than the distance between p1 and p2
                             // the intPT must be between P1 and P2 
@@ -323,13 +414,18 @@ namespace EE_Analyzer.Utilities
                                 beam_points.Add(grade_beam_intPt);
                             }
                         }
-
                     }
                 }
                 catch (System.Exception e)
                 {
+                    MessageBox.Show("------------------ERRROR---------------------");
                     return null;
                 }
+            }
+
+            foreach (var p in beam_points)
+            {
+                DrawCircle(p, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER);
             }
 
             try
@@ -390,9 +486,6 @@ namespace EE_Analyzer.Utilities
                 //MessageBox.Show("\nError in TrimAndSortIntersectionPoints function");
                 return null;
             }
-
-            return null;
-
         }
     }
 }
