@@ -9,6 +9,8 @@ using Autodesk.AutoCAD.Colors;
 using static EE_Analyzer.Utilities.EE_Helpers;
 using static EE_Analyzer.Utilities.DrawObject;
 using static EE_Analyzer.Utilities.DrawObject;
+using static EE_Analyzer.Utilities.BlockObjects;
+
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using System.Collections.Generic;
 using EE_Analyzer.Utilities;
@@ -307,6 +309,164 @@ namespace EE_Analyzer.TestingFunctions
                     continue;
                 }
             }
+        }
+
+        [CommandMethod("CB")]
+        public static void BlockTest()
+        {
+            DBObjectCollection db_obj_coll1 = SquareOfLines(20);
+            DBObjectCollection db_obj_coll2 = SquareOfLines(5);
+
+            foreach(var acDBObject in db_obj_coll2)
+            {
+                 db_obj_coll1.Add((DBObject)acDBObject);
+            }
+
+            CreateBlock(db_obj_coll1, "name1");
+            InsertBlock(new Point3d(0, 0, 0), "name1");
+            InsertBlock(new Point3d(10, 10, 0), "name1");
+            InsertBlock(new Point3d(20, 20, 0), "name1");
+
+        }
+
+        [CommandMethod("CBTestFull")]
+        public static void BlockTestFull()
+        {
+            Document doc =
+              Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            Transaction tr =
+              db.TransactionManager.StartTransaction();
+
+            using (tr)
+            {
+                // Get the block table from the drawing
+                BlockTable bt =
+                  (BlockTable)tr.GetObject(
+                    db.BlockTableId,
+                    OpenMode.ForRead
+                  );
+
+                // Check the block name, to see whether it's
+                // already in use
+
+                PromptStringOptions pso =
+                  new PromptStringOptions(
+                    "\nEnter new block name: "
+                  );
+
+                pso.AllowSpaces = true;
+
+                // A variable for the block's name
+                string blkName = "";
+
+                do
+                {
+                    PromptResult pr = ed.GetString(pso);
+
+                    // Just return if the user cancelled
+                    // (will abort the transaction as we drop out of the using
+                    // statement's scope)
+
+                    if (pr.Status != PromptStatus.OK)
+                        return;
+
+                    try
+                    {
+                        // Validate the provided symbol table name
+                        SymbolUtilityServices.ValidateSymbolName(
+                          pr.StringResult,
+                          false
+                        );
+
+                        // Only set the block name if it isn't in use
+                        if (bt.Has(pr.StringResult))
+                            ed.WriteMessage(
+                              "\nA block with this name already exists."
+                            );
+                        else
+                            blkName = pr.StringResult;
+                    }
+                    catch
+                    {
+                        // An exception has been thrown, indicating the
+                        // name is invalid
+                        ed.WriteMessage(
+                          "\nInvalid block name."
+                        );
+                    }
+                } while (blkName == "");
+
+                // Create our new block table record...
+                BlockTableRecord btr = new BlockTableRecord();
+
+                // ... and set its properties
+                btr.Name = blkName;
+
+                // Add the new block to the block table
+                bt.UpgradeOpen();
+                ObjectId btrId = bt.Add(btr);
+                tr.AddNewlyCreatedDBObject(btr, true);
+
+                // Add some lines to the block to form a square
+                // (the entities belong directly to the block)
+                DBObjectCollection ents = SquareOfLines(5);
+                foreach (Entity ent in ents)
+                {
+                    btr.AppendEntity(ent);
+                    tr.AddNewlyCreatedDBObject(ent, true);
+                }
+
+                // Add a block reference to the model space
+                BlockTableRecord ms =
+                  (BlockTableRecord)tr.GetObject(
+                    bt[BlockTableRecord.ModelSpace],
+                    OpenMode.ForWrite
+                  );
+
+                BlockReference br =
+                  new BlockReference(Point3d.Origin, btrId);
+
+                ms.AppendEntity(br);
+                tr.AddNewlyCreatedDBObject(br, true);
+
+                // Commit the transaction
+                tr.Commit();
+
+                // Report what we've done
+                ed.WriteMessage(
+                  "\nCreated block named \"{0}\" containing {1} entities.",
+                  blkName, ents.Count
+                );
+            }
+        }
+
+        private static DBObjectCollection SquareOfLines(double size)
+        {
+            // A function to generate a set of entities for our block
+
+            DBObjectCollection ents = new DBObjectCollection();
+
+            Point3d[] pts =
+            {
+                new Point3d(-size, -size, 0),
+                new Point3d(size, -size, 0),
+                new Point3d(size, size, 0),
+                new Point3d(-size, size, 0)
+              };
+
+            int max = pts.GetUpperBound(0);
+
+            for (int i = 0; i <= max; i++)
+            {
+                int j = (i == max ? 0 : i + 1);
+                Line ln = new Line(pts[i], pts[j]);
+                ents.Add(ln);
+            }
+
+            return ents;
         }
     }
 }
