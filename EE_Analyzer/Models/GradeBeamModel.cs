@@ -48,7 +48,7 @@ namespace EE_Analyzer.Models
         public bool IsTrimmed { get; set; } = false;
 
         // A label for the grade beam
-        private string Label { get; set; } = "GBXX";
+        public string Label { get => "GB" + BeamNum.ToString(); }
 
         public GradeBeamModel(Point3d start, Point3d end, Polyline boundary, int num_strands, bool is_trimmed, double width = 12.0, double depth = 24.0)
         {
@@ -94,15 +94,13 @@ namespace EE_Analyzer.Models
 
             // Create the center line, edge1, and edge2 objects
             Centerline = OffsetLine(new Line(start, end), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
-            Edge1 = OffsetLine(Centerline, width * 0.5) as Line;
-            Edge2 = OffsetLine(Centerline, -width * 0.5) as Line;
+//            Edge1 = OffsetLine(Centerline, width * 0.5) as Line;
+//            Edge2 = OffsetLine(Centerline, -width * 0.5) as Line;
 
             StrandInfo = new StrandModel(Centerline.StartPoint, Centerline.EndPoint, num_strands, true, is_trimmed);
             IsTrimmed = is_trimmed;
 
             BeamNum = _beamNum++;  // update the grade beam number
-
-            Label = "GB" + BeamNum.ToString();
         }
 
         /// <summary>
@@ -119,42 +117,54 @@ namespace EE_Analyzer.Models
                 BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                 
-                try {
-                    MoveLineToLayer(Centerline, layer_name);
-                    LineSetLinetype(Centerline, "CENTERX2");
-                }
-                catch (System.Exception ex)
+                if(Centerline != null)
                 {
-                    doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                    trans.Abort();
-                    return;
+                    try
+                    {
+                        MoveLineToLayer(Centerline, layer_name);
+                        LineSetLinetype(Centerline, "CENTERX2");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                        trans.Abort();
+                        return;
+                    }
                 }
 
-                try
+                if(Edge1 != null)
                 {
-                    // edge 1
-                    MoveLineToLayer(Edge1, layer_name);
-                    LineSetLinetype(Edge1, "HIDDENX2");
+                    try
+                    {
+                        // edge 1
+                        MoveLineToLayer(Edge1, layer_name);
+                        LineSetLinetype(Edge1, "HIDDENX2");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        doc.Editor.WriteMessage("\nError encountered while adding EdgeLine1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                        trans.Abort();
+                        return;
+                    }
                 }
-                catch (System.Exception ex)
-                {
-                    doc.Editor.WriteMessage("\nError encountered while adding EdgeLine1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                    trans.Abort();
-                    return;
-                }
+
 
                 // edge 2
-                try
+                if(Edge2 != null)
                 {
-                    MoveLineToLayer(Edge2, layer_name);
-                    LineSetLinetype(Edge2, "HIDDENX2");
+                    try
+                    {
+                        MoveLineToLayer(Edge2, layer_name);
+                        LineSetLinetype(Edge2, "HIDDENX2");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        doc.Editor.WriteMessage("\nError encountered while adding EdgeLine2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                        trans.Abort();
+                        return;
+                    }
                 }
-                catch (System.Exception ex)
-                {
-                    doc.Editor.WriteMessage("\nError encountered while adding EdgeLine2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                    trans.Abort();
-                    return;
-                }
+
 
                 try
                 {

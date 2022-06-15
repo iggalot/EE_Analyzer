@@ -9,6 +9,10 @@ using static EE_Analyzer.Utilities.DrawObject;
 
 namespace EE_Analyzer.Utilities
 {
+    /// <summary>
+    /// Class object for data relating to finding intersection points of lines with polylines.
+    /// Mostly used for passing back full data.
+    /// </summary>
     public class IntersectPointData
     {
         public Point3d Point;
@@ -34,7 +38,7 @@ namespace EE_Analyzer.Utilities
         /// </summary>
         /// <param name="coll"></param>
         /// <returns></returns>
-        public static Point3d[] sortPoint3dByHorizontally(Point3dCollection coll)
+        public static Point3d[] sortPoint3dPointCollectionByHorizontally(Point3dCollection coll)
         {
             Point3d[] sort_arr = new Point3d[coll.Count];
             coll.CopyTo(sort_arr, 0);
@@ -110,7 +114,7 @@ namespace EE_Analyzer.Utilities
         /// </summary>
         /// <param name="coll"></param>
         /// <returns></returns>
-        public static Point3d[] sortPoint3dByVertically(Point3dCollection coll)
+        public static Point3d[] sortPoint3dCollectionByVertically(Point3dCollection coll)
         {
             Point3d[] sort_arr = new Point3d[coll.Count];
             coll.CopyTo(sort_arr, 0);
@@ -131,21 +135,78 @@ namespace EE_Analyzer.Utilities
             return sort_arr;
         }
 
-        //public static Point3dCollection IntersectionPointsOnPolyline(Line ln, Polyline pline)
-        //{
-        //    var doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-        //    var db = doc.Database;
-        //    var ed = doc.Editor;
+        /// <summary>
+        /// Sorts a list points on a horizontal line by smallest x to largest x coordinate or
+        /// on a vertical line by smallest y to largest y coordinate
+        /// </summary>
+        /// <param name="lst">a list points</param>
+        /// <returns></returns>
+        /// <exception cref="System.Exception"></exception>
+        public static Point3d[] SortPointsHorizontallyOrVertically(List<Point3d> lst)
+        {
+            Point3d[] sorted_list;
+            // If the point is horizontal
+            if (Math.Abs(lst[1].Y - lst[0].Y) < EE_Settings.DEFAULT_HORIZONTAL_TOLERANCE)
+            {
+                sorted_list = sortPoint3dListByHorizontally(lst);
+            }
+            // Otherwise it is vertical
+            else
+            {
+                sorted_list = sortPoint3dListByVertically(lst);
+            }
 
-        //    var points = new Point3dCollection();
+            if (sorted_list is null)
+            {
+                throw new System.Exception("\nError sorting the intersection points in TrimLines method.");
+            }
 
-        //    var curves = ln;
-        //    for (int i = 0; i < curves.Length - 1; i++)
-        //    {
-        //        curves.IntersectWith(pline, Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
-        //    }
-        //    return points;
-        //}
+            return sorted_list;
+        }
+
+
+        public static List<Point3d> FindPolylineIntersectionPoints(Line ln, Polyline poly)
+        {
+            if (poly == null || poly.Closed == false)
+            {
+                throw new InvalidOperationException("Invalid polyline object.  Make sure the polyline is closed and has at least 2 vertices.");
+            }
+            int numVerts = poly.NumberOfVertices;
+
+            if (ln == null)
+            {
+                throw new InvalidOperationException("Invalid line object.");
+            }
+
+            Point3d b1 = ln.StartPoint;
+            Point3d b2 = ln.EndPoint;
+
+            List<Point3d> intPtList = new List<Point3d>();
+
+            for (int i = 0; i < numVerts; i++)
+            {
+                Point3d p1 = poly.GetPoint3dAt(i % numVerts);
+                Point3d p2 = poly.GetPoint3dAt((i + 1) % numVerts);
+
+                //Determine if the intersection point is a valid point within the polyline segment.
+                IntersectPointData intersectPointData = (EE_Helpers.FindPointOfIntersectLines_FromPoint3d(b1, b2, p1, p2));
+                Point3d intPt = intersectPointData.Point;
+
+                if (intersectPointData.isParallel is true)
+                {
+                    continue;
+                }
+                else
+                {
+                    if (intersectPointData.isWithinSegment is true)
+                    {
+                        intPtList.Add(intersectPointData.Point);
+                    }
+                }
+            }
+
+            return intPtList;
+        }
 
         /// <summary>
         /// Find the location where two line segements intersect
@@ -258,7 +319,7 @@ namespace EE_Analyzer.Utilities
         /// <param name="p2"></param>
         /// <param name="p3"></param>
         /// <returns></returns>
-        public static bool PtsAreColinear_2D(Point3d p1, Point3d p2, Point3d p3)
+        public static bool PointtsAreColinear_2D(Point3d p1, Point3d p2, Point3d p3)
         {
             double x1 = p1.X;
             double y1 = p1.Y;
@@ -300,22 +361,6 @@ namespace EE_Analyzer.Utilities
             double det = A1 * B2 - A2 * B1;
             return det == 0;
         }
-
-        //public static Line TrimLineToPolyline(Line ln, Polyline pl)
-        //{
-        //    // find segment of polyline that brackets the line to be trimmed
-
-        //    // Test the segments of the polyline to find the 
-
-        //    Line testline = new Line(pl.GetPoint3dAt(0), pl.GetPoint3dAt(1));
-
-        //    bool isParallel = false;
-        //    Point3d newPt = FindPointOfIntersectLines_2D(ln, testline, out isParallel);
-        //    if(isParallel == false{
-        //        ln.StartPoint = newPt;
-        //        return ln;
-        //    }
-        //}
 
         /// <summary>
         /// Finds all of the intersection points of a line segment crossing a closed polygon

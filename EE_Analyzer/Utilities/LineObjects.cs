@@ -87,7 +87,7 @@ namespace EE_Analyzer.Utilities
                 {
                     doc.Editor.WriteMessage("Error offseting polyline: " + ex.Message);
                     trans.Abort();
-                    throw new System.Exception("Error offseting polyline object");
+                    throw new System.Exception("Error offseting polyline object" + ex.Message);
                 }
             }
 
@@ -128,7 +128,7 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError moving line [" + obj.Handle.ToString() + "] to [" + layer_name + "]");
+                    doc.Editor.WriteMessage("\nError moving line [" + obj.Handle.ToString() + "] to [" + layer_name + "]: " + ex.Message);
                     trans.Abort();
                 }
             }
@@ -168,7 +168,7 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError changing linetypes for line [" + obj.Handle.ToString() + "] to [" + linetype_name + "]");
+                    doc.Editor.WriteMessage("\nError changing linetypes for line [" + obj.Handle.ToString() + "] to [" + linetype_name + "]" + ex.Message);
                     trans.Abort();
                 }
             }
@@ -187,7 +187,7 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError trimming line [" + ln.Handle.ToString() + "] to to polyline [" + poly.Handle.ToString() + "]");
+                    doc.Editor.WriteMessage("\nError trimming line [" + ln.Handle.ToString() + "] to to polyline [" + poly.Handle.ToString() + "]" + ex.Message);
                     trans.Abort();
                 }
             }
