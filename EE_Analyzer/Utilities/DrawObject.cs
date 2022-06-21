@@ -170,7 +170,7 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        public static void DrawLine(Point3d pt1, Point3d pt2, string layer_name)
+        public static Line DrawLine(Point3d pt1, Point3d pt2, string layer_name)
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -179,6 +179,7 @@ namespace EE_Analyzer.Utilities
             if (pt1 == null || pt2 == null)
                 throw new System.Exception("\nInvalid point data received at DrawLine");
 
+            Line ln = null;
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 try
@@ -194,15 +195,13 @@ namespace EE_Analyzer.Utilities
 
                     // pt1 = new Point3d(0, 0, 0);
                     //Point3d pt2 = new Point3d(100, 100, 0);
-                    using (Line ln = new Line())
-                    {
-                        ln.StartPoint = pt1;
-                        ln.EndPoint = pt2;
-                        ln.Layer = layer_name;
+                    ln = new Line();
+                    ln.StartPoint = pt1;
+                    ln.EndPoint = pt2;
+                    ln.Layer = layer_name;
 
-                        btr.AppendEntity(ln);
-                        trans.AddNewlyCreatedDBObject(ln, true);
-                    }
+                    btr.AppendEntity(ln);
+                    trans.AddNewlyCreatedDBObject(ln, true);
                     trans.Commit();
 
                 }
@@ -212,6 +211,7 @@ namespace EE_Analyzer.Utilities
                     trans.Abort();
                 }
             }
+            return ln;
         }
 
         public static void DrawCircle(Point3d centerPt, double circleRadius, string layer_name)

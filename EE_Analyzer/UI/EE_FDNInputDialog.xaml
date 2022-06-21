@@ -5,34 +5,19 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:EE_Analyzer"
              mc:Ignorable="d" 
-             Title="Foundation Detailer" 
-             Height="Auto" Width="Auto"
-                WindowStyle="ToolWindow"
-                WindowStartupLocation="CenterOwner"
+        
+            SizeToContent="WidthAndHeight"
+            Title="Foundation Detailer" 
+            WindowStyle="ToolWindow"
+            WindowStartupLocation="CenterOwner"
         >
-    <StackPanel Margin="0,0,0,-6">
-        <Grid Background="WhiteSmoke">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-        </Grid>
-
-        <StackPanel Orientation="Vertical">
+    <StackPanel>
+        <StackPanel Orientation="Horizontal">
             <StackPanel Orientation="Vertical" 
                         Background="LightGray"
                         Margin="10">
                 <Label Content="X-DIR Grade Beams (horizontal)" FontWeight="ExtraBold"/>
-                <StackPanel Orientation="Horizontal" Name="spX_DIR_DEFAULT">
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Qty</Label>
-                        <TextBox Name="BEAM_X_QTY" Width="40" Height="20"></TextBox>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Spacing (in.)</Label>
-                        <TextBox Name="BEAM_X_SPACING" Width="40" Height="20"></TextBox>
-                    </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
                         <Label>Depth (in.)</Label>
                         <TextBox Name="BEAM_X_DEPTH" Width="40" Height="20"></TextBox>
@@ -42,10 +27,32 @@
                         <TextBox Name="BEAM_X_WIDTH" Width="40" Height="20"></TextBox>
                     </StackPanel>
                 </StackPanel>
-
                 
+                
+                <StackPanel>
+                    <Button Name="btnX_Detail_Qty"
+                        Margin="10" Background="White" Click="X_Detail_Qty_Button_Click">Specify X-Dir Beam Qty</Button>
+                    <StackPanel Visibility="Collapsed" Name="spX_MAX_QTY">
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Qty</Label>
+                            <TextBox Name="BEAM_X_QTY" Width="40" Height="20"></TextBox>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel>
+                    <Button Name="btnX_Detail_Uniform_Max_Spacing"
+                        Margin="10" Background="White" Click="X_Detail_Spa_Button_Click">Specify X-DIR Uniform Max Spacing</Button>
+                    <StackPanel  Visibility="Collapsed" Orientation="Horizontal" Name="spX_UNIFORM_MAX_SPA">
+                        <Label>Spacing (in.)</Label>
+                        <TextBox Name="BEAM_X_SPACING" Width="40" Height="20"></TextBox>
+                    </StackPanel>
+                </StackPanel>
+
+
                 <StackPanel Orientation="Vertical">
-                    <Button Margin="10" Background="White" Click="X_Detail_Button_Click">Specify X-DIR Spacings</Button>
+                    <Button Name="btnX_Specify_Detail_Spacings"
+                        Margin="10" Background="White" Click="X_Detail_Button_Click">Specify MANUAL X-DIR Spacings</Button>
                     <StackPanel Visibility="Collapsed" Name="spX_DIR_DETAILS">
                         <StackPanel Orientation="Horizontal">
                             <Label>1.</Label>
@@ -105,15 +112,7 @@
                         Background="MediumTurquoise"
                         Margin="10">
                 <Label Content="Y-DIR Grade Beams (vertical)" FontWeight="ExtraBold"/>
-                <StackPanel Orientation="Horizontal" Name="spY_DIR_DEFAULT">
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Qty</Label>
-                        <TextBox Name="BEAM_Y_QTY" Width="40" Height="20"></TextBox>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Spacing (ft)</Label>
-                        <TextBox Name="BEAM_Y_SPACING" Width="40" Height="20"></TextBox>
-                    </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
                         <Label>Depth (in.)</Label>
                         <TextBox Name="BEAM_Y_DEPTH" Width="40" Height="20"></TextBox>
@@ -124,8 +123,33 @@
                     </StackPanel>
                 </StackPanel>
 
+
+                <StackPanel>
+                    <Button Name="btnY_Detail_Qty"
+                        Margin="10" Background="White" Click="Y_Detail_Qty_Button_Click">Specify Y-Dir Beam Qty</Button>
+                    <StackPanel Visibility="Collapsed" Name="spY_MAX_QTY">
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Qty</Label>
+                            <TextBox Name="BEAM_Y_QTY" Width="40" Height="20"></TextBox>
+                        </StackPanel>
+                    </StackPanel>
+
+                </StackPanel>
+
+
+                <StackPanel>
+                    <Button Name="btnY_Detail_Uniform_Max_Spacing"
+                        Margin="10" Background="White" Click="Y_Detail_Spa_Button_Click">Specify X-DIR Uniform Max Spacing</Button>
+                    <StackPanel  Visibility="Collapsed" Orientation="Horizontal" Name="spY_UNIFORM_MAX_SPA">
+                        <Label>Spacing (in.)</Label>
+                        <TextBox Name="BEAM_Y_SPACING" Width="40" Height="20"></TextBox>
+                    </StackPanel>
+                </StackPanel>
+
+                
                 <StackPanel Orientation="Vertical">
-                    <Button Margin="10" Background="White" Click="Y_Detail_Button_Click">Specify Y-DIR Spacings</Button>
+                    <Button Name="btnY_Specify_Detail_Spacings"
+                        Margin="10" Background="White" Click="Y_Detail_Button_Click">Specify MANUAL Y-DIR Spacings</Button>
                     <StackPanel Visibility="Collapsed" Name="spY_DIR_DETAILS">
                         <StackPanel Orientation="Horizontal">
                             <Label>1.</Label>
@@ -180,33 +204,25 @@
                 </StackPanel>
 
             </StackPanel>
-
-
-            <StackPanel Margin="20">
+        </StackPanel>
+        <StackPanel Margin="20">
+            <StackPanel Orientation="Horizontal">
                 <StackPanel Orientation="Horizontal">
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Neglect Grade Beams Less Than</Label>
-                        <TextBox Name="NEGLECT_PT_DIM" Width="40" Height="20"></TextBox>
-                        <Label>inches long</Label>
-                    </StackPanel>
+                    <Label>Neglect Grade Beams Less Than</Label>
+                    <TextBox Name="NEGLECT_PT_DIM" Width="40" Height="20"></TextBox>
+                    <Label>inches long</Label>
                 </StackPanel>
             </StackPanel>
-            
         </StackPanel>
-        
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Button x:Name="btnOK" Margin="10" HorizontalAlignment="Right" Content="OK" Height="24" Width="80" Click="btnOK_Click"/>
-            <Button Grid.Column="1" Margin="10" HorizontalAlignment="Left" Content="Cancel" Height="24" Width="80" IsCancel="True" />
-        </Grid>
-        <Grid>
-            <StackPanel Orientation="Horizontal">
-                <Label Height="20" FontSize="8" Content="Copyright Jay3" HorizontalAlignment="Right"></Label>
-                <Label Height="20" FontSize="8" Content="VERSION 0.9" HorizontalAlignment="Left"></Label>
-            </StackPanel>
-        </Grid>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button x:Name="btnOK" Content="Draw Foundation" IsEnabled="False" Visibility="Collapsed" Margin="10" HorizontalAlignment="Right" Height="24" Click="btnOK_Click"/>
+            <Button Margin="10" HorizontalAlignment="Left" Content="Cancel" Height="24" IsCancel="True" />
+        </StackPanel>
+            
+        <StackPanel Orientation="Horizontal">
+            <Label Height="20" FontSize="8" Content="Copyright Jay3" HorizontalAlignment="Right"></Label>
+            <Label Height="20" FontSize="8" Content="VERSION 0.9.2" HorizontalAlignment="Left"></Label>
+        </StackPanel>
     </StackPanel>
 </Window>
