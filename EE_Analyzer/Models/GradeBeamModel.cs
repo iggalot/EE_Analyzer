@@ -4,6 +4,10 @@ using Autodesk.AutoCAD.Geometry;
 using EE_Analyzer.Utilities;
 using System;
 using static EE_Analyzer.Utilities.LineObjects;
+using static EE_Analyzer.Utilities.BlockObjects;
+using static EE_Analyzer.Utilities.DrawObject;
+
+
 using static EE_Analyzer.Utilities.EE_Helpers;
 
 
@@ -112,6 +116,9 @@ namespace EE_Analyzer.Models
         {
             string layer_name = GetDrawingLayer();
 
+            DBObjectCollection coll = new DBObjectCollection();
+
+
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -119,6 +126,9 @@ namespace EE_Analyzer.Models
                 
                 if(Centerline != null)
                 {
+ //                   Line ln = DrawLine(Centerline.StartPoint, Centerline.EndPoint, layer_name);
+ //                   coll.Add(ln);
+
                     try
                     {
                         MoveLineToLayer(Centerline, layer_name);
@@ -134,6 +144,7 @@ namespace EE_Analyzer.Models
 
                 if(Edge1 != null)
                 {
+ //                   coll.Add(Edge1);
                     try
                     {
                         // edge 1
@@ -152,6 +163,7 @@ namespace EE_Analyzer.Models
                 // edge 2
                 if(Edge2 != null)
                 {
+//                    coll.Add(Edge2);
                     try
                     {
                         MoveLineToLayer(Edge2, layer_name);
@@ -165,11 +177,12 @@ namespace EE_Analyzer.Models
                     }
                 }
 
-
                 try
                 {
                     // Draw the beam label
+//                    coll.Add(DrawBeamLabel(db, doc, layer_name));
                     DrawBeamLabel(db, doc, layer_name);
+
                 }
                 catch (System.Exception ex)
                 {
@@ -193,11 +206,34 @@ namespace EE_Analyzer.Models
                 // commit the transaction
                 trans.Commit();
             }
+
+            //string block_name = "";
+            //try
+            //{
+            //    if(IsTrimmed is true)
+            //    {
+            //        block_name = "TB" + BeamNum.ToString();
+            //    } else
+            //    {
+            //        block_name = "UB" + BeamNum.ToString();
+            //    }
+
+            //    CreateBlock(coll, block_name);
+            //    InsertBlock(Centerline.StartPoint, block_name);
+            //}
+            //catch (System.Exception ex)
+            //{
+            //    doc.Editor.WriteMessage("Error creating grade beam block");
+            //}
+
+
+
         }
 
         // Add number labels for each line segment
-        private void DrawBeamLabel(Database db, Document doc, string layer_name)
+        private MText DrawBeamLabel(Database db, Document doc, string layer_name)
         {
+            MText mtx = new MText();
             // at this point we know an entity has been selected and it is a Polyline
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -211,7 +247,7 @@ namespace EE_Analyzer.Models
 
                 try
                 {
-                MText mtx = new MText();
+                    //mtx = new MText();
 
                     mtx.Contents = Label;
                     mtx.Location = new Point3d(insPt.X - Math.Sin(angle) * 1.25* Width, insPt.Y + Math.Cos(angle) * 1.25 * Width, 0);
@@ -230,9 +266,10 @@ namespace EE_Analyzer.Models
                 {
                     doc.Editor.WriteMessage("\nError encountered while adding beam label objects: " + ex.Message);
                     trans.Abort();
-                    return;
                 }
             }
+            return mtx;
+
         }
 
         /// <summary>

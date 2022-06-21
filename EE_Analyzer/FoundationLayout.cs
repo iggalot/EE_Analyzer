@@ -23,8 +23,18 @@ namespace EE_Analyzer
 {
     public class FoundationLayout
     {
-        public double DEFAULT_DONT_DRAW_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
+        private const double DEFAULT_MIN_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
 
+
+
+        private bool MODE_X_SELECTED = false;
+        private bool MODE_Y_SELECTED = false;
+
+
+        private UIModes MODE_X_DIR { get; set; }
+        private UIModes MODE_Y_DIR { get; set; }
+
+        public double DEFAULT_DONT_DRAW_PT_LENGTH { get; set; }
 
         // Holds the primary foundation perimeter polyline object.
         public Polyline FDN_PERIMETER_POLYLINE { get; set; } = new Polyline();
@@ -50,6 +60,10 @@ namespace EE_Analyzer
 
 
         #region PTI Slab Data Values
+
+        public double[] Beam_X_Loc_Data;
+        public double[] Beam_Y_Loc_Data;
+
         public int Beam_X_Qty { get; set; }
         public int Beam_X_Strand_Qty { get; set; }
         public int Beam_X_Slab_Strand_Qty { get; set; }
@@ -57,6 +71,8 @@ namespace EE_Analyzer
         public double Beam_X_Spacing { get; set; }
         public double Beam_X_Width { get; set; }
         public double Beam_X_Depth { get; set; }
+
+        // TODO:  Start to install variable spacings here....
 
         public int Beam_Y_Qty { get; set; }
         public int Beam_Y_Strand_Qty { get; set; }
@@ -71,8 +87,18 @@ namespace EE_Analyzer
         public void DrawFoundationDetails(
             int x_qty, double x_spa, double x_depth, double x_width,
             int y_qty, double y_spa, double y_depth, double y_width,
-            int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty, double neglect_dimension)
+            int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty,
+            int x_spa_1_qty, int x_spa_2_qty, int x_spa_3_qty, int x_spa_4_qty, int x_spa_5_qty,
+            double x_spa_1_spa, double x_spa_2_spa, double x_spa_3_spa, double x_spa_4_spa, double x_spa_5_spa,
+            int y_spa_1_qty, int y_spa_2_qty, int y_spa_3_qty, int y_spa_4_qty, int y_spa_5_qty ,
+            double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa, 
+            UIModes default_mode_x, UIModes default_mode_y, double neglect_dimension=DEFAULT_MIN_PT_LENGTH)
         {
+            MODE_X_DIR = default_mode_x;
+            MODE_Y_DIR = default_mode_y;
+
+            DEFAULT_DONT_DRAW_PT_LENGTH = neglect_dimension;
+
             Beam_X_Spacing = x_spa;  // spacing between horizontal beams
             Beam_X_Width = x_width;  // horizontal beam width
             Beam_X_Depth = x_depth;  // horizontal beam depth
@@ -90,8 +116,6 @@ namespace EE_Analyzer
             DEFAULT_DONT_DRAW_PT_LENGTH = neglect_dimension;
 
             double circle_radius = Beam_X_Spacing * 0.1; // for marking the intersections of beams and strands with the foundation polyline
-
-            int max_beams = 75;  // define the maximum number of beams in a given direction -- in case we get into an infinite loop situation.
 
             // Get our AutoCAD API objects
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
@@ -148,19 +172,31 @@ namespace EE_Analyzer
             #endregion
 
             #region Find the Insert (Basis) Point the GradeBeams
+            // For the detailed spacings, use the lower left corner, otherwise use our algorithm for the optimized location
             doc.Editor.WriteMessage("\nGet grade beam insert point");
-            FDN_GRADE_BEAM_BASIS_POINT = FindGradeBeamInsertPoint(db, doc);
+            //if (MODE_X_DIR == UIModes.MODE_X_DIR_DETAIL || MODE_X_DIR == UIModes.MODE_Y_DIR_DETAIL)
+            //{
+            //    // Use the algorithm to get the start point
+            //    FDN_GRADE_BEAM_BASIS_POINT = FindGradeBeamInsertPoint(db, doc);
+            //} else
+            //{
+            //    // use the lower left corner of the bounding box (index 0);
+            //    FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z); ;
+            //}
+
+            // use the lower left corner of the bounding box (index 0);
+            FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z); ;
+
 
             // Check that the basis point isn't outside of foundation polyline.  If it is, set it to the lower left corner of the boundary box.
             // TODO:  Figure out why this can happen sometime.  Possible the intersection point test is the cause?
-            if((FDN_GRADE_BEAM_BASIS_POINT.X < FDN_BOUNDARY_BOX.GetPoint2dAt(0).X) ||
+            if ((FDN_GRADE_BEAM_BASIS_POINT.X < FDN_BOUNDARY_BOX.GetPoint2dAt(0).X) ||
                 (FDN_GRADE_BEAM_BASIS_POINT.X > FDN_BOUNDARY_BOX.GetPoint2dAt(2).X) ||
                 (FDN_GRADE_BEAM_BASIS_POINT.Y < FDN_BOUNDARY_BOX.GetPoint2dAt(0).Y) ||
                 (FDN_GRADE_BEAM_BASIS_POINT.Y > FDN_BOUNDARY_BOX.GetPoint2dAt(2).Y))
             {
                 // Set the basis point to the lower left and then offset by half the width of the perimeter beam
-                Point3d lower_left = FDN_BOUNDARY_BOX.GetPoint3dAt(0);
-                FDN_GRADE_BEAM_BASIS_POINT = new Point3d(lower_left.X + 0.5 * Beam_X_Width, lower_left.Y + 0.5 * Beam_X_Width, lower_left.Z);
+                FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z);
                 MessageBox.Show("Moving basis point to the lower left corner of the bounding box");
             }
 
@@ -177,7 +213,157 @@ namespace EE_Analyzer
 
             doc.Editor.WriteMessage("\nGrade beam insert point computed succssfully");
             #endregion
-            
+
+            #region Determine Beam Spacings
+            double min_x = FDN_BOUNDARY_BOX.GetPoint3dAt(0).X;
+            double min_y = FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y;
+            double max_x = FDN_BOUNDARY_BOX.GetPoint3dAt(2).X;
+            double max_y = FDN_BOUNDARY_BOX.GetPoint3dAt(2).Y;
+
+            // Create the x-beam spacing list
+            if (MODE_X_DIR == UIModes.MODE_X_DIR_QTY)
+            {
+                double x_dir_spa = (max_y - min_y - Beam_X_Width) / (x_qty - 1);
+                Beam_X_Loc_Data = new double[x_qty];
+
+                double curr_spa = 0;
+                for (int i = 0; i < x_qty; i++)
+                {
+                    Beam_X_Loc_Data[i] = curr_spa;
+                    curr_spa += x_dir_spa;
+                }
+                MODE_X_SELECTED = true;
+            }
+            else if (MODE_X_DIR == UIModes.MODE_X_DIR_SPA)
+            {
+                int x_count = (int)Math.Ceiling(1 + (max_y - min_y - Beam_X_Width) / x_spa);
+                double x_max_spa = (max_y - min_y) / x_count;
+                Beam_X_Loc_Data = new double[x_count];
+
+                double curr_spa = 0;
+                for (int i = 0; i < x_count; i++)
+                {
+                    Beam_X_Loc_Data[i] = curr_spa;
+                    curr_spa += x_max_spa;
+                }
+                MODE_X_SELECTED = true;
+
+            }
+            else if (MODE_X_DIR == UIModes.MODE_X_DIR_DETAIL)
+            {
+                int count = x_spa_1_qty + x_spa_2_qty + x_spa_3_qty + x_spa_4_qty + x_spa_5_qty;
+                Beam_X_Loc_Data = new double[count];
+                int temp_count = 0;
+
+                double curr_spa = 0;
+                for (int i = 0; i < x_spa_1_qty; i++)
+                {
+                    Beam_X_Loc_Data[i] = curr_spa;
+                    curr_spa += x_spa_1_spa;
+                }
+                temp_count += x_spa_1_qty;
+                for (int i = temp_count; i < temp_count + x_spa_2_qty; i++)
+                {
+                    Beam_X_Loc_Data[i] = curr_spa;
+                    curr_spa += x_spa_2_spa;
+                }
+                temp_count += x_spa_2_qty;
+                for (int i = temp_count; i < temp_count + x_spa_3_qty; i++)
+                {
+                    Beam_X_Loc_Data[i] = curr_spa;
+                    curr_spa += x_spa_3_spa;
+                }
+                temp_count += x_spa_3_qty;
+                for (int i = temp_count; i < temp_count + x_spa_4_qty; i++)
+                {
+                    Beam_X_Loc_Data[i] = curr_spa;
+                    curr_spa += x_spa_4_spa;
+                }
+                temp_count += x_spa_4_qty;
+                for (int i = temp_count; i < temp_count + x_spa_5_qty; i++)
+                {
+                    Beam_X_Loc_Data[i] = curr_spa;
+                    curr_spa += x_spa_5_spa;
+                }
+                MODE_X_SELECTED = true;
+            }
+
+            // Create the y-beam spacing list
+            if (MODE_Y_DIR == UIModes.MODE_Y_DIR_QTY)
+            {
+                double y_dir_spa = (max_x - min_x - Beam_Y_Width) / (y_qty - 1);
+                Beam_Y_Loc_Data = new double[y_qty];
+
+                double curr_spa = 0;
+                for (int i = 0; i < y_qty; i++)
+                {
+                    Beam_Y_Loc_Data[i] = curr_spa;
+                    curr_spa += y_dir_spa;
+                }
+                MODE_Y_SELECTED = true;
+            }
+            else if (MODE_Y_DIR == UIModes.MODE_Y_DIR_SPA)
+            {
+                int y_count = (int)Math.Ceiling(1 + (max_x - min_x - Beam_Y_Width) / y_spa );
+                double y_max_spa = (max_x - min_x) / y_count;
+                Beam_Y_Loc_Data = new double[y_count];
+
+                double curr_spa = 0;
+                for (int i = 0; i < y_count; i++)
+                {
+                    Beam_Y_Loc_Data[i] = curr_spa;
+                    curr_spa += y_max_spa;
+                }
+                MODE_Y_SELECTED = true;
+
+            }
+            else if (MODE_Y_DIR == UIModes.MODE_Y_DIR_DETAIL)
+            {
+                int count = y_spa_1_qty + y_spa_2_qty + y_spa_3_qty + y_spa_4_qty + y_spa_5_qty;
+                Beam_Y_Loc_Data = new double[count];
+                int temp_count = 0;
+
+                double curr_spa = 0;
+                for (int i = 0; i < y_spa_1_qty; i++)
+                {
+                    Beam_Y_Loc_Data[i] = curr_spa;
+                    curr_spa += y_spa_1_spa;
+                }
+                temp_count += y_spa_1_qty;
+                for (int i = temp_count; i < temp_count + y_spa_2_qty; i++)
+                {
+                    Beam_Y_Loc_Data[i] = curr_spa;
+                    curr_spa += y_spa_2_spa;
+                }
+                temp_count += y_spa_2_qty;
+                for (int i = temp_count; i < temp_count + y_spa_3_qty; i++)
+                {
+                    Beam_Y_Loc_Data[i] = curr_spa;
+                    curr_spa += y_spa_3_spa;
+                }
+                temp_count += y_spa_3_qty;
+                for (int i = temp_count; i < temp_count + y_spa_4_qty; i++)
+                {
+                    Beam_Y_Loc_Data[i] = curr_spa;
+                    curr_spa += y_spa_4_spa;
+                }
+                temp_count += y_spa_4_qty;
+                for (int i = temp_count; i < temp_count + y_spa_5_qty; i++)
+                {
+                    Beam_Y_Loc_Data[i] = curr_spa;
+                    curr_spa += y_spa_5_spa;
+                }
+                MODE_Y_SELECTED = true;
+            }
+
+            if(MODE_X_SELECTED == false || MODE_Y_SELECTED == false)
+            {
+                doc.Editor.WriteMessage("X and Y directions must be selected.");
+                return;
+            }
+
+            #endregion
+
             #region Draw Untrimmed Grade Beams and Beam Strands
             doc.Editor.WriteMessage("\nDrawing untrimmed interior grade beams");
 
@@ -190,8 +376,8 @@ namespace EE_Analyzer
             #endregion
 
             #region Trim Grade Beam and Beam Strand Lines
-
             doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed interior grade beams");
+
             CreateTrimmedGradeBeams(db, doc, lstInteriorGradeBeamsUntrimmed);
             doc.Editor.WriteMessage("\n-- Completed drawing trimmed grade beams. " + lstInteriorGradeBeamsTrimmed.Count + " grade beams created.");
 
@@ -228,118 +414,6 @@ namespace EE_Analyzer
             //#region Additional Steel
             //#endregion
         }
-
-        //private void CreateTrimmedGradeBeam(Database db, Document doc, GradeBeamModel beam, Polyline poly)
-        //{
-        //    List<Point3d> intPtList= new List<Point3d>();
-
-        //    Point3d b1 = beam.StartPt;
-        //    Point3d b2 = beam.EndPt;
-
-
-        //    int numVerts = poly.NumberOfVertices;
-        //    bool isClosed = poly.Closed;
-
-        //    if(isClosed is false)
-        //    {
-        //        throw new System.Exception("Invalid polyline received in Create TrimmedGradeBeams. Polyline must be closed");
-        //    }
-
-        //    if (numVerts < 2)
-        //    {
-        //        throw new System.Exception("Invalid polyline received in Create TrimmedGradeBeams. Polyline must have more than two vertices");
-        //    }
-
-        //    doc.Editor.WriteMessage("\nBeam #" + beam.BeamNum);
-        //    doc.Editor.WriteMessage("\n- Testing beam at " + b1.X + "," + b1.Y + " to " + b2.X + "," + b2.Y);
-
-        //    Point3d p1 = poly.GetPoint3dAt(0);
-        //    Point3d p2 = poly.GetPoint3dAt(1);
-
-        //    // Loop through the polyline segments and find the intersecting points.
-        //    for (int i = 0; i < numVerts; i++)
-        //    {
-        //        p1 = poly.GetPoint3dAt(i);
-        //        p2 = poly.GetPoint3dAt((i + 1) % numVerts);
-
-        //        DrawMtext(db, doc, MathHelpers.GetMidpoint(p1, p2), i.ToString(), 6, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-        //        Point3d grade_beam_intPt;
-
-
-        //        IntersectPointData intersectPtData = FindPointOfIntersectLines_FromPoint3d(
-        //            b1,
-        //            b2,
-        //            p1,
-        //            p2);
-        //        grade_beam_intPt = intersectPtData.Point;
-
-
-        //        if ((grade_beam_intPt == null) || ((grade_beam_intPt.X == double.MaxValue) && (grade_beam_intPt.Y == double.MaxValue)))
-        //        {
-        //            doc.Editor.WriteMessage("\n-- No intersection point found");
-        //            continue;
-        //        } else
-        //        {
-        //            doc.Editor.WriteMessage("\n-- intersection point at " + grade_beam_intPt.X + "," + grade_beam_intPt.Y);
-
-        //            double dist = MathHelpers.Distance3DBetween(p1, p2);
-
-        //            // If the distance from the intPt to both p1 and p2 is less than the distance between p1 and p2
-        //            // the intPT must be between P1 and P2 
-
-        //            // TODO:::
-        //            // ERROR IN DETERMINING IF THE INTERSECTION POINT IS BETWEEN THE END POINTS OF THE LINE SEGMENT
-        //            //                   if ((MathHelpers.Distance3DBetween(grade_beam_intPt, p1) <= dist) && (MathHelpers.Distance3DBetween(grade_beam_intPt, p2) <= dist))
-        //            bool validIntersection = true;
-
-        //            //// is the intersection point at the first end point?
-        //            //if(grade_beam_intPt.X == p1.X && grade_beam_intPt.Y == p1.Y)
-        //            //{
-        //            //    intPtList.Add(grade_beam_intPt);
-        //            //    doc.Editor.WriteMessage("-- seg " + i + " YES");
-
-        //            //    continue;
-        //            //}
-
-        //            //// is the intersection point at the first end point?
-        //            //if (grade_beam_intPt.X == p2.X && grade_beam_intPt.Y == p2.Y)
-        //            //{
-        //            //    intPtList.Add(grade_beam_intPt);
-        //            //    doc.Editor.WriteMessage("-- seg " + i + " YES");
-
-        //            //    continue;
-        //            //}
-
-        //            if ((grade_beam_intPt.X < p1.X && grade_beam_intPt.X < p2.X) ||
-        //                (grade_beam_intPt.X > p1.X && grade_beam_intPt.X > p2.X) ||
-        //                (grade_beam_intPt.Y < p1.Y && grade_beam_intPt.Y < p2.Y) ||
-        //                (grade_beam_intPt.Y > p1.Y && grade_beam_intPt.Y > p2.Y))
-        //            {
-        //                //doc.Editor.WriteMessage("-- seg " + i + " NO");
-        //                validIntersection = false; ;
-        //            }
-
-        //            if (validIntersection)
-        //            {
-        //                doc.Editor.WriteMessage("\n-- seg " + i + "YES");
-        //                intPtList.Add(grade_beam_intPt);
-        //                continue;
-        //            }
-        //        }
-        //    }
-
-        //    int numPts = intPtList.Count;
-        //    doc.Editor.WriteMessage("-- " + numPts.ToString() + " intersection points found");
-        //    for (int i = 0; i < numPts-1; i = i + 2)
-        //    {
-        //        DrawLine(intPtList[i], intPtList[i+1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-        //        DrawMtext(db, doc, intPtList[i], beam.BeamNum.ToString(), 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-
-        //    }
-
-
-        //    //            DrawLine(b1, b2, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-        //}
 
         /// <summary>
         /// Creates a crude bill of materials for the strand info.
@@ -620,7 +694,6 @@ namespace EE_Analyzer
                     basis_pt = default_basis_pt;
                 }
 
-
                 IntersectPointData intersectData = FindPointOfIntersectLines_FromPoint3d(
                     longestSegmentPoints[0], longestSegmentPoints[1],
                     longestSegmentPoints[2], longestSegmentPoints[3]);
@@ -672,20 +745,28 @@ namespace EE_Analyzer
                 throw new System.Exception("\nFoundation bounding box must have four points");
             }
 
+
             if (isHorizontal is true)
             {
+                // For the horizontal beams
                 width = Beam_X_Width;
                 spacing = Beam_X_Spacing;
                 depth = Beam_X_Depth;
 
                 // grade beams to the upper boundary box horizontal edge
                 int count = 0;
-                while (basis.Y + (count * spacing) < bbox_points[1].Y)
+                for (int i = 0; i < Beam_X_Loc_Data.Length; i++)
                 {
-                    int num_strands = Beam_X_Strand_Qty;
+                    double y_coord = basis.Y + Beam_X_Loc_Data[i];
 
-                    Point3d p1 = new Point3d(bbox_points[0].X, basis.Y + (count * spacing), 0);
-                    Point3d p2 = new Point3d(bbox_points[3].X, basis.Y + (count * spacing), 0);
+                    // If our spacing pattern has gone beyond the beam extents
+                    if (y_coord > bbox_points[1].Y - 0.5 * width)
+                    {
+                        break;
+                    }
+
+                    Point3d p1 = new Point3d(bbox_points[0].X, y_coord, 0);
+                    Point3d p2 = new Point3d(bbox_points[3].X, y_coord, 0);
 
                     if (p1 == p2)
                     {
@@ -704,55 +785,27 @@ namespace EE_Analyzer
                     beam.Edge1 = OffsetLine(beam.Centerline, width * 0.5) as Line;
                     beam.Edge2 = OffsetLine(beam.Centerline, -width * 0.5) as Line;
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
-                    //StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
-                    //beam.StrandInfo = strand;
-                    //BeamStrandLines.Add(strand);
-
-                    count++;
                 }
-
-                count = 1;  // start at 1 here to avoid double drawing the first beam
-                while (basis.Y - (count * spacing) > bbox_points[0].Y)
-                {
-                    Point3d p1 = new Point3d(bbox_points[0].X, basis.Y - (count * spacing), 0);
-                    Point3d p2 = new Point3d(bbox_points[3].X, basis.Y - (count * spacing), 0);
-
-                    if (p1 == p2)
-                    {
-                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping horizontal grade beam here.");
-                        continue;
-                    }
-                    // reverse the points so the smallest X is on the left
-                    if (p1.X > p2.X)
-                    {
-                        Point3d temp = p1;
-                        p1 = p2;
-                        p2 = temp;
-                    }
-
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_X_Strand_Qty, false, width, depth);
-                    beam.Edge1 = OffsetLine(beam.Centerline, width * 0.5) as Line;
-                    beam.Edge2 = OffsetLine(beam.Centerline, -width * 0.5) as Line;
-                    lstInteriorGradeBeamsUntrimmed.Add(beam);
-                    //StrandModel strand = new StrandModel(p1, p2, Beam_X_Strand_Qty, true);
-                    //beam.StrandInfo = strand;
-                    //BeamStrandLines.Add(strand);
-
-                    count++;
-                }
-            } 
-            else
+            } else
             {
-                // for vertical beams
                 width = Beam_Y_Width;
                 spacing = Beam_Y_Spacing;
                 depth = Beam_Y_Depth;
 
+                // grade beams to the upper boundary box horizontal edge
                 int count = 0;
-                while (basis.X + (count * spacing) < bbox_points[3].X)
+                for (int i = 0; i < Beam_Y_Loc_Data.Length; i++)
                 {
-                    Point3d p1 = new Point3d(basis.X + (count * spacing), bbox_points[0].Y, 0);
-                    Point3d p2 = new Point3d(basis.X + (count * spacing), bbox_points[1].Y, 0);
+                    double x_coord = basis.X + Beam_Y_Loc_Data[i];
+
+                    // If our spacing pattern has gone beyond the beam extents
+                    if (x_coord > bbox_points[3].X - 0.5 * width)
+                    {
+                        break;
+                    }
+
+                    Point3d p1 = new Point3d(x_coord, bbox_points[0].Y, 0);
+                    Point3d p2 = new Point3d(x_coord, bbox_points[1].Y, 0);
 
                     if (p1 == p2)
                     {
@@ -767,48 +820,13 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_Y_Strand_Qty, false, width, depth);
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_X_Strand_Qty, false, width, depth);
                     beam.Edge1 = OffsetLine(beam.Centerline, width * 0.5) as Line;
                     beam.Edge2 = OffsetLine(beam.Centerline, -width * 0.5) as Line;
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
-                    //StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
-                    //beam.StrandInfo = strand;
-                    //BeamStrandLines.Add(strand);
-
-                    count++;
-                }
-
-                count = 1;
-                while (basis.X - (count * spacing) > bbox_points[0].X)
-                {
-                    Point3d p1 = new Point3d(basis.X - (count * spacing), bbox_points[0].Y, 0);
-                    Point3d p2 = new Point3d(basis.X - (count * spacing), bbox_points[1].Y, 0);
-
-                    if (p1 == p2)
-                    {
-                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping vertical grade beam here.");
-                        continue;
-                    }
-                    // reverse the points so the smallest Y is on the bottom
-                    if (p1.Y > p2.Y)
-                    {
-                        Point3d temp = p1;
-                        p1 = p2;
-                        p2 = temp;
-                    }
-
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_Y_Strand_Qty, false, width, depth);
-                    beam.Edge1 = OffsetLine(beam.Centerline, width * 0.5) as Line;
-                    beam.Edge2 = OffsetLine(beam.Centerline, -width * 0.5) as Line;
-                    lstInteriorGradeBeamsUntrimmed.Add(beam);
-                   // StrandModel strand = new StrandModel(p1, p2, Beam_Y_Strand_Qty, true);
-                   // beam.StrandInfo = strand;
-                   // BeamStrandLines.Add(strand);
-
-                    count++;
                 }
             }
-
+          
             // Now add the grade beam entities to the drawing
             foreach (GradeBeamModel beam in lstInteriorGradeBeamsUntrimmed)
             {
@@ -840,7 +858,7 @@ namespace EE_Analyzer
             foreach (GradeBeamModel untr_beam in list)
             {
                 count++;
-                doc.Editor.WriteMessage("\ntr_b:" + count.ToString());
+//                doc.Editor.WriteMessage("\ntr_b:" + count.ToString());
 
                 double width = untr_beam.Width;
                 double depth = untr_beam.Depth;
@@ -869,11 +887,14 @@ namespace EE_Analyzer
                     lst_grade_beam_points_edge2 = FindPolylineIntersectionPoints(untr_beam.Edge2, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
 
                     // if no points in the intersection list, skip to the next grade beam
-                    if (lst_grade_beam_points == null)
+                    if (lst_grade_beam_points == null || lst_grade_beam_points_edge1 == null || lst_grade_beam_points_edge2 == null)
                     {
                         continue;
                     }
 
+                    // TODO::
+                    // Figure out the logic here to draw a grade beam when one edge has more intersection points than the other -- results when close to boundary
+                    // If there are less than two points on the intersection of the center line, skip the grade beam altogether
                     if (lst_grade_beam_points.Count < 2)
                     { 
                         doc.Editor.WriteMessage("\n--Only " + lst_grade_beam_points.Count + " intersection points found - no grade beam possible for grade beam between ("
@@ -881,7 +902,15 @@ namespace EE_Analyzer
                             + b2.X.ToString() + "," + b2.Y.ToString() + ") -- skipping grade beam");
                         continue;
                     }
-                                        
+
+                    // Now determine how many grade beams we can make.
+                    // since its possible that the lst_grade_beam points are unequal.
+                    int num_cl_pts = lst_grade_beam_points.Count;
+                    int num_e1_pts = lst_grade_beam_points_edge1.Count;
+                    int num_e2_pts = lst_grade_beam_points_edge2.Count;
+
+                    int smallest_pt_count = Math.Min(Math.Min(num_cl_pts, num_e1_pts), num_e2_pts);
+
                     sorted_grade_beam_points = new Point3d[lst_grade_beam_points.Count];
                     sorted_grade_beam_points_edge1 = new Point3d[lst_grade_beam_points_edge1.Count];
                     sorted_grade_beam_points_edge2 = new Point3d[lst_grade_beam_points_edge2.Count];
@@ -899,97 +928,48 @@ namespace EE_Analyzer
                         doc.Editor.WriteMessage("\n--Error sorting grade beam points");
                         continue;
                     }
-
-                    //// Draw the markers for the intersection points
-                    //foreach (Point3d point in sorted_grade_beam_points)
-                    //{
-                    //    //doc.Editor.WriteMessage("--Drawing intersection markers");
-                    //    DrawCircle(point, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                    //}
-                    //foreach (Point3d point in sorted_grade_beam_points_edge1)
-                    //{
-                    //    //doc.Editor.WriteMessage("--Drawing intersection markers");
-                    //    DrawCircle(point, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                    //}
-                    //foreach (Point3d point in sorted_grade_beam_points_edge2)
-                    //{
-                    //    //doc.Editor.WriteMessage("--Drawing intersection markers");
-                    //    DrawCircle(point, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                    //}
                 } catch (System.Exception ex)
                 {
                     doc.Editor.WriteMessage("\n-Error finding trimmed grade beam points from centerline data: " + ex.Message);
                 }
-
-
-                //// Find the beam strand positions
-                //try
-                //{
-                //    // Get the intersection for the trimmed grade beam centerline with the inner edge polyline
-                //    lst_strand_points = FindPolylineIntersectionPoints(new Line(b1, b2), FDN_PERIMETER_POLYLINE);
-
-                //    // if no points in the intersection list, skip to the next grade beam
-                //    if (lst_strand_points == null)
-                //    {
-                //        continue;
-                //    }
-
-                //    if (lst_strand_points.Count < 2)
-                //    {
-                //        doc.Editor.WriteMessage("\n--Only " + lst_strand_points.Count + " intersection points found - no grade beam possible for grade beam between ("
-                //            + "\n" + b1.X.ToString() + "," + b1.Y.ToString() + ") and \n("
-                //            + b2.X.ToString() + "," + b2.Y.ToString() + ") -- skipping grade beam");
-                //        continue;
-                //    }
-
-
-                //    sorted_strand_points = new Point3d[lst_strand_points.Count];
-
-                //    // Now sort the points
-                //    try
-                //    {
-                //        sorted_grade_beam_points = SortPointsHorizontallyOrVertically(lst_strand_points);
-                //    }
-                //    catch (System.Exception e)
-                //    {
-                //        doc.Editor.WriteMessage("\n--Error sorting grade beam points");
-                //        continue;
-                //    }
-                //}
-                //catch
-                //{
-                //    doc.Editor.WriteMessage("\n-Error finding trimmed grade beam strand points.");
-                //    doc.Editor.WriteMessage("\n" + sorted_grade_beam_points.Length.ToString() + " sorted beam points and " + sorted_strand_points.Length.ToString() + " sorted strand points.");
-
-                //}
-
-                //doc.Editor.WriteMessage("\n" + sorted_grade_beam_points.Length.ToString() + " sorted beam points and " + sorted_strand_points.Length.ToString() + " sorted strand points.");
 
                 if (sorted_grade_beam_points == null)
                 {
                     continue;
                 }
 
+                if(sorted_grade_beam_points.Length < 2)
+                {
+                    doc.Editor.WriteMessage("\n-- at least two points required to make a grade beam.");
+                    continue;
+                }
+
                 for (int j = 0; j < sorted_grade_beam_points.Length - 1; j = j + 2)
                 {
+                    
+                    Point3d p1 = sorted_grade_beam_points[j];
+                    Point3d p2 = sorted_grade_beam_points[j + 1];
+
+                    // check if the grade beam is long enough for PT
+                    if (MathHelpers.Distance3DBetween(p1, p2) <= DEFAULT_DONT_DRAW_PT_LENGTH)
+                    {
+                        // beam is too short so skip it
+                        continue;
+                    }
+
                     try
                     {
                         // Mark the intersection points for the beam centerline
                         //DrawCircle(sorted_grade_beam_points[j], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
                         //DrawCircle(sorted_grade_beam_points[j + 1], EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
 
-                        // check if the grade beam is long enough for PT
-                        if (MathHelpers.Distance3DBetween(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1]) <= DEFAULT_DONT_DRAW_PT_LENGTH)
-                        {
-                            // beam is too short so skip it
-                            continue;
-                        }
-
                         GradeBeamModel beam = null;
 
                         // If it's an odd number of intersection points create a grade beam for the entire trim length
                         if (sorted_grade_beam_points.Length % 2 != 0)
                         {
+                            // TODO:  Sort out the algorithm for TANGENT points and odd number of interesection points or if the number of points on edge lines does
+                            // not match the number of points on the centerlines
                             doc.Editor.WriteMessage("\n--Odd number of points found " + lst_grade_beam_points.Count + " intersection points found"
                                 + "\n" + b1.X.ToString() + "," + b1.Y.ToString() + ") and \n("
                                 + b2.X.ToString() + "," + b2.Y.ToString() + ") -- skipping grade beam");
@@ -997,29 +977,37 @@ namespace EE_Analyzer
                             beam = new GradeBeamModel(sorted_grade_beam_points[0], sorted_grade_beam_points[sorted_grade_beam_points.Length - 1], FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
                             beam.Edge1 = null;
                             beam.Edge2 = null;
-                            DrawLine(sorted_grade_beam_points_edge1[0], sorted_grade_beam_points_edge1[sorted_grade_beam_points_edge1.Length - 1],EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                            DrawLine(sorted_grade_beam_points_edge2[0], sorted_grade_beam_points_edge2[sorted_grade_beam_points_edge1.Length - 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+//                            DrawLine(sorted_grade_beam_points_edge1[0], sorted_grade_beam_points_edge1[sorted_grade_beam_points_edge1.Length - 1],EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+//                            DrawLine(sorted_grade_beam_points_edge2[0], sorted_grade_beam_points_edge2[sorted_grade_beam_points_edge1.Length - 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
 
 //                            beam.Edge1 = new Line(sorted_grade_beam_points_edge1[0], sorted_grade_beam_points_edge1[sorted_grade_beam_points_edge1.Length - 1]);
 //                            beam.Edge2 = new Line(sorted_grade_beam_points_edge2[0], sorted_grade_beam_points_edge2[sorted_grade_beam_points_edge1.Length - 1]);
                             beam.BeamNum = count;
-//                            continue;
+                            break;
                         }
 
                         // Otherwise, continue with splitting it into groups of 2
                         else
                         {
-                            beam = new GradeBeamModel(sorted_grade_beam_points[j], sorted_grade_beam_points[j + 1], FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
+                            // Check the minimum PT length requirement.  If it's less than the distance, skip the beam and continue.
+                            if (MathHelpers.Distance3DBetween(p1, p2) < DEFAULT_DONT_DRAW_PT_LENGTH)
+                            {
+                                continue;
+                            }
+
+                            beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
                             beam.Edge1 = null;
                             beam.Edge2 = null;
 
-                            DrawLine(sorted_grade_beam_points_edge1[j], sorted_grade_beam_points_edge1[j + 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                            DrawLine(sorted_grade_beam_points_edge2[j], sorted_grade_beam_points_edge2[j + 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                            //DrawLine(sorted_grade_beam_points_edge1[j], sorted_grade_beam_points_edge1[j + 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                            //DrawLine(sorted_grade_beam_points_edge2[j], sorted_grade_beam_points_edge2[j + 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
 
 //                            beam.Edge1 = new Line(sorted_grade_beam_points_edge1[j], sorted_grade_beam_points_edge1[j + 1]);
 //                            beam.Edge2 = new Line(sorted_grade_beam_points_edge2[j], sorted_grade_beam_points_edge2[j + 1]);
                             beam.BeamNum = count;
                         }
+
+                        lstInteriorGradeBeamsTrimmed.Add(beam);
 
                         //int num_trimmed = 0;
 
@@ -1089,7 +1077,7 @@ namespace EE_Analyzer
 
                         //    //}
 
-                              lstInteriorGradeBeamsTrimmed.Add(beam);
+
                         //}
                         //else
                         //{
@@ -1101,9 +1089,9 @@ namespace EE_Analyzer
                     catch (System.Exception e)
                     {
                         doc.Editor.WriteMessage("\nError creating grade beam at " + sorted_grade_beam_points[j].X + ", " + sorted_grade_beam_points[j + 1].Y);
-                        DrawCircle(sorted_grade_beam_points[j], 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(sorted_grade_beam_points[j], 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(sorted_grade_beam_points[j], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
                     }
                 }
             }
@@ -1121,8 +1109,6 @@ namespace EE_Analyzer
                 }
             }
         }
-
-
 
         /// <summary>
         /// Draws the foundation perimeter grade beam by using offset.  
@@ -1199,9 +1185,9 @@ namespace EE_Analyzer
                         int numVertices = foundationPerimeterPolyline.NumberOfVertices;
                         var lstVertices = GetVertices(foundationPerimeterPolyline);
 
-                        if (lstVertices.Count < 4)
+                        if (lstVertices.Count < 3)
                         {
-                            edt.WriteMessage("\nFoundation must have at least four sides.  The selected polygon only has " + lstVertices.Count);
+                            edt.WriteMessage("\nFoundation must have at least three sides.  The selected polygon only has " + lstVertices.Count);
                             trans.Abort();
                             return null;
                         }
