@@ -54,7 +54,7 @@ namespace EE_Analyzer.Models
         // A label for the grade beam
         public string Label { get => "GB" + BeamNum.ToString(); }
 
-        public GradeBeamModel(Point3d start, Point3d end, Polyline boundary, int num_strands, bool is_trimmed, double width = 12.0, double depth = 24.0)
+        public GradeBeamModel(Point3d start, Point3d end, int num_strands, bool is_trimmed, int beam_num, double width = 12.0, double depth = 24.0)
         {
             // Set basic info
 
@@ -98,8 +98,16 @@ namespace EE_Analyzer.Models
 
             // Create the center line, edge1, and edge2 objects
             Centerline = OffsetLine(new Line(start, end), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
-//            Edge1 = OffsetLine(Centerline, width * 0.5) as Line;
-//            Edge2 = OffsetLine(Centerline, -width * 0.5) as Line;
+
+            if(is_trimmed == false)
+            {
+                Edge1 = OffsetLine(Centerline, width * 0.5) as Line;
+                Edge2 = OffsetLine(Centerline, -width * 0.5) as Line;
+            } else
+            {
+                Edge1 = null;
+                Edge2 = null;
+            }
 
             StrandInfo = new StrandModel(Centerline.StartPoint, Centerline.EndPoint, num_strands, true, is_trimmed);
             IsTrimmed = is_trimmed;
@@ -115,6 +123,13 @@ namespace EE_Analyzer.Models
         public void AddToAutoCADDatabase(Database db, Document doc)
         {
             string layer_name = GetDrawingLayer();
+            if(IsTrimmed)
+            {
+                layer_name = EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
+            } else
+            {
+                layer_name = EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER;
+            }
 
             DBObjectCollection coll = new DBObjectCollection();
 

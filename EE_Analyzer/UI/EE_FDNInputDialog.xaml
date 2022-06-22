@@ -216,7 +216,7 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button x:Name="btnOK" Content="Draw Foundation" IsEnabled="False" Visibility="Collapsed" Margin="10" HorizontalAlignment="Right" Height="24" Click="btnOK_Click"/>
+            <Button x:Name="btnOK" Background="MediumOrchid"  Content="Draw Foundation" IsEnabled="False" Visibility="Collapsed" Margin="10" HorizontalAlignment="Right" Height="24" Click="btnOK_Click"/>
             <Button Margin="10" HorizontalAlignment="Left" Content="Cancel" Height="24" IsCancel="True" />
         </StackPanel>
             

@@ -170,7 +170,7 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        public static Line DrawLine(Point3d pt1, Point3d pt2, string layer_name)
+        public static Line DrawLine(Point3d pt1, Point3d pt2, string layer_name, string linetype_name="CONTINUOUS")
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -199,6 +199,7 @@ namespace EE_Analyzer.Utilities
                     ln.StartPoint = pt1;
                     ln.EndPoint = pt2;
                     ln.Layer = layer_name;
+                    ln.Linetype = linetype_name;
 
                     btr.AppendEntity(ln);
                     trans.AddNewlyCreatedDBObject(ln, true);

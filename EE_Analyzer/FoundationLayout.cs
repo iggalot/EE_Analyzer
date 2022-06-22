@@ -736,7 +736,6 @@ namespace EE_Analyzer
         /// <exception cref="System.Exception"></exception>
         private void CreateUntrimmedGradeBeams(Database db, Document doc, Point3d basis, bool isHorizontal)
         {
-            double width, spacing, depth;
             // retrieve the bounding box
             var bbox_points = GetVertices(FDN_BOUNDARY_BOX);
 
@@ -745,22 +744,19 @@ namespace EE_Analyzer
                 throw new System.Exception("\nFoundation bounding box must have four points");
             }
 
-
+            int count = 0;
             if (isHorizontal is true)
             {
                 // For the horizontal beams
-                width = Beam_X_Width;
-                spacing = Beam_X_Spacing;
-                depth = Beam_X_Depth;
 
                 // grade beams to the upper boundary box horizontal edge
-                int count = 0;
                 for (int i = 0; i < Beam_X_Loc_Data.Length; i++)
                 {
+                    count++;
                     double y_coord = basis.Y + Beam_X_Loc_Data[i];
 
                     // If our spacing pattern has gone beyond the beam extents
-                    if (y_coord > bbox_points[1].Y - 0.5 * width)
+                    if (y_coord > bbox_points[1].Y - 0.5 * Beam_X_Width)
                     {
                         break;
                     }
@@ -781,25 +777,19 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_X_Strand_Qty, false, width, depth);
-                    beam.Edge1 = OffsetLine(beam.Centerline, width * 0.5) as Line;
-                    beam.Edge2 = OffsetLine(beam.Centerline, -width * 0.5) as Line;
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, Beam_X_Strand_Qty, false, count, Beam_X_Width, Beam_X_Depth);
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
                 }
             } else
             {
-                width = Beam_Y_Width;
-                spacing = Beam_Y_Spacing;
-                depth = Beam_Y_Depth;
-
                 // grade beams to the upper boundary box horizontal edge
-                int count = 0;
                 for (int i = 0; i < Beam_Y_Loc_Data.Length; i++)
                 {
+                    count++;
                     double x_coord = basis.X + Beam_Y_Loc_Data[i];
 
                     // If our spacing pattern has gone beyond the beam extents
-                    if (x_coord > bbox_points[3].X - 0.5 * width)
+                    if (x_coord > bbox_points[3].X - 0.5 * Beam_X_Width)
                     {
                         break;
                     }
@@ -820,9 +810,7 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_CENTERLINE_POLYLINE, Beam_X_Strand_Qty, false, width, depth);
-                    beam.Edge1 = OffsetLine(beam.Centerline, width * 0.5) as Line;
-                    beam.Edge2 = OffsetLine(beam.Centerline, -width * 0.5) as Line;
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, Beam_Y_Strand_Qty, false, count, Beam_Y_Width, Beam_Y_Depth);
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
                 }
             }
@@ -974,37 +962,14 @@ namespace EE_Analyzer
                                 + "\n" + b1.X.ToString() + "," + b1.Y.ToString() + ") and \n("
                                 + b2.X.ToString() + "," + b2.Y.ToString() + ") -- skipping grade beam");
 
-                            beam = new GradeBeamModel(sorted_grade_beam_points[0], sorted_grade_beam_points[sorted_grade_beam_points.Length - 1], FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
-                            beam.Edge1 = null;
-                            beam.Edge2 = null;
-//                            DrawLine(sorted_grade_beam_points_edge1[0], sorted_grade_beam_points_edge1[sorted_grade_beam_points_edge1.Length - 1],EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-//                            DrawLine(sorted_grade_beam_points_edge2[0], sorted_grade_beam_points_edge2[sorted_grade_beam_points_edge1.Length - 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-
-//                            beam.Edge1 = new Line(sorted_grade_beam_points_edge1[0], sorted_grade_beam_points_edge1[sorted_grade_beam_points_edge1.Length - 1]);
-//                            beam.Edge2 = new Line(sorted_grade_beam_points_edge2[0], sorted_grade_beam_points_edge2[sorted_grade_beam_points_edge1.Length - 1]);
-                            beam.BeamNum = count;
+                            beam = new GradeBeamModel(sorted_grade_beam_points[0], sorted_grade_beam_points[sorted_grade_beam_points.Length - 1], untr_beam.StrandInfo.Qty, true, count, width, depth);
                             break;
                         }
 
                         // Otherwise, continue with splitting it into groups of 2
                         else
                         {
-                            // Check the minimum PT length requirement.  If it's less than the distance, skip the beam and continue.
-                            if (MathHelpers.Distance3DBetween(p1, p2) < DEFAULT_DONT_DRAW_PT_LENGTH)
-                            {
-                                continue;
-                            }
-
-                            beam = new GradeBeamModel(p1, p2, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, untr_beam.StrandInfo.Qty, true, width, depth);
-                            beam.Edge1 = null;
-                            beam.Edge2 = null;
-
-                            //DrawLine(sorted_grade_beam_points_edge1[j], sorted_grade_beam_points_edge1[j + 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                            //DrawLine(sorted_grade_beam_points_edge2[j], sorted_grade_beam_points_edge2[j + 1], EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-
-//                            beam.Edge1 = new Line(sorted_grade_beam_points_edge1[j], sorted_grade_beam_points_edge1[j + 1]);
-//                            beam.Edge2 = new Line(sorted_grade_beam_points_edge2[j], sorted_grade_beam_points_edge2[j + 1]);
-                            beam.BeamNum = count;
+                            beam = new GradeBeamModel(p1, p2, untr_beam.StrandInfo.Qty, true, count, width, depth);
                         }
 
                         lstInteriorGradeBeamsTrimmed.Add(beam);
