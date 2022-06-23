@@ -18,14 +18,17 @@ using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using EE_Analyzer.Models;
 using EE_Analyzer.Utilities;
 using System.Windows;
+using wyDay.TurboActivate;
 
 namespace EE_Analyzer
 {
     public class FoundationLayout
     {
+
+
         private const double DEFAULT_MIN_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
 
-
+        private int currentBeamNum = 0;
 
         private bool MODE_X_SELECTED = false;
         private bool MODE_Y_SELECTED = false;
@@ -121,7 +124,7 @@ namespace EE_Analyzer
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor edt = doc.Editor;
-            
+
             #region Application Setup
             // Set up layers and linetypes and AutoCAD drawings items
             EE_ApplicationSetup(doc, db);
@@ -158,6 +161,13 @@ namespace EE_Analyzer
             {
                 throw new System.Exception("Invalid foundation boundary box created.");
             }
+            #endregion
+
+            #region Write Parameter Data to Drawing
+            WritefoundationData(x_qty, x_spa, x_depth, x_width, y_qty, y_spa, y_depth, y_width, 
+                x_spa_1_qty, x_spa_2_qty, x_spa_3_qty, x_spa_4_qty, x_spa_5_qty, x_spa_1_spa, x_spa_2_spa, x_spa_3_spa, x_spa_4_spa, x_spa_5_spa, 
+                y_spa_1_qty, y_spa_2_qty, y_spa_3_qty, y_spa_4_qty, y_spa_5_qty, y_spa_1_spa, y_spa_2_spa, y_spa_3_spa, y_spa_4_spa, y_spa_5_spa, 
+                default_mode_x, default_mode_y, neglect_dimension, doc, db);
             #endregion
 
             #region Draw Foundation Perimeter Beam
@@ -304,7 +314,7 @@ namespace EE_Analyzer
             }
             else if (MODE_Y_DIR == UIModes.MODE_Y_DIR_SPA)
             {
-                int y_count = (int)Math.Ceiling(1 + (max_x - min_x - Beam_Y_Width) / y_spa );
+                int y_count = (int)Math.Ceiling(1 + (max_x - min_x - Beam_Y_Width) / y_spa);
                 double y_max_spa = (max_x - min_x) / y_count;
                 Beam_Y_Loc_Data = new double[y_count];
 
@@ -356,7 +366,7 @@ namespace EE_Analyzer
                 MODE_Y_SELECTED = true;
             }
 
-            if(MODE_X_SELECTED == false || MODE_Y_SELECTED == false)
+            if (MODE_X_SELECTED == false || MODE_Y_SELECTED == false)
             {
                 doc.Editor.WriteMessage("X and Y directions must be selected.");
                 return;
@@ -368,9 +378,9 @@ namespace EE_Analyzer
             doc.Editor.WriteMessage("\nDrawing untrimmed interior grade beams");
 
             // draw horizontal and vertical grade beams
-            CreateUntrimmedGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
-            CreateUntrimmedGradeBeams(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
-            
+            CreateUntrimmedGradeBeams(db, doc, true);  // for horizontal beams
+            CreateUntrimmedGradeBeams(db, doc, false); // for vertical beams
+
             doc.Editor.WriteMessage("\n-- Completed drawing Interior grade beams. " + lstInteriorGradeBeamsUntrimmed.Count + " grade beams created.");
 
             #endregion
@@ -378,6 +388,7 @@ namespace EE_Analyzer
             #region Trim Grade Beam and Beam Strand Lines
             doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed interior grade beams");
 
+            // draw the trimmed horizontal and vertical grade beams
             CreateTrimmedGradeBeams(db, doc, lstInteriorGradeBeamsUntrimmed);
             doc.Editor.WriteMessage("\n-- Completed drawing trimmed grade beams. " + lstInteriorGradeBeamsTrimmed.Count + " grade beams created.");
 
@@ -413,6 +424,108 @@ namespace EE_Analyzer
 
             //#region Additional Steel
             //#endregion
+        }
+
+        /// <summary>
+        /// Writes the design data to the drawing file.
+        /// </summary>
+        /// <param name="x_qty"></param>
+        /// <param name="x_spa"></param>
+        /// <param name="x_depth"></param>
+        /// <param name="x_width"></param>
+        /// <param name="y_qty"></param>
+        /// <param name="y_spa"></param>
+        /// <param name="y_depth"></param>
+        /// <param name="y_width"></param>
+        /// <param name="x_spa_1_qty"></param>
+        /// <param name="x_spa_2_qty"></param>
+        /// <param name="x_spa_3_qty"></param>
+        /// <param name="x_spa_4_qty"></param>
+        /// <param name="x_spa_5_qty"></param>
+        /// <param name="x_spa_1_spa"></param>
+        /// <param name="x_spa_2_spa"></param>
+        /// <param name="x_spa_3_spa"></param>
+        /// <param name="x_spa_4_spa"></param>
+        /// <param name="x_spa_5_spa"></param>
+        /// <param name="y_spa_1_qty"></param>
+        /// <param name="y_spa_2_qty"></param>
+        /// <param name="y_spa_3_qty"></param>
+        /// <param name="y_spa_4_qty"></param>
+        /// <param name="y_spa_5_qty"></param>
+        /// <param name="y_spa_1_spa"></param>
+        /// <param name="y_spa_2_spa"></param>
+        /// <param name="y_spa_3_spa"></param>
+        /// <param name="y_spa_4_spa"></param>
+        /// <param name="y_spa_5_spa"></param>
+        /// <param name="default_mode_x"></param>
+        /// <param name="default_mode_y"></param>
+        /// <param name="neglect_dimension"></param>
+        /// <param name="doc"></param>
+        /// <param name="db"></param>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        private string WritefoundationData(int x_qty, double x_spa, double x_depth, double x_width, int y_qty, double y_spa, double y_depth, double y_width, 
+            int x_spa_1_qty, int x_spa_2_qty, int x_spa_3_qty, int x_spa_4_qty, int x_spa_5_qty, double x_spa_1_spa, double x_spa_2_spa, double x_spa_3_spa, double x_spa_4_spa, double x_spa_5_spa, 
+            int y_spa_1_qty, int y_spa_2_qty, int y_spa_3_qty, int y_spa_4_qty, int y_spa_5_qty, double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa, 
+            UIModes default_mode_x, UIModes default_mode_y, double neglect_dimension, Document doc, Database db)
+        {
+            string str = "";
+
+            // X-dir beam data
+            str += "\nX:   Depth: " + x_depth + "    Width: " + x_width + "   Beam Strands: " + Beam_X_Strand_Qty + "    Slab Strands: " + Beam_X_Slab_Strand_Qty;
+            str += "\nUI Mode: ";
+            switch (default_mode_x)
+            {
+                case UIModes.MODE_X_DIR_UNDEFINED:
+                    str += "Undefined";
+                    break;
+                case UIModes.MODE_X_DIR_SPA:
+                    str += "Max. Spacing: " + x_spa;
+                    break;
+                case UIModes.MODE_X_DIR_QTY:
+                    str += "Quantity: " + x_qty;
+                    break;
+                case UIModes.MODE_X_DIR_DETAIL:
+                    str += "   Manual:     1.  " + x_spa_1_qty + " @ " + x_spa_1_spa;
+                    str += "   Manual:     2.  " + x_spa_2_qty + " @ " + x_spa_2_spa;
+                    str += "   Manual:     3.  " + x_spa_3_qty + " @ " + x_spa_3_spa;
+                    str += "   Manual:     4.  " + x_spa_4_qty + " @ " + x_spa_4_spa;
+                    str += "   Manual:     5.  " + x_spa_5_qty + " @ " + x_spa_5_spa;
+                    break;
+                default:
+                    str += "Unknown mode";
+                    break;
+            }
+
+            // Y-dir beam data
+            str += "\nY:   Depth: " + y_depth + "    Width: " + y_width + "   Beam Strands: " + Beam_Y_Strand_Qty + "    Slab Strands: " + Beam_Y_Slab_Strand_Qty;
+            str += "\nUI Mode: ";
+            switch (default_mode_y)
+            {
+                case UIModes.MODE_Y_DIR_UNDEFINED:
+                    str += "Undefined";
+                    break;
+                case UIModes.MODE_Y_DIR_SPA:
+                    str += "Max. Spacing: " + y_spa;
+                    break;
+                case UIModes.MODE_Y_DIR_QTY:
+                    str += "Quantity: " + y_qty;
+                    break;
+                case UIModes.MODE_Y_DIR_DETAIL:
+                    str += "  Manual:     1.  " + y_spa_1_qty + " @ " + y_spa_1_spa;
+                    str += "  Manual:     2.  " + y_spa_2_qty + " @ " + y_spa_2_spa;
+                    str += "  Manual:     3.  " + y_spa_3_qty + " @ " + y_spa_3_spa;
+                    str += "  Manual:     4.  " + y_spa_4_qty + " @ " + y_spa_4_spa;
+                    str += "  Manual:     5.  " + y_spa_5_qty + " @ " + y_spa_5_spa;
+                    break;
+                default:
+                    str += "Unknown mode";
+                    break;
+            }
+            str += "\nNeglect grade beam length: " + neglect_dimension;
+
+            DrawMtext(db, doc, FDN_BOUNDARY_BOX.GetPoint3dAt(0), str, 5, EE_Settings.DEFAULT_FDN_TEXTS_LAYER, 0);
+            return str;
         }
 
         /// <summary>
@@ -734,7 +847,7 @@ namespace EE_Analyzer
         /// <param name="basis">The basis point for the grade beam grid as <see cref="Point3d"/></param>
         /// <param name="isHorizontal"></param>
         /// <exception cref="System.Exception"></exception>
-        private void CreateUntrimmedGradeBeams(Database db, Document doc, Point3d basis, bool isHorizontal)
+        private void CreateUntrimmedGradeBeams(Database db, Document doc, bool isHorizontal)
         {
             // retrieve the bounding box
             var bbox_points = GetVertices(FDN_BOUNDARY_BOX);
@@ -744,16 +857,13 @@ namespace EE_Analyzer
                 throw new System.Exception("\nFoundation bounding box must have four points");
             }
 
-            int count = 0;
             if (isHorizontal is true)
             {
                 // For the horizontal beams
-
                 // grade beams to the upper boundary box horizontal edge
                 for (int i = 0; i < Beam_X_Loc_Data.Length; i++)
                 {
-                    count++;
-                    double y_coord = basis.Y + Beam_X_Loc_Data[i];
+                    double y_coord = FDN_GRADE_BEAM_BASIS_POINT.Y + Beam_X_Loc_Data[i];
 
                     // If our spacing pattern has gone beyond the beam extents
                     if (y_coord > bbox_points[1].Y - 0.5 * Beam_X_Width)
@@ -777,7 +887,9 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, Beam_X_Strand_Qty, false, count, Beam_X_Width, Beam_X_Depth);
+                    // Make our grade beam model object
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, Beam_X_Strand_Qty, false, true, currentBeamNum, Beam_X_Width, Beam_X_Depth);
+                    currentBeamNum++;
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
                 }
             } else
@@ -785,8 +897,7 @@ namespace EE_Analyzer
                 // grade beams to the upper boundary box horizontal edge
                 for (int i = 0; i < Beam_Y_Loc_Data.Length; i++)
                 {
-                    count++;
-                    double x_coord = basis.X + Beam_Y_Loc_Data[i];
+                    double x_coord = FDN_GRADE_BEAM_BASIS_POINT.X + Beam_Y_Loc_Data[i];
 
                     // If our spacing pattern has gone beyond the beam extents
                     if (x_coord > bbox_points[3].X - 0.5 * Beam_X_Width)
@@ -810,7 +921,9 @@ namespace EE_Analyzer
                         p2 = temp;
                     }
 
-                    GradeBeamModel beam = new GradeBeamModel(p1, p2, Beam_Y_Strand_Qty, false, count, Beam_Y_Width, Beam_Y_Depth);
+                    // Make our grade beam model object
+                    GradeBeamModel beam = new GradeBeamModel(p1, p2, Beam_Y_Strand_Qty, false, false, currentBeamNum, Beam_Y_Width, Beam_Y_Depth);
+                    currentBeamNum++;
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
                 }
             }
@@ -831,29 +944,14 @@ namespace EE_Analyzer
         /// <exception cref="System.Exception"></exception>
         private void CreateTrimmedGradeBeams(Database db, Document doc, List<GradeBeamModel> list)
         {
-            //int numVerts_inner = FDN_PERIMETER_INTERIOR_EDGE_POLYLINE.NumberOfVertices;
-            //int numVerts_outer = FDN_PERIMETER_POLYLINE.NumberOfVertices;
-
-            ///////////////////////////////////////////////////////////////////
-            ///  Get the trimmed grade beam intersection points with the FDN_PERIMETER_INTERIOR_EDGE_POLYLINE
-            ///////////////////////////////////////////////////////////////////
-            // Create new models for each of the untrimmed grade beam models
-            //doc.Editor.WriteMessage("\nAnalyzing " + list.Count + " untrimmed beams.");
-            //doc.Editor.WriteMessage("\nInner polyline has " + numVerts_inner.ToString() + " vertices.");
-            //doc.Editor.WriteMessage("\nPerimeter polyline has " + numVerts_outer.ToString() + " vertices.");
-
-            int count =0;
             foreach (GradeBeamModel untr_beam in list)
             {
-                count++;
-//                doc.Editor.WriteMessage("\ntr_b:" + count.ToString());
-
                 double width = untr_beam.Width;
                 double depth = untr_beam.Depth;
 
                 // Get the untrimmed end points of the beam centerline
-                Point3d b1 = untr_beam.Centerline.StartPoint;
-                Point3d b2 = untr_beam.Centerline.EndPoint;
+                Point3d b1 = untr_beam.CL_Pt_A;
+                Point3d b2 = untr_beam.CL_Pt_B;
 
                 List<Point3d> lst_grade_beam_points = null;
                 List<Point3d> lst_grade_beam_points_edge1 = null;
@@ -870,7 +968,7 @@ namespace EE_Analyzer
                 try
                 {
                     // Get the intersection for the trimmed grade beam centerline and edges with the inner edge polyline
-                    lst_grade_beam_points = FindPolylineIntersectionPoints(untr_beam.Centerline, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
+                    lst_grade_beam_points = FindPolylineIntersectionPoints(new Line(untr_beam.CL_Pt_A, untr_beam.CL_Pt_B), FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
                     lst_grade_beam_points_edge1 = FindPolylineIntersectionPoints(untr_beam.Edge1, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
                     lst_grade_beam_points_edge2 = FindPolylineIntersectionPoints(untr_beam.Edge2, FDN_PERIMETER_INTERIOR_EDGE_POLYLINE);
 
@@ -962,14 +1060,17 @@ namespace EE_Analyzer
                                 + "\n" + b1.X.ToString() + "," + b1.Y.ToString() + ") and \n("
                                 + b2.X.ToString() + "," + b2.Y.ToString() + ") -- skipping grade beam");
 
-                            beam = new GradeBeamModel(sorted_grade_beam_points[0], sorted_grade_beam_points[sorted_grade_beam_points.Length - 1], untr_beam.StrandInfo.Qty, true, count, width, depth);
+                            beam = new GradeBeamModel(sorted_grade_beam_points[0], sorted_grade_beam_points[sorted_grade_beam_points.Length - 1],
+                               untr_beam.StrandInfo.Qty, true, untr_beam.IsHorizontal, currentBeamNum, width, depth);
+                            currentBeamNum++;
                             break;
                         }
 
                         // Otherwise, continue with splitting it into groups of 2
                         else
                         {
-                            beam = new GradeBeamModel(p1, p2, untr_beam.StrandInfo.Qty, true, count, width, depth);
+                            beam = new GradeBeamModel(p1, p2, untr_beam.StrandInfo.Qty, true, untr_beam.IsHorizontal, currentBeamNum, width, depth);
+                            currentBeamNum++;
                         }
 
                         lstInteriorGradeBeamsTrimmed.Add(beam);

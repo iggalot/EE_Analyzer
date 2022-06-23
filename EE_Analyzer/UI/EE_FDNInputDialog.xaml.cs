@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using wyDay.TurboActivate;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace EE_Analyzer
@@ -26,6 +27,17 @@ namespace EE_Analyzer
     /// </summary>
     public partial class EE_FDNInputDialog : Window
     {
+        //// licensing
+        //readonly TurboActivate ta;
+        //bool isGenuine;
+
+        //// Don't use 0 for either of these values.
+        //// We recommend 90, 14. But if you want to lower the values we don't recommend going
+        //// below 7 days for each value. Anything lower and you're just punishing legit users.
+        //const uint DaysBetweenChecks = 90;
+        //const uint GracePeriodLength = 14;
+
+
         // signals that the mode will use the quantity and spacings as the same for all beams
         public UIModes UI_MODE_X_DIR { get; set; }
         public UIModes UI_MODE_Y_DIR { get; set; }
@@ -46,6 +58,67 @@ namespace EE_Analyzer
             )
         {
             InitializeComponent();
+
+            //try
+            //{
+            //    //TODO: goto the version page at LimeLM and
+            //    // paste this GUID here
+            //    ta = new TurboActivate("ipeqs63wjubbhgnazqt3527qhcqxk2a");
+            //    // Check if we're activated, and every 90 days verify it with the activation servers
+            //    // In this example we won't show an error if the activation was done offline
+            //    // (see the 3rd parameter of the IsGenuine() function)
+            //    // https://wyday.com/limelm/help/offline-activation/
+            //    IsGenuineResult gr = ta.IsGenuine(DaysBetweenChecks, GracePeriodLength, true);
+
+            //    isGenuine = gr == IsGenuineResult.Genuine ||
+            //                gr == IsGenuineResult.GenuineFeaturesChanged ||
+
+            //                // an internet error means the user is activated but
+            //                // TurboActivate failed to contact the LimeLM servers
+            //                gr == IsGenuineResult.InternetError;
+
+
+            //    // If IsGenuineEx() is telling us we're not activated
+            //    // but the IsActivated() function is telling us that the activation
+            //    // data on the computer is valid (i.e. the crypto-signed-fingerprint matches the computer)
+            //    // then that means that the customer has passed the grace period and they must re-verify
+            //    // with the servers to continue to use your app.
+
+            //    //Note: DO NOT allow the customer to just continue to use your app indefinitely with absolutely
+            //    //      no reverification with the servers. If you want to do that then don't use IsGenuine() or
+            //    //      IsGenuineEx() at all -- just use IsActivated().
+            //    if (!isGenuine && ta.IsActivated())
+            //    {
+            //        // We're treating the customer as is if they aren't activated, so they can't use your app.
+            //        // However, we show them a dialog where they can reverify with the servers immediately.
+
+            //        ReVerifyNow frmReverify = new ReVerifyNow(ta, DaysBetweenChecks, GracePeriodLength);
+
+            //        if (frmReverify.ShowDialog() == DialogResult.OK)
+            //        {
+            //            isGenuine = true;
+            //        }
+            //        else if (!frmReverify.noLongerActivated) // the user clicked cancel and the user is still activated
+            //        {
+            //            // Just bail out of your app
+            //            Environment.Exit(1);
+            //            return;
+            //        }
+            //    }
+            //}
+            //catch (TurboActivateException ex)
+            //{
+            //    // failed to check if activated, meaning the customer screwed something up
+            //    // so kill the app immediately
+            //    MessageBox.Show("Failed to check if activated: " + ex.Message);
+            //    Environment.Exit(1);
+            //    return;
+            //}
+
+            //// Show a trial if we're not genuine
+            //// See step 9, below.
+            //ShowTrial(!isGenuine);
+
             DataContext = this;
 
             BEAM_X_QTY.Text = x_qty.ToString();
@@ -159,7 +232,28 @@ namespace EE_Analyzer
                     resultOK = false;
                 }
 
+                if (Int32.TryParse(BEAM_X_STRAND_QTY.Text, out beam_x_strand_qty) is false)
+                {
+                    resultOK = false;
+                    MessageBox.Show("Error reading X-dir beam strand qty");
+                }
+                if (Int32.TryParse(BEAM_Y_STRAND_QTY.Text, out beam_y_strand_qty) is false)
+                {
+                    resultOK = false;
+                    MessageBox.Show("Error reading Y-dir beam strand qty");
+                }
+                if (Int32.TryParse(SLAB_X_STRAND_QTY.Text, out slab_x_strand_qty) is false)
+                {
+                    resultOK = false;
+                    MessageBox.Show("Error reading X-dir slab strand qty");
+                }
+                if (Int32.TryParse(SLAB_Y_STRAND_QTY.Text, out slab_y_strand_qty) is false)
+                {
+                    resultOK = false;
+                    MessageBox.Show("Error reading Y-dir slab strand qty");
+                }
 
+                
                 if (UI_MODE_X_DIR == UIModes.MODE_X_DIR_QTY)
                 {
                     if (Int32.TryParse(BEAM_X_QTY.Text, out x_qty) is false)

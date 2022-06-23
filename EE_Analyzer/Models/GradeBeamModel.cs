@@ -18,8 +18,9 @@ namespace EE_Analyzer.Models
         private int _beamNum = 0;
         private const double _labelHt = 5;
 
-        // Unit vector for the direction of the grade beam
-        private Vector3d vDirection { get; set; } = new Vector3d(1, 0, 0);
+        // Unit vector for the direction of the grade beam from start node to end node
+        private Vector3d VDirection { get; set; } = new Vector3d(1, 0, 0);
+        private Vector3d VPerpendicular { get; set; } = new Vector3d(1, 0, 0);
 
         // Depth of the grade beam
         public double Depth { get; set; }
@@ -36,6 +37,16 @@ namespace EE_Analyzer.Models
         private Point3d TagEnd { get; set; }
 
         // AutoCAD Centerline object for the grade beam
+
+        public Point3d CL_Pt_A { get; set; }
+        public Point3d CL_Pt_B { get; set; }
+        public Point3d E1_Pt_A { get; set; }
+        public Point3d E1_Pt_B { get; set; }
+        public Point3d E2_Pt_A { get; set; }
+        public Point3d E2_Pt_B { get; set; }
+
+
+        // AutoCAD polyline object for the plan view of the beam centerline
         public Line Centerline { get; set; } = null;
 
         // AutoCAD polyline object for the plan view of edge one
@@ -47,72 +58,98 @@ namespace EE_Analyzer.Models
         public StrandModel StrandInfo { get; set; } = null;
 
         // The index number for the grade beam
-        public int BeamNum { get; set; }
+        public int BeamNum { 
+            get => _beamNum; 
+            set {
+                _beamNum = value;
+            } 
+        }
 
         public bool IsTrimmed { get; set; } = false;
+        public bool IsHorizontal { get; set; } = true;
 
         // A label for the grade beam
         public string Label { get => "GB" + BeamNum.ToString(); }
 
-        public GradeBeamModel(Point3d start, Point3d end, int num_strands, bool is_trimmed, int beam_num, double width = 12.0, double depth = 24.0)
+        public GradeBeamModel(Point3d start, Point3d end, int num_strands, bool is_trimmed, bool is_horizontal, int beam_num, double width = 12.0, double depth = 24.0)
         {
             // Set basic info
+            IsHorizontal = is_horizontal;
+            Width = width;
+            Depth = depth;
+            IsTrimmed = is_trimmed;
+            _beamNum = beam_num;  // update the grade beam number
 
             // swap the start point and end point based on lowest X then lowest Y
             bool shouldSwap = false;
-            if (start.X > end.X)
+            if (is_horizontal)
             {
-                shouldSwap = true;
-            }
-            else if (start.X == end.X)
+                if (start.X > end.X)
+                {
+                    shouldSwap = true;
+                }
+                else if (start.X == end.X)
+                {
+                    if (start.Y > end.Y)
+                    {
+                        shouldSwap = true;
+                    }
+                }
+                else
+                {
+                    shouldSwap = false;
+                }
+            } else
             {
                 if (start.Y > end.Y)
                 {
                     shouldSwap = true;
                 }
-            }
-            else
-            {
-                shouldSwap = false;
+                else if (start.Y == end.Y)
+                {
+                    if (start.X > end.X)
+                    {
+                        shouldSwap = true;
+                    }
+                }
+                else
+                {
+                    shouldSwap = false;
+                }
             }
 
+            // Now swap the points
             if (shouldSwap is true)
             {
                 StartPt = end;
                 EndPt = start;
+                CL_Pt_A = end;
+                CL_Pt_B = start;
             }
             else
             {
                 StartPt = start;
                 EndPt = end;
+                CL_Pt_A = start;
+                CL_Pt_B = end;
             }
-
-            Width = width;
-            Depth = depth;
 
             // which end of the beam to display the labels
             TagEnd = StartPt;
 
             // set the direction unit vector
-            vDirection = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
+            VDirection = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
+            VPerpendicular = MathHelpers.Normalize(MathHelpers.CrossProduct(Vector3d.ZAxis, VDirection));
 
-            // Create the center line, edge1, and edge2 objects
-            Centerline = OffsetLine(new Line(start, end), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
+            // Computes the end points for the edge lines of Edge 1 and Edge2
+            E1_Pt_A = MathHelpers.Point3dFromVectorOffset(CL_Pt_A, VPerpendicular * width * 0.5);
+            E1_Pt_B = MathHelpers.Point3dFromVectorOffset(CL_Pt_B, VPerpendicular * width * 0.5);
+            E2_Pt_A = MathHelpers.Point3dFromVectorOffset(CL_Pt_A, (-1.0) * VPerpendicular * width * 0.5);
+            E2_Pt_B = MathHelpers.Point3dFromVectorOffset(CL_Pt_B, (-1.0) * VPerpendicular * width * 0.5);
 
-            if(is_trimmed == false)
-            {
-                Edge1 = OffsetLine(Centerline, width * 0.5) as Line;
-                Edge2 = OffsetLine(Centerline, -width * 0.5) as Line;
-            } else
-            {
-                Edge1 = null;
-                Edge2 = null;
-            }
+            // Create the beam strand info
+            StrandInfo = new StrandModel(CL_Pt_A, CL_Pt_B, num_strands, true, is_trimmed);
 
-            StrandInfo = new StrandModel(Centerline.StartPoint, Centerline.EndPoint, num_strands, true, is_trimmed);
-            IsTrimmed = is_trimmed;
-
-            BeamNum = _beamNum++;  // update the grade beam number
         }
 
         /// <summary>
@@ -122,7 +159,7 @@ namespace EE_Analyzer.Models
         /// <param name="doc"></param>
         public void AddToAutoCADDatabase(Database db, Document doc)
         {
-            string layer_name = GetDrawingLayer();
+            string layer_name = "";
             if(IsTrimmed)
             {
                 layer_name = EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
@@ -139,46 +176,54 @@ namespace EE_Analyzer.Models
                 BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                 
-                if(Centerline != null)
+                if(CL_Pt_A != null && CL_Pt_B != null)
                 {
- //                   Line ln = DrawLine(Centerline.StartPoint, Centerline.EndPoint, layer_name);
- //                   coll.Add(ln);
+                    // if strand qty = 0, we need to draw the centerline, otherwise we don't draw it because the strand line will be present
+                    if(StrandInfo.Qty == 0)
+                    {
+                        // Create the center line objects
+                        Centerline = OffsetLine(new Line(CL_Pt_A, CL_Pt_B), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
 
-                    try
-                    {
-                        MoveLineToLayer(Centerline, layer_name);
-                        LineSetLinetype(Centerline, "CENTERX2");
+                        try
+                        {
+                            MoveLineToLayer(Centerline, layer_name);
+                            LineSetLinetype(Centerline, "CENTERX2");
+                        }
+                        catch (System.Exception ex)
+                        {
+                            doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                            trans.Abort();
+                            return;
+                        }
                     }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                        trans.Abort();
-                        return;
-                    }
+
                 }
 
-                if(Edge1 != null)
+                // Edge 1
+                if (E1_Pt_A != null && E1_Pt_B != null)
                 {
- //                   coll.Add(Edge1);
+                    // Create the center line objects
+                    Edge1 = OffsetLine(new Line(E1_Pt_A, E1_Pt_B), 0) as Line;  // Must create the edge 1 this way to have it added to the AutoCAD database
+
                     try
                     {
-                        // edge 1
                         MoveLineToLayer(Edge1, layer_name);
                         LineSetLinetype(Edge1, "HIDDENX2");
                     }
                     catch (System.Exception ex)
                     {
-                        doc.Editor.WriteMessage("\nError encountered while adding EdgeLine1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                        doc.Editor.WriteMessage("\nError encountered while adding Edge 1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
                         trans.Abort();
                         return;
                     }
                 }
 
-
-                // edge 2
-                if(Edge2 != null)
+                // Edge 2
+                if (E2_Pt_A != null && E2_Pt_B != null)
                 {
-//                    coll.Add(Edge2);
+                    // Create the center line objects
+                    Edge2 = OffsetLine(new Line(E2_Pt_A, E2_Pt_B), 0) as Line;  // Must create the edge 2 line this way to have it added to the AutoCAD database
+
                     try
                     {
                         MoveLineToLayer(Edge2, layer_name);
@@ -186,7 +231,7 @@ namespace EE_Analyzer.Models
                     }
                     catch (System.Exception ex)
                     {
-                        doc.Editor.WriteMessage("\nError encountered while adding EdgeLine2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                        doc.Editor.WriteMessage("\nError encountered while adding Edge 2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
                         trans.Abort();
                         return;
                     }

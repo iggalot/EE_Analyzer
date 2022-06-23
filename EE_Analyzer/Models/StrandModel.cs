@@ -69,9 +69,7 @@ namespace EE_Analyzer.Models
             IsTrimmed = isTrimmed;
             Qty = qty;
 
-            Centerline = OffsetLine(new Line(start, end), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
-            MoveLineToLayer(Centerline, GetDrawingLayer());
-            LineSetLinetype(Centerline, "CENTERX2");
+
 
             Length = MathHelpers.Distance3DBetween(start, end);
 
@@ -117,16 +115,22 @@ namespace EE_Analyzer.Models
 
         public void AddToAutoCADDatabase(Database db, Document doc)
         {
-            //doc.Editor.WriteMessage("\nAdding Strand Info for Strand #" + Id);
+            if(Qty > 0)
+            {
+                Centerline = OffsetLine(new Line(StartPt, EndPt), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
+                MoveLineToLayer(Centerline, GetDrawingLayer());
+                LineSetLinetype(Centerline, "CENTERX2");
 
-            string layer_name = GetDrawingLayer();
+                string layer_name = GetDrawingLayer();
 
-            //doc.Editor.WriteMessage("Drawing LiveEnd");
-            DrawLiveEndIcon(db, doc, layer_name);
-            //doc.Editor.WriteMessage("Drawing DeadEnd");
-            DrawDeadEndIcon(db, doc, layer_name);
-            //doc.Editor.WriteMessage("Drawing StrandLabel");
-            DrawStrandLabel(db, doc, layer_name);
+                //doc.Editor.WriteMessage("Drawing LiveEnd");
+                DrawLiveEndIcon(db, doc, layer_name);
+                //doc.Editor.WriteMessage("Drawing DeadEnd");
+                DrawDeadEndIcon(db, doc, layer_name);
+                //doc.Editor.WriteMessage("Drawing StrandLabel");
+                DrawStrandLabel(db, doc, layer_name);
+            }
+
         }
 
         public Polyline DrawLiveEndIcon(Database db, Document doc, string layer_name)

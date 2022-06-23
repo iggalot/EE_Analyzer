@@ -28,6 +28,32 @@ namespace EE_Analyzer.Utilities
         }
 
         /// <summary>
+        /// Returns a cross product C = A x B
+        /// </summary>
+        /// <param name="a">Vector A</param>
+        /// <param name="b">Vector B</param>
+        /// <returns></returns>
+        public static Vector3d CrossProduct(Vector3d a, Vector3d b)
+        {
+            double i_coeff = a.Y * b.Z - a.Z * b.Y;
+            double j_coeff = (-1.0) * (a.X * b.Z - a.Z * b.X);
+            double k_coeff = a.X * b.Y - a.Y * b.X;
+
+            return new Vector3d(i_coeff, j_coeff, k_coeff);
+        }
+
+        /// <summary>
+        /// Returns a Point3d coordinate from a vector offset from a point.
+        /// </summary>
+        /// <param name="p0">Base point</param>
+        /// <param name="offset">Vector offset</param>
+        /// <returns></returns>
+        public static Point3d Point3dFromVectorOffset(Point3d p0, Vector3d offset)
+        {
+            return (p0 + offset);
+        }
+
+        /// <summary>
         /// Find the planar distance between two Point2d points
         /// </summary>
         /// <param name="p1"></param>

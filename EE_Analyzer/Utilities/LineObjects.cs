@@ -85,9 +85,9 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("Error offseting polyline: " + ex.Message);
+                    doc.Editor.WriteMessage("Error offseting line: " + ex.Message);
                     trans.Abort();
-                    throw new System.Exception("Error offseting polyline object" + ex.Message);
+                    throw new System.Exception("Error offseting line object" + ex.Message);
                 }
             }
 
