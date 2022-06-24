@@ -1,10 +1,10 @@
 ﻿using Autodesk.AutoCAD.EditorInput;
+using EE_Analyzer.Models;
 using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using wyDay.TurboActivate;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace EE_Analyzer
@@ -27,17 +27,6 @@ namespace EE_Analyzer
     /// </summary>
     public partial class EE_FDNInputDialog : Window
     {
-        //// licensing
-        //readonly TurboActivate ta;
-        //bool isGenuine;
-
-        //// Don't use 0 for either of these values.
-        //// We recommend 90, 14. But if you want to lower the values we don't recommend going
-        //// below 7 days for each value. Anything lower and you're just punishing legit users.
-        //const uint DaysBetweenChecks = 90;
-        //const uint GracePeriodLength = 14;
-
-
         // signals that the mode will use the quantity and spacings as the same for all beams
         public UIModes UI_MODE_X_DIR { get; set; }
         public UIModes UI_MODE_Y_DIR { get; set; }
@@ -48,76 +37,17 @@ namespace EE_Analyzer
         public static string COPYRIGHT_INFO { get; } = EE_Settings.SIGNATURE_LABEL;
 
         public EE_FDNInputDialog(
-            int x_qty = 5, double x_spa=120, double x_width=12, double x_depth=24,
+            int x_qty = 5, double x_spa = 120, double x_width = 12, double x_depth = 24,
             int y_qty = 7, double y_spa = 120, double y_width = 12, double y_depth = 24,
-            int beam_x_strand_qty=2, int slab_x_strand_qty=8, int beam_y_strand_qty=2, int slab_y_strand_qty=8, double neglect_pt_dim=120,
-            int x_spa_1_qty =3, int x_spa_2_qty = 0, int x_spa_3_qty = 0, int x_spa_4_qty = 0, int x_spa_5_qty = 0,
+            int beam_x_strand_qty = 2, int slab_x_strand_qty = 8, int beam_y_strand_qty = 2, int slab_y_strand_qty = 8, double neglect_pt_dim = 120,
+            int x_spa_1_qty = 3, int x_spa_2_qty = 0, int x_spa_3_qty = 0, int x_spa_4_qty = 0, int x_spa_5_qty = 0,
             double x_spa_1_spa = 50, double x_spa_2_spa = 0, double x_spa_3_spa = 0, double x_spa_4_spa = 0, double x_spa_5_spa = 0,
             int y_spa_1_qty = 3, int y_spa_2_qty = 0, int y_spa_3_qty = 0, int y_spa_4_qty = 0, int y_spa_5_qty = 0,
-            double y_spa_1_spa = 50, double y_spa_2_spa = 0, double y_spa_3_spa = 0, double y_spa_4_spa = 0, double y_spa_5_spa = 0
+            double y_spa_1_spa = 50, double y_spa_2_spa = 0, double y_spa_3_spa = 0, double y_spa_4_spa = 0, double y_spa_5_spa = 0,
+            bool piers_specified = false, PierShapes pier_shape = PierShapes.PIER_UNDEFINED, double pier_width = 12.0, double pier_height = 12.0
             )
         {
             InitializeComponent();
-
-            //try
-            //{
-            //    //TODO: goto the version page at LimeLM and
-            //    // paste this GUID here
-            //    ta = new TurboActivate("ipeqs63wjubbhgnazqt3527qhcqxk2a");
-            //    // Check if we're activated, and every 90 days verify it with the activation servers
-            //    // In this example we won't show an error if the activation was done offline
-            //    // (see the 3rd parameter of the IsGenuine() function)
-            //    // https://wyday.com/limelm/help/offline-activation/
-            //    IsGenuineResult gr = ta.IsGenuine(DaysBetweenChecks, GracePeriodLength, true);
-
-            //    isGenuine = gr == IsGenuineResult.Genuine ||
-            //                gr == IsGenuineResult.GenuineFeaturesChanged ||
-
-            //                // an internet error means the user is activated but
-            //                // TurboActivate failed to contact the LimeLM servers
-            //                gr == IsGenuineResult.InternetError;
-
-
-            //    // If IsGenuineEx() is telling us we're not activated
-            //    // but the IsActivated() function is telling us that the activation
-            //    // data on the computer is valid (i.e. the crypto-signed-fingerprint matches the computer)
-            //    // then that means that the customer has passed the grace period and they must re-verify
-            //    // with the servers to continue to use your app.
-
-            //    //Note: DO NOT allow the customer to just continue to use your app indefinitely with absolutely
-            //    //      no reverification with the servers. If you want to do that then don't use IsGenuine() or
-            //    //      IsGenuineEx() at all -- just use IsActivated().
-            //    if (!isGenuine && ta.IsActivated())
-            //    {
-            //        // We're treating the customer as is if they aren't activated, so they can't use your app.
-            //        // However, we show them a dialog where they can reverify with the servers immediately.
-
-            //        ReVerifyNow frmReverify = new ReVerifyNow(ta, DaysBetweenChecks, GracePeriodLength);
-
-            //        if (frmReverify.ShowDialog() == DialogResult.OK)
-            //        {
-            //            isGenuine = true;
-            //        }
-            //        else if (!frmReverify.noLongerActivated) // the user clicked cancel and the user is still activated
-            //        {
-            //            // Just bail out of your app
-            //            Environment.Exit(1);
-            //            return;
-            //        }
-            //    }
-            //}
-            //catch (TurboActivateException ex)
-            //{
-            //    // failed to check if activated, meaning the customer screwed something up
-            //    // so kill the app immediately
-            //    MessageBox.Show("Failed to check if activated: " + ex.Message);
-            //    Environment.Exit(1);
-            //    return;
-            //}
-
-            //// Show a trial if we're not genuine
-            //// See step 9, below.
-            //ShowTrial(!isGenuine);
 
             DataContext = this;
 
@@ -161,6 +91,15 @@ namespace EE_Analyzer
 
             UI_MODE_X_DIR = UIModes.MODE_X_DIR_UNDEFINED;
             UI_MODE_Y_DIR = UIModes.MODE_Y_DIR_UNDEFINED;
+
+            // Populate our pier shape information
+            chPiersActive.IsChecked = piers_specified;
+            PIER_DIA.Text = pier_width.ToString();
+            PIER_HT.Text = pier_height.ToString();
+
+            cbPierShape.Items.Add("Circular");
+            cbPierShape.Items.Add("Rectangular");
+            cbPierShape.SelectedItem="Circular";
 
         }
 
@@ -211,6 +150,11 @@ namespace EE_Analyzer
             double y_spa_3_spa = 0;
             double y_spa_4_spa = 0;
             double y_spa_5_spa = 0;
+
+            bool piers_is_checked = false;
+            double pier_width = 0;
+            double pier_height = 0;
+            PierShapes pier_shape = PierShapes.PIER_UNDEFINED;
 
             bool resultOK = true;
             // Grab the values from the dialog and check for validity
@@ -417,6 +361,45 @@ namespace EE_Analyzer
                     throw new NotImplementedException("Invalid Mode in X-Dir");
                 }
 
+                // Parse the piers input
+                if (chPiersActive.IsChecked == true)
+                {
+                    piers_is_checked = true;
+                    switch (cbPierShape.SelectedItem)
+                    {
+                        case "Circular":
+                            if (Double.TryParse(PIER_DIA.Text, out pier_width) is false)
+                            {
+                                MessageBox.Show("Error reading Pier Diameter for circular piers");
+                                resultOK = false;
+                            }
+                            pier_height = 0;
+                            pier_shape = PierShapes.PIER_CIRCLE;
+                            break;
+                        case "Rectangular":
+                            if (Double.TryParse(PIER_DIA.Text, out pier_width) is false)
+                            {
+                                MessageBox.Show("Error reading Pier width for rectangular piers");
+                                resultOK = false;
+                            }
+                            if (Double.TryParse(PIER_DIA.Text, out pier_height) is false)
+                            {
+                                MessageBox.Show("Error reading Pier height for rectangular piers");
+                                resultOK = false;
+                            }
+                            pier_shape = PierShapes.PIER_RECTANGLE;
+                            break;
+                        default:
+                            break;
+                    }
+                } else
+                {
+                    pier_shape = PierShapes.PIER_UNDEFINED;
+                    pier_height = 0;
+                    pier_width = 0;
+                    piers_is_checked = false;
+                }
+
                 if (resultOK)
                 {
                     CurrentFoundationLayout = new FoundationLayout();
@@ -429,7 +412,9 @@ namespace EE_Analyzer
                         x_spa_1_spa, x_spa_2_spa, x_spa_3_spa, x_spa_4_spa, x_spa_5_spa,
                         y_spa_1_qty, y_spa_2_qty, y_spa_3_qty, y_spa_4_qty, y_spa_5_qty,
                         y_spa_1_spa, y_spa_2_spa, y_spa_3_spa, y_spa_4_spa, y_spa_5_spa, 
-                        UI_MODE_X_DIR, UI_MODE_Y_DIR, neglect_pt_dim
+                        UI_MODE_X_DIR, UI_MODE_Y_DIR, 
+                        piers_is_checked,  pier_shape, pier_width, pier_height, 
+                        neglect_pt_dim
                         );
                 } else
                 {
@@ -541,6 +526,32 @@ namespace EE_Analyzer
             spY_DIR_DETAILS.Visibility = Visibility.Collapsed;
 
             UpdateOKButton();
+        }
+
+        private void Piers_CheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            if (chPiersActive.IsChecked == true)
+            {
+                spPierInputData.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                spPierInputData.Visibility = Visibility.Collapsed;
+            }
+
+        }
+
+        private void cbPierShape_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ComboBox combo = (ComboBox)sender;
+            if(combo.SelectedItem == "Circular")
+            {
+                spPierRectangleData.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                spPierRectangleData.Visibility = Visibility.Visible;
+            }
         }
     }
 }

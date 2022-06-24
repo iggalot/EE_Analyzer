@@ -18,7 +18,6 @@ using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using EE_Analyzer.Models;
 using EE_Analyzer.Utilities;
 using System.Windows;
-using wyDay.TurboActivate;
 
 namespace EE_Analyzer
 {
@@ -61,6 +60,13 @@ namespace EE_Analyzer
         private List<StrandModel> lstSlabStrandsUntrimmed { get; set; } = new List<StrandModel>();
         private List<StrandModel> lstSlabStrandsTrimmed { get; set; } = new List<StrandModel>();
 
+        private List<PierModel> lstPierModels { get; set; } = new List<PierModel>();
+
+
+        public bool PiersSpecified { get; set; } = false;
+        public PierShapes PierShape { get; set; } = PierShapes.PIER_UNDEFINED;
+        public double PierWidth { get; set; } = 12;
+        public double PierHeight { get; set; } = 12;
 
         #region PTI Slab Data Values
 
@@ -95,12 +101,19 @@ namespace EE_Analyzer
             double x_spa_1_spa, double x_spa_2_spa, double x_spa_3_spa, double x_spa_4_spa, double x_spa_5_spa,
             int y_spa_1_qty, int y_spa_2_qty, int y_spa_3_qty, int y_spa_4_qty, int y_spa_5_qty ,
             double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa, 
-            UIModes default_mode_x, UIModes default_mode_y, double neglect_dimension=DEFAULT_MIN_PT_LENGTH)
+            UIModes default_mode_x, UIModes default_mode_y,  
+            bool piers_active, PierShapes pier_shape, double pier_width, double pier_height,
+            double neglect_dimension = DEFAULT_MIN_PT_LENGTH)
         {
             MODE_X_DIR = default_mode_x;
             MODE_Y_DIR = default_mode_y;
 
             DEFAULT_DONT_DRAW_PT_LENGTH = neglect_dimension;
+
+            PiersSpecified = piers_active;
+            PierShape = pier_shape;
+            PierWidth = pier_width;
+            PierHeight = pier_height;
 
             Beam_X_Spacing = x_spa;  // spacing between horizontal beams
             Beam_X_Width = x_width;  // horizontal beam width
@@ -394,6 +407,14 @@ namespace EE_Analyzer
 
             #endregion
 
+            #region Draw Piers
+            if (PiersSpecified)
+            {
+                CreatePiers(db, doc, PierShape, PierWidth, PierHeight);
+            }
+
+            #endregion
+
             //#region Draw Untrimmed Slab Strands
 
             //doc.Editor.WriteMessage("\nDrawing untrimmed slab strands beams");
@@ -424,6 +445,40 @@ namespace EE_Analyzer
 
             //#region Additional Steel
             //#endregion
+        }
+
+        private void CreatePiers(Database db, Document doc,  PierShapes shape, double width, double height)
+        {
+            double tol = 0.001;
+            int count = 0;
+            for (int i = 0; i < lstInteriorGradeBeamsTrimmed.Count; i++)
+            {
+                for (int j = i; j < lstInteriorGradeBeamsTrimmed.Count; j++)
+                {
+                    IntersectPointData p1_data = FindPointOfIntersectLines_FromPoint3d(lstInteriorGradeBeamsTrimmed[i].CL_Pt_A,
+                        lstInteriorGradeBeamsTrimmed[i].CL_Pt_B,
+                        lstInteriorGradeBeamsTrimmed[j].CL_Pt_A,
+                        lstInteriorGradeBeamsTrimmed[j].CL_Pt_B);
+
+                    if(p1_data.Point.X == double.MaxValue || p1_data.Point.Y == double.MaxValue)
+                    {
+                        continue;
+                    }
+
+                    // TODO:  skip points that don't occur at physical intersection of grade beams
+                    if(p1_data.isWithinSegment)
+                    {
+                        count++;
+                        PierModel pm = new PierModel(p1_data.Point, shape, width, height, count);
+                        lstPierModels.Add(pm);
+                    }
+                }
+            }
+
+            foreach (var item in lstPierModels)
+            {
+                item.AddToAutoCADDatabase(db, doc);
+            }
         }
 
         /// <summary>
@@ -1407,6 +1462,8 @@ namespace EE_Analyzer
             CreateLayer(EE_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db, 1); // red
             CreateLayer(EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER, doc, db, 2); // red
+            CreateLayer(EE_Settings.DEFAULT_PIER_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_Settings.DEFAULT_PIER_TEXTS_LAYER, doc, db, 2);  // yellow
 
         }
 

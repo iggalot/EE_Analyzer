@@ -213,6 +213,20 @@
                     <Label>inches long</Label>
                 </StackPanel>
             </StackPanel>
+            <StackPanel Orientation="Vertical" HorizontalAlignment="Left">
+                <CheckBox Name="chPiersActive" Content="Add piers at all grade beam intersection" Checked="Piers_CheckBox_Checked"/>
+                <StackPanel Name="spPierInputData" Orientation="Vertical" Visibility="Collapsed">
+                    <ComboBox  Name="cbPierShape" Width="100" Height="20" SelectionChanged="cbPierShape_SelectionChanged"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Label>Pier Width or Diameter</Label>
+                        <TextBox Name="PIER_DIA" Width="40" Height="20"/>
+                        <StackPanel Name="spPierRectangleData" Orientation="Horizontal" Visibility="Collapsed">
+                            <Label>Pier Height</Label>
+                            <TextBox Name="PIER_HT" Width="40" Height="20"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

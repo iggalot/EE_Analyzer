@@ -23,6 +23,9 @@
         public const string DEFAULT_FDN_DIMENSIONS_LAYER = "_EE_FDN_DIMENSIONS";
         public const string DEFAULT_FDN_ANNOTATION_LAYER = "_EE_FDN_ANNOTATION_LAYER"; // for notes and markers
 
+        public const string DEFAULT_PIER_LAYER = "_EE_PIER_LAYER";
+        public const string DEFAULT_PIER_TEXTS_LAYER = "_EE_PIER_TEXT";
+
         // Default settings
         public const double DEFAULT_INTERSECTION_CIRCLE_RADIUS = 8; // diameter of the intersection marker circle
         public const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal

@@ -59,12 +59,9 @@
   <ItemGroup>
     <Compile Include="EE_Settings.cs" />
     <Compile Include="Models\GradeBeamModel.cs" />
+    <Compile Include="Models\PierModel.cs" />
     <Compile Include="Models\StrandModel.cs" />
     <Compile Include="TestingFunctions\TestingFunctions.cs" />
-    <Compile Include="TurboActivate.cs" />
-    <Compile Include="UI\ReVerifyNow.xaml.cs">
-      <DependentUpon>ReVerifyNow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Utilities\BlockObjects.cs" />
     <Compile Include="Utilities\DrawObject.cs" />
     <Compile Include="Utilities\EE_Helpers.cs" />
@@ -82,16 +79,9 @@
     <Compile Include="UserInteraction.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="spline_intersect_Code.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Page Include="UI\EE_FDNInputDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\ReVerifyNow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
