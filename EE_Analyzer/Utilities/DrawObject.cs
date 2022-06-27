@@ -215,7 +215,7 @@ namespace EE_Analyzer.Utilities
             return ln;
         }
 
-        public static void DrawCircle(Point3d centerPt, double circleRadius, string layer_name)
+        public static void DrawCircle(Point3d centerPt, double circleRadius, string layer_name, string linetype_name = "CONTINUOUS")
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -241,6 +241,7 @@ namespace EE_Analyzer.Utilities
                         circle.Radius = circleRadius;
                         circle.Center = centerPt;
                         circle.Layer = layer_name;
+                        circle.Linetype = linetype_name;
 
                         btr.AppendEntity(circle);
                         trans.AddNewlyCreatedDBObject(circle, true);

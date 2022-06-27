@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using static EE_Analyzer.Utilities.DrawObject;
 using static EE_Analyzer.Utilities.PolylineObjects;
+using static EE_Analyzer.Utilities.HatchObjects;
+
 
 
 
@@ -53,11 +55,15 @@ namespace EE_Analyzer.Models
                     BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                     // Add a label
-                    DrawMtext(db, doc, Location, "P" + Id.ToString(), 5, EE_Settings.DEFAULT_PIER_TEXTS_LAYER);
+                    DrawMtext(db, doc, 
+                        new Point3d(Location.X + Width / 2.0 * Math.Cos(-0.785), Location.Y + Width / 2.0 * Math.Sin(-0.785), 0),
+                        "P" + Id.ToString(), 5, EE_Settings.DEFAULT_PIER_TEXTS_LAYER);
 
                     if (PierShape == PierShapes.PIER_CIRCLE)
                     {
-                        DrawCircle(Location, Width / 2.0, EE_Settings.DEFAULT_PIER_LAYER);
+                        DrawCircle(Location, Width / 2.0, EE_Settings.DEFAULT_PIER_LAYER, "HIDDEN2");  // outer pier diameter
+                        DrawCircle(Location, (Width * 0.9) / 2.0, EE_Settings.DEFAULT_PIER_LAYER, "HIDDEN2"); // inner pier circle
+                        AddCircularHatch(Location, Width * 0.9, EE_Settings.DEFAULT_PIER_LAYER, EE_Settings.DEFAULT_HATCH_PATTERNSCALE);
                     }
                     else if (PierShape == PierShapes.PIER_RECTANGLE)
                     {

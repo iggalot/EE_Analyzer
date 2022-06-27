@@ -66,6 +66,7 @@
     <Compile Include="Utilities\DrawObject.cs" />
     <Compile Include="Utilities\EE_Helpers.cs" />
     <Compile Include="FoundationLayout.cs" />
+    <Compile Include="Utilities\HatchObjects.cs" />
     <Compile Include="Utilities\LayerObjects.cs" />
     <Compile Include="Utilities\LineObjects.cs" />
     <Compile Include="Utilities\LinetypeObjects.cs" />
