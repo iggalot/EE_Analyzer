@@ -150,14 +150,17 @@ namespace EE_Analyzer.Models
 
                     Point2d pt1 = new Point2d(StartPt.X, StartPt.Y);
 
-                    pl.AddVertexAt(0, pt1, 0, icon_thickness, 0);
-
+                    pl.AddVertexAt(0, pt1, 0, 1, 0);
+                    pl.SetEndWidthAt(0, icon_size);
+                    pl.SetStartWidthAt(0, 0);
 
                     // Specify the polyline parameters 
                     for (int i = 0; i < Qty; i++)
                     {
                         Point2d pt2 = new Point2d(StartPt.X + Math.Cos(angle)*(i + 1) * icon_size, StartPt.Y+ Math.Sin(angle) * (i + 1) * icon_size);
-                        pl.AddVertexAt(i + 1, pt2, 0, icon_thickness, 0);
+                        pl.AddVertexAt(i + 1, pt2, 0, 1, 0);
+                        pl.SetEndWidthAt(i + 1, icon_size);
+                        pl.SetStartWidthAt(i + 1, 0);
                     }
 
                     //pl.Closed = true;
@@ -166,6 +169,7 @@ namespace EE_Analyzer.Models
                     pl.Layer = layer_name;
 
                     // Set the default properties
+                    pl.ReverseCurve();
                     pl.SetDatabaseDefaults();
                     btr.AppendEntity(pl);
                     trans.AddNewlyCreatedDBObject(pl, true);

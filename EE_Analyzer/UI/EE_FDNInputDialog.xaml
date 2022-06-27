@@ -233,8 +233,8 @@
 
         <StackPanel Orientation="Horizontal">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button x:Name="btnPreview" Background="MediumOrchid"  Content="Preview" Visibility="Visible" Margin="10" HorizontalAlignment="Right" Height="24" Click="btnPreview_Click"/>
-                <Button x:Name="btnOK" Background="MediumOrchid"  Content="Draw Foundation" IsEnabled="False" Visibility="Collapsed" Margin="10" HorizontalAlignment="Right" Height="24" Click="btnOK_Click"/>
+                <Button x:Name="btnPreview" Background="MediumOrchid"  Content="Preview" Visibility="Visible" Margin="10" HorizontalAlignment="Right" Height="24" Width="150" Click="btnPreview_Click"/>
+                <Button x:Name="btnOK"  Content="FINISH" IsEnabled="False"  Margin="10" HorizontalAlignment="Right" Height="24" Click="btnOK_Click"/>
                 <Button Margin="10" HorizontalAlignment="Left" Content="Cancel" Height="24" IsCancel="True" Click="btnCancel_Click"/>
             </StackPanel>
         </StackPanel>

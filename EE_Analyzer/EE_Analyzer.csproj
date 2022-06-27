@@ -71,6 +71,7 @@
     <Compile Include="Utilities\LinetypeObjects.cs" />
     <Compile Include="Utilities\ManipulateObject.cs" />
     <Compile Include="Utilities\MathHelpers.cs" />
+    <Compile Include="Utilities\ModifyAutoCADGraphics.cs" />
     <Compile Include="Utilities\PolylineObjects.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UI\EE_FDNInputDialog.xaml.cs">
