@@ -384,7 +384,7 @@ namespace EE_Analyzer
                                 MessageBox.Show("Error reading Pier width for rectangular piers");
                                 resultOK = false;
                             }
-                            if (Double.TryParse(PIER_DIA.Text, out pier_height) is false)
+                            if (Double.TryParse(PIER_HT.Text, out pier_height) is false)
                             {
                                 MessageBox.Show("Error reading Pier height for rectangular piers");
                                 resultOK = false;

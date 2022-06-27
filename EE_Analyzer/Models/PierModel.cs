@@ -62,8 +62,8 @@ namespace EE_Analyzer.Models
                     if (PierShape == PierShapes.PIER_CIRCLE)
                     {
                         DrawCircle(Location, Width / 2.0, EE_Settings.DEFAULT_PIER_LAYER, "HIDDEN2");  // outer pier diameter
-                        DrawCircle(Location, (Width * 0.9) / 2.0, EE_Settings.DEFAULT_PIER_LAYER, "HIDDEN2"); // inner pier circle
-                        AddCircularHatch(Location, Width * 0.9, EE_Settings.DEFAULT_PIER_LAYER, EE_Settings.DEFAULT_HATCH_PATTERNSCALE);
+                        //DrawCircle(Location, (Width * 0.9) / 2.0, EE_Settings.DEFAULT_PIER_LAYER, "HIDDEN2"); // inner pier circle
+                        AddCircularHatch(Location, Width * 0.9, EE_Settings.DEFAULT_PIER_HATCH_TYPE, EE_Settings.DEFAULT_HATCH_PATTERNSCALE);
                     }
                     else if (PierShape == PierShapes.PIER_RECTANGLE)
                     {
@@ -76,9 +76,21 @@ namespace EE_Analyzer.Models
                         pline.SetDatabaseDefaults();
                         pline.Closed = true;
                         pline.Layer = EE_Settings.DEFAULT_PIER_LAYER;
+                        pline.Linetype = "HIDDEN2";
                         //pline.SetDatabaseDefaults();
-                        btr.AppendEntity(pline);
+                        ObjectId plineId = btr.AppendEntity(pline);
                         trans.AddNewlyCreatedDBObject(pline, true);
+
+                        // Now create the inner rectangle (offset by 10%)
+                        Polyline inner_pline = new Polyline();
+                        inner_pline = OffsetPolyline(pline, 0.1 * Width, bt, btr);
+                        MovePolylineToLayer(inner_pline, EE_Settings.DEFAULT_PIER_LAYER, bt, btr);
+                        PolylineSetLinetype(inner_pline, "HIDDEN2", bt, btr);
+                        ObjectId plineId2 = inner_pline.ObjectId;
+
+                        // Add the associative hatch
+                        AddRectangularHatch(Location, plineId2, EE_Settings.DEFAULT_PIER_HATCH_TYPE, EE_Settings.DEFAULT_HATCH_PATTERNSCALE);
+
                     }
 
                     trans.Commit();
