@@ -13,6 +13,7 @@ using static EE_Analyzer.Utilities.EE_Helpers;
 using static EE_Analyzer.Utilities.PolylineObjects;
 using static EE_Analyzer.Utilities.LineObjects;
 using static EE_Analyzer.Utilities.DrawObject;
+using static EE_Analyzer.Utilities.ModifyAutoCADGraphics;
 
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using EE_Analyzer.Models;
@@ -23,8 +24,6 @@ namespace EE_Analyzer
 {
     public class FoundationLayout
     {
-
-
         private const double DEFAULT_MIN_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
 
         private int currentBeamNum = 0;
@@ -32,6 +31,11 @@ namespace EE_Analyzer
         private bool MODE_X_SELECTED = false;
         private bool MODE_Y_SELECTED = false;
 
+        // A variable to handle previewing the grade beam locations
+        public bool PreviewMode = true;
+        public bool FirstLoad = true;
+        public bool ShouldClose = false;
+        public bool IsComplete = false;
 
         private UIModes MODE_X_DIR { get; set; }
         private UIModes MODE_Y_DIR { get; set; }
@@ -39,7 +43,7 @@ namespace EE_Analyzer
         public double DEFAULT_DONT_DRAW_PT_LENGTH { get; set; }
 
         // Holds the primary foundation perimeter polyline object.
-        public Polyline FDN_PERIMETER_POLYLINE { get; set; } = new Polyline();
+        public Polyline FDN_PERIMETER_POLYLINE { get; set; } = null;
         public Polyline FDN_PERIMETER_CENTERLINE_POLYLINE { get; set; } = new Polyline();
 
         public Polyline FDN_PERIMETER_INTERIOR_EDGE_POLYLINE { get; set; } = new Polyline();
@@ -61,7 +65,6 @@ namespace EE_Analyzer
         private List<StrandModel> lstSlabStrandsTrimmed { get; set; } = new List<StrandModel>();
 
         private List<PierModel> lstPierModels { get; set; } = new List<PierModel>();
-
 
         public bool PiersSpecified { get; set; } = false;
         public PierShapes PierShape { get; set; } = PierShapes.PIER_UNDEFINED;
@@ -90,10 +93,42 @@ namespace EE_Analyzer
         public double Beam_Y_Spacing { get; set; }
         public double Beam_Y_Width { get; set; }
         public double Beam_Y_Depth { get; set; }
+
+
+        public int Beam_X_DETAIL_QTY_1 {get; set;}
+        public int Beam_X_DETAIL_QTY_2 {get; set;}
+        public int Beam_X_DETAIL_QTY_3 {get; set;}
+        public int Beam_X_DETAIL_QTY_4 {get; set;}
+        public int Beam_X_DETAIL_QTY_5 { get; set; }
+        public double Beam_X_DETAIL_SPA_1 {get; set;}
+        public double Beam_X_DETAIL_SPA_2 {get; set;}
+        public double Beam_X_DETAIL_SPA_3 {get; set;}
+        public double Beam_X_DETAIL_SPA_4 {get; set;}
+        public double Beam_X_DETAIL_SPA_5 { get; set; }
+        public int Beam_Y_DETAIL_QTY_1 {get; set; }
+        public int Beam_Y_DETAIL_QTY_2 {get; set; }
+        public int Beam_Y_DETAIL_QTY_3 {get; set; }
+        public int Beam_Y_DETAIL_QTY_4 {get; set; }
+        public int Beam_Y_DETAIL_QTY_5 { get; set; }
+        public double Beam_Y_DETAIL_SPA_1 {get; set; }
+        public double Beam_Y_DETAIL_SPA_2 {get; set; }
+        public double Beam_Y_DETAIL_SPA_3 {get; set; }
+        public double Beam_Y_DETAIL_SPA_4 {get; set; }
+        public double Beam_Y_DETAIL_SPA_5 { get; set; }
+
+
+
         #endregion
 
+        /// <summary>
+        /// Our default constructor
+        /// </summary>
+        public FoundationLayout()
+        {
+            // currently does nothing.
+        }
 
-        public void DrawFoundationDetails(
+        public bool DrawFoundationDetails(
             int x_qty, double x_spa, double x_depth, double x_width,
             int y_qty, double y_spa, double y_depth, double y_width,
             int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty,
@@ -103,10 +138,22 @@ namespace EE_Analyzer
             double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa, 
             UIModes default_mode_x, UIModes default_mode_y,  
             bool piers_active, PierShapes pier_shape, double pier_width, double pier_height,
+            bool preview_mode, bool should_close,
             double neglect_dimension = DEFAULT_MIN_PT_LENGTH)
         {
+            ShouldClose = should_close;
+            IsComplete = false;
+            // If the window has been canceled dont bother doing anything else
+            if (should_close)
+            {
+                IsComplete = true;
+                return IsComplete;
+            }
+
             MODE_X_DIR = default_mode_x;
             MODE_Y_DIR = default_mode_y;
+
+            PreviewMode = preview_mode;
 
             DEFAULT_DONT_DRAW_PT_LENGTH = neglect_dimension;
 
@@ -129,7 +176,30 @@ namespace EE_Analyzer
             Beam_Y_Strand_Qty = by_strand_qty;  // number of strands in each y-direction beam
             Beam_Y_Slab_Strand_Qty = sy_strand_qty;  // number of strands in y-direction slab
 
-            DEFAULT_DONT_DRAW_PT_LENGTH = neglect_dimension;
+            Beam_X_DETAIL_QTY_1 = x_spa_1_qty;
+            Beam_X_DETAIL_QTY_2 = x_spa_2_qty;
+            Beam_X_DETAIL_QTY_3 = x_spa_3_qty;
+            Beam_X_DETAIL_QTY_4 = x_spa_4_qty;
+            Beam_X_DETAIL_QTY_5 = x_spa_5_qty;
+
+            Beam_X_DETAIL_SPA_1 = x_spa_1_spa;
+            Beam_X_DETAIL_SPA_2 = x_spa_2_spa;
+            Beam_X_DETAIL_SPA_3 = x_spa_3_spa;
+            Beam_X_DETAIL_SPA_4 = x_spa_4_spa;
+            Beam_X_DETAIL_SPA_5 = x_spa_5_spa;
+
+            Beam_Y_DETAIL_QTY_1 = y_spa_1_qty;
+            Beam_Y_DETAIL_QTY_2 = y_spa_2_qty;
+            Beam_Y_DETAIL_QTY_3 = y_spa_3_qty;
+            Beam_Y_DETAIL_QTY_4 = y_spa_4_qty;
+            Beam_Y_DETAIL_QTY_5 = y_spa_5_qty;
+
+            Beam_Y_DETAIL_SPA_1 = y_spa_1_spa;
+            Beam_Y_DETAIL_SPA_2 = y_spa_2_spa;
+            Beam_Y_DETAIL_SPA_3 = y_spa_3_spa;
+            Beam_Y_DETAIL_SPA_4 = y_spa_4_spa;
+            Beam_Y_DETAIL_SPA_5 = y_spa_5_spa;
+
 
             double circle_radius = Beam_X_Spacing * 0.1; // for marking the intersections of beams and strands with the foundation polyline
 
@@ -138,104 +208,7 @@ namespace EE_Analyzer
             Database db = doc.Database;
             Editor edt = doc.Editor;
 
-            #region Application Setup
-            // Set up layers and linetypes and AutoCAD drawings items
-            EE_ApplicationSetup(doc, db);
-            #endregion
 
-            #region Select Foundation Beam in AutoCAD
-            // Selects the foundation polyline and corrects the winding order to be clockwise.
-
-            var options = new PromptEntityOptions("\nSelect Foundation Polyline");
-            options.SetRejectMessage("\nSelected object is not a polyline.");
-            options.AddAllowedClass(typeof(Polyline), true);
-
-            // Select the polyline for the foundation
-            var result = edt.GetEntity(options);
-
-            FDN_PERIMETER_POLYLINE = ProcessFoundationPerimeter(db, edt, result);
-
-            if (FDN_PERIMETER_POLYLINE is null)
-            {
-                throw new System.Exception("\nInvalid foundation perimeter line selected.");
-            }
-            else
-            {
-                doc.Editor.WriteMessage("\nFoundation perimeter line selected");
-            }
-            #endregion
-
-            #region Create and Draw Bounding Box
-            var lstVertices = GetVertices(FDN_PERIMETER_POLYLINE);
-            doc.Editor.WriteMessage("\n--Foundation perimeter has " + lstVertices.Count + " vertices.");
-            FDN_BOUNDARY_BOX = CreateFoundationBoundingBox(db, edt, lstVertices);
-            doc.Editor.WriteMessage("\n-- Creating foundation bounding box.");
-            if (FDN_BOUNDARY_BOX is null)
-            {
-                throw new System.Exception("Invalid foundation boundary box created.");
-            }
-            #endregion
-
-            #region Write Parameter Data to Drawing
-            WritefoundationData(x_qty, x_spa, x_depth, x_width, y_qty, y_spa, y_depth, y_width, 
-                x_spa_1_qty, x_spa_2_qty, x_spa_3_qty, x_spa_4_qty, x_spa_5_qty, x_spa_1_spa, x_spa_2_spa, x_spa_3_spa, x_spa_4_spa, x_spa_5_spa, 
-                y_spa_1_qty, y_spa_2_qty, y_spa_3_qty, y_spa_4_qty, y_spa_5_qty, y_spa_1_spa, y_spa_2_spa, y_spa_3_spa, y_spa_4_spa, y_spa_5_spa, 
-                default_mode_x, default_mode_y, neglect_dimension, doc, db);
-            #endregion
-
-            #region Draw Foundation Perimeter Beam
-            // TODO:  Return a GradeBeam object for the foundation perimeter?
-            //////////////////////////////////////////////////////
-            // Draw the perimeter beam -- perimeter line will be continuous, inner edge line will be hidden
-            // both will be assigned to the boundary perimeter layer
-            //////////////////////////////////////////////////////
-            doc.Editor.WriteMessage("\nDrawing foundation perimeter beam");
-            DrawFoundationPerimeterBeam(db, doc, Beam_X_Width);
-            doc.Editor.WriteMessage("\nDrawing foundation perimeter beam completed");
-            #endregion
-
-            #region Find the Insert (Basis) Point the GradeBeams
-            // For the detailed spacings, use the lower left corner, otherwise use our algorithm for the optimized location
-            doc.Editor.WriteMessage("\nGet grade beam insert point");
-            //if (MODE_X_DIR == UIModes.MODE_X_DIR_DETAIL || MODE_X_DIR == UIModes.MODE_Y_DIR_DETAIL)
-            //{
-            //    // Use the algorithm to get the start point
-            //    FDN_GRADE_BEAM_BASIS_POINT = FindGradeBeamInsertPoint(db, doc);
-            //} else
-            //{
-            //    // use the lower left corner of the bounding box (index 0);
-            //    FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z); ;
-            //}
-
-            // use the lower left corner of the bounding box (index 0);
-            FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z); ;
-
-
-            // Check that the basis point isn't outside of foundation polyline.  If it is, set it to the lower left corner of the boundary box.
-            // TODO:  Figure out why this can happen sometime.  Possible the intersection point test is the cause?
-            if ((FDN_GRADE_BEAM_BASIS_POINT.X < FDN_BOUNDARY_BOX.GetPoint2dAt(0).X) ||
-                (FDN_GRADE_BEAM_BASIS_POINT.X > FDN_BOUNDARY_BOX.GetPoint2dAt(2).X) ||
-                (FDN_GRADE_BEAM_BASIS_POINT.Y < FDN_BOUNDARY_BOX.GetPoint2dAt(0).Y) ||
-                (FDN_GRADE_BEAM_BASIS_POINT.Y > FDN_BOUNDARY_BOX.GetPoint2dAt(2).Y))
-            {
-                // Set the basis point to the lower left and then offset by half the width of the perimeter beam
-                FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z);
-                MessageBox.Show("Moving basis point to the lower left corner of the bounding box");
-            }
-
-            // Add a marker for this point.
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 20, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 25, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 30, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 35, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 45, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-
-            doc.Editor.WriteMessage("\n-Intersection of longest segments at :" + FDN_GRADE_BEAM_BASIS_POINT.X.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Y.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Z.ToString());
-
-            doc.Editor.WriteMessage("\nGrade beam insert point computed succssfully");
-            #endregion
 
             #region Determine Beam Spacings
             double min_x = FDN_BOUNDARY_BOX.GetPoint3dAt(0).X;
@@ -277,36 +250,71 @@ namespace EE_Analyzer
                 int count = x_spa_1_qty + x_spa_2_qty + x_spa_3_qty + x_spa_4_qty + x_spa_5_qty;
                 Beam_X_Loc_Data = new double[count];
                 int temp_count = 0;
+                double curr_spa = x_spa_1_qty;
 
-                double curr_spa = 0;
-                for (int i = 0; i < x_spa_1_qty; i++)
+                if (x_spa_1_qty > 0)
                 {
-                    Beam_X_Loc_Data[i] = curr_spa;
-                    curr_spa += x_spa_1_spa;
+                    if(x_spa_1_spa > 0)
+                    {
+                        for (int i = temp_count; i < x_spa_1_qty; i++)
+                        {
+                            curr_spa += x_spa_1_spa;
+                            Beam_X_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += x_spa_1_qty;
-                for (int i = temp_count; i < temp_count + x_spa_2_qty; i++)
+
+                if (x_spa_2_qty > 0)
                 {
-                    Beam_X_Loc_Data[i] = curr_spa;
-                    curr_spa += x_spa_2_spa;
+                    if (x_spa_2_spa > 0)
+                    {
+                        for (int i = temp_count; i < x_spa_1_qty + x_spa_2_qty; i++)
+                        {
+                            curr_spa += x_spa_2_spa;
+                            Beam_X_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += x_spa_2_qty;
-                for (int i = temp_count; i < temp_count + x_spa_3_qty; i++)
+
+                if(x_spa_3_qty > 0)
                 {
-                    Beam_X_Loc_Data[i] = curr_spa;
-                    curr_spa += x_spa_3_spa;
+                    if (x_spa_3_spa > 0)
+                    {
+                        for (int i = temp_count; i < x_spa_1_qty + x_spa_2_qty + x_spa_3_qty; i++)
+                        {
+                            curr_spa += x_spa_3_spa;
+                            Beam_X_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += x_spa_3_qty;
-                for (int i = temp_count; i < temp_count + x_spa_4_qty; i++)
+
+                if (x_spa_4_qty > 0)
                 {
-                    Beam_X_Loc_Data[i] = curr_spa;
-                    curr_spa += x_spa_4_spa;
+                    if (x_spa_4_spa > 0)
+                    {
+                        for (int i = temp_count; i < x_spa_1_qty + x_spa_2_qty + x_spa_3_qty + x_spa_4_qty; i++)
+                        {
+                            curr_spa += x_spa_4_spa;
+                            Beam_X_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += x_spa_4_qty;
-                for (int i = temp_count; i < temp_count + x_spa_5_qty; i++)
+
+                if (x_spa_5_qty > 0)
                 {
-                    Beam_X_Loc_Data[i] = curr_spa;
-                    curr_spa += x_spa_5_spa;
+                    if (x_spa_5_spa > 0)
+                    {
+                        for (int i = temp_count; i < x_spa_1_qty + x_spa_2_qty + x_spa_3_qty + x_spa_4_qty + x_spa_5_qty; i++)
+                        {
+                            curr_spa += x_spa_5_spa;
+                            Beam_X_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
                 MODE_X_SELECTED = true;
             }
@@ -345,46 +353,126 @@ namespace EE_Analyzer
                 int count = y_spa_1_qty + y_spa_2_qty + y_spa_3_qty + y_spa_4_qty + y_spa_5_qty;
                 Beam_Y_Loc_Data = new double[count];
                 int temp_count = 0;
+                double curr_spa = y_spa_1_qty;
 
-                double curr_spa = 0;
-                for (int i = 0; i < y_spa_1_qty; i++)
+                if (y_spa_1_qty > 0)
                 {
-                    Beam_Y_Loc_Data[i] = curr_spa;
-                    curr_spa += y_spa_1_spa;
+                    if (y_spa_1_spa > 0)
+                    {
+                        for (int i = temp_count; i < y_spa_1_qty; i++)
+                        {
+                            curr_spa += y_spa_1_spa;
+                            Beam_Y_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += y_spa_1_qty;
-                for (int i = temp_count; i < temp_count + y_spa_2_qty; i++)
+
+                if (y_spa_2_qty > 0)
                 {
-                    Beam_Y_Loc_Data[i] = curr_spa;
-                    curr_spa += y_spa_2_spa;
+                    if (y_spa_2_spa > 0)
+                    {
+                        for (int i = temp_count; i < y_spa_1_qty + y_spa_2_qty; i++)
+                        {
+                            curr_spa += y_spa_2_spa;
+                            Beam_Y_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += y_spa_2_qty;
-                for (int i = temp_count; i < temp_count + y_spa_3_qty; i++)
+
+                if (y_spa_3_qty > 0)
                 {
-                    Beam_Y_Loc_Data[i] = curr_spa;
-                    curr_spa += y_spa_3_spa;
+                    if (y_spa_3_spa > 0)
+                    {
+                        for (int i = temp_count; i < y_spa_1_qty + y_spa_2_qty + y_spa_3_qty; i++)
+                        {
+                            curr_spa += y_spa_3_spa;
+                            Beam_Y_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += y_spa_3_qty;
-                for (int i = temp_count; i < temp_count + y_spa_4_qty; i++)
+
+                if (y_spa_4_qty > 0)
                 {
-                    Beam_Y_Loc_Data[i] = curr_spa;
-                    curr_spa += y_spa_4_spa;
+                    if (y_spa_4_spa > 0)
+                    {
+                        for (int i = temp_count; i < y_spa_1_qty + y_spa_2_qty + y_spa_3_qty + y_spa_4_qty; i++)
+                        {
+                            curr_spa += y_spa_4_spa;
+                            Beam_Y_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                temp_count += y_spa_4_qty;
-                for (int i = temp_count; i < temp_count + y_spa_5_qty; i++)
+
+                if (x_spa_5_qty > 0)
                 {
-                    Beam_Y_Loc_Data[i] = curr_spa;
-                    curr_spa += y_spa_5_spa;
+                    if (y_spa_5_spa > 0)
+                    {
+                        for (int i = temp_count; i < y_spa_1_qty + y_spa_2_qty + y_spa_3_qty + y_spa_4_qty + y_spa_5_qty; i++)
+                        {
+                            curr_spa += y_spa_5_spa;
+                            Beam_Y_Loc_Data[i] = curr_spa;
+                            temp_count++;
+                        }
+                    }
                 }
-                MODE_Y_SELECTED = true;
+                MODE_X_SELECTED = true;
             }
 
             if (MODE_X_SELECTED == false || MODE_Y_SELECTED == false)
             {
                 doc.Editor.WriteMessage("X and Y directions must be selected.");
-                return;
+                IsComplete = false;
+                return IsComplete;
+            }
+            #endregion
+
+            // If we are in preview mode we will just draw centerlines as a marker.
+            // Clear our temporary layer prior to drawing temporary items
+            DeleteAllObjectsOnLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+
+            if (PreviewMode is true)
+            {
+                DoPreviewMode(db, doc, true);
+                DoPreviewMode(db, doc, false);
+
+                ModifyAutoCADGraphics.ForceRedraw(db, doc);
+
+                //using (Transaction trans = db.TransactionManager.StartTransaction())
+                //{
+                //    // Force a redraw of the screen?
+                //    doc.TransactionManager.EnableGraphicsFlush(true);
+                //    doc.TransactionManager.QueueForGraphicsFlush();
+                //    Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
+                //    trans.Commit();
+                //}
+                IsComplete = false;
+                return IsComplete;
             }
 
+            // Clear our temporary layer
+            DeleteAllObjectsOnLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+
+
+            #region Draw Parameter Data to Drawing
+            WritefoundationData(x_qty, x_spa, x_depth, x_width, y_qty, y_spa, y_depth, y_width,
+                x_spa_1_qty, x_spa_2_qty, x_spa_3_qty, x_spa_4_qty, x_spa_5_qty, x_spa_1_spa, x_spa_2_spa, x_spa_3_spa, x_spa_4_spa, x_spa_5_spa,
+                y_spa_1_qty, y_spa_2_qty, y_spa_3_qty, y_spa_4_qty, y_spa_5_qty, y_spa_1_spa, y_spa_2_spa, y_spa_3_spa, y_spa_4_spa, y_spa_5_spa,
+                default_mode_x, default_mode_y, neglect_dimension, doc, db);
+            #endregion
+
+            #region Draw Foundation Perimeter Beam
+            // TODO:  Return a GradeBeam object for the foundation perimeter?
+            //////////////////////////////////////////////////////
+            // Draw the perimeter beam -- perimeter line will be continuous, inner edge line will be hidden
+            // both will be assigned to the boundary perimeter layer
+            //////////////////////////////////////////////////////
+            doc.Editor.WriteMessage("\nDrawing foundation perimeter beam");
+            DrawFoundationPerimeterBeam(db, doc, Beam_X_Width);
+            doc.Editor.WriteMessage("\nDrawing foundation perimeter beam completed");
             #endregion
 
             #region Draw Untrimmed Grade Beams and Beam Strands
@@ -407,35 +495,39 @@ namespace EE_Analyzer
 
             #endregion
 
+            #region Draw Untrimmed Slab Strands
+
+            doc.Editor.WriteMessage("\nDrawing untrimmed slab strands beams");
+            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
+            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
+            doc.Editor.WriteMessage("\n-- Completed drawing untrimmed slab strands. " + lstSlabStrandsUntrimmed.Count + " untrimmed slab strands created.");
+
+            #endregion
+
+            #region Trim Slab Strands
+            doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed slab strands");
+            CreateTrimmedSlabStrands(db, doc, lstSlabStrandsUntrimmed);
+            doc.Editor.WriteMessage("\n-- Completed drawing trimmed slab strands. " + lstSlabStrandsTrimmed.Count + " trimmed slab strands created.");
+
+            #endregion
+
             #region Draw Piers
             if (PiersSpecified)
             {
+                doc.Editor.WriteMessage("\nDrawing piers");
                 CreatePiers(db, doc, PierShape, PierWidth, PierHeight);
+                doc.Editor.WriteMessage("\n-- Completed piers");
+
             }
 
             #endregion
 
-            //#region Draw Untrimmed Slab Strands
-
-            //doc.Editor.WriteMessage("\nDrawing untrimmed slab strands beams");
-
-            //CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
-            //CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
-
-            //doc.Editor.WriteMessage("\n-- Completed drawing untrimmed slab strands. " + lstSlabStrandsUntrimmed.Count + " untrimmed slab strands created.");
-
-            //#endregion
-
-            //#region Trim Slab Strands
-            //doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed slab strands");
-            //CreateTrimmedSlabStrands(db, doc, lstSlabStrandsUntrimmed);
-            //doc.Editor.WriteMessage("\n-- Completed drawing trimmed slab strands. " + lstSlabStrandsTrimmed.Count + " trimmed slab strands created.");
-
-            //#endregion
-
-            //#region Bill of Materials
-            //// compute concrete volumes
-            //CreateBillOfMaterials(db, doc);
+            #region Bill of Materials
+            // compute concrete volumes
+            doc.Editor.WriteMessage("\nDrawing bill of materials");
+            CreateBillOfMaterials(db, doc);
+            doc.Editor.WriteMessage("\n-- Completed bill of materials");
+            #endregion
 
             //// compute strand quantities
             //#endregion
@@ -445,6 +537,113 @@ namespace EE_Analyzer
 
             //#region Additional Steel
             //#endregion
+
+            // Indicate that the dialog should close.
+            ShouldClose = true;
+            IsComplete = true;
+            ModifyAutoCADGraphics.ForceRedraw(db, doc);
+            return IsComplete;
+        }
+
+        /// <summary>
+        /// Our preview mode functionality.
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="doc"></param>
+        /// <param name="isHorizontal"></param>
+        /// <exception cref="System.Exception"></exception>
+        private void DoPreviewMode(Database db, Document doc, bool isHorizontal)
+        {
+            // Then create the new lines on the drawing.
+
+            // retrieve the bounding box
+            var bbox_points = GetVertices(FDN_BOUNDARY_BOX);
+
+            if (bbox_points is null || (bbox_points.Count != 4))
+            {
+                throw new System.Exception("\nFoundation bounding box must have four points");
+            }
+
+            if (isHorizontal is true)
+            {
+                // For the horizontal beams
+                // grade beams to the upper boundary box horizontal edge
+                for (int i = 0; i < Beam_X_Loc_Data.Length; i++)
+                {
+                    double y_coord = FDN_GRADE_BEAM_BASIS_POINT.Y + Beam_X_Loc_Data[i];
+
+                    // If our spacing pattern has gone beyond the beam extents
+                    if (y_coord > bbox_points[1].Y - 0.5 * Beam_X_Width)
+                    {
+                        break;
+                    }
+
+                    Point3d p1 = new Point3d(bbox_points[0].X, y_coord, 0);
+                    Point3d p2 = new Point3d(bbox_points[3].X, y_coord, 0);
+
+                    if (p1 == p2)
+                    {
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping horizontal grade beam here.");
+                        continue;
+                    }
+                    // reverse the points so the smallest X is on the left
+                    if (p1.X > p2.X)
+                    {
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
+                    }
+
+                    // draw our line object
+                    MoveLineToLayer(OffsetLine(new Line(p1, p2), 0) as Line, EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+
+                }
+            }
+            else
+            {
+                // grade beams to the upper boundary box horizontal edge
+                for (int i = 0; i < Beam_Y_Loc_Data.Length; i++)
+                {
+                    double x_coord = FDN_GRADE_BEAM_BASIS_POINT.X + Beam_Y_Loc_Data[i];
+
+                    // If our spacing pattern has gone beyond the beam extents
+                    if (x_coord > bbox_points[3].X - 0.5 * Beam_X_Width)
+                    {
+                        break;
+                    }
+
+                    Point3d p1 = new Point3d(x_coord, bbox_points[0].Y, 0);
+                    Point3d p2 = new Point3d(x_coord, bbox_points[1].Y, 0);
+
+                    if (p1 == p2)
+                    {
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping vertical grade beam here.");
+                        continue;
+                    }
+                    // reverse the points so the smallest Y is on the bottom
+                    if (p1.Y > p2.Y)
+                    {
+                        Point3d temp = p1;
+                        p1 = p2;
+                        p2 = temp;
+                    }
+
+                    // draw our line object
+                    MoveLineToLayer(OffsetLine(new Line(p1, p2), 0) as Line, EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+                }
+            }
+
+            // Now force a redraw
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // Force a redraw of the screen?
+                doc.TransactionManager.EnableGraphicsFlush(true);
+                doc.TransactionManager.QueueForGraphicsFlush();
+                Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
+                trans.Commit();
+            }
+
+
         }
 
         private void CreatePiers(Database db, Document doc,  PierShapes shape, double width, double height)
@@ -484,40 +683,6 @@ namespace EE_Analyzer
         /// <summary>
         /// Writes the design data to the drawing file.
         /// </summary>
-        /// <param name="x_qty"></param>
-        /// <param name="x_spa"></param>
-        /// <param name="x_depth"></param>
-        /// <param name="x_width"></param>
-        /// <param name="y_qty"></param>
-        /// <param name="y_spa"></param>
-        /// <param name="y_depth"></param>
-        /// <param name="y_width"></param>
-        /// <param name="x_spa_1_qty"></param>
-        /// <param name="x_spa_2_qty"></param>
-        /// <param name="x_spa_3_qty"></param>
-        /// <param name="x_spa_4_qty"></param>
-        /// <param name="x_spa_5_qty"></param>
-        /// <param name="x_spa_1_spa"></param>
-        /// <param name="x_spa_2_spa"></param>
-        /// <param name="x_spa_3_spa"></param>
-        /// <param name="x_spa_4_spa"></param>
-        /// <param name="x_spa_5_spa"></param>
-        /// <param name="y_spa_1_qty"></param>
-        /// <param name="y_spa_2_qty"></param>
-        /// <param name="y_spa_3_qty"></param>
-        /// <param name="y_spa_4_qty"></param>
-        /// <param name="y_spa_5_qty"></param>
-        /// <param name="y_spa_1_spa"></param>
-        /// <param name="y_spa_2_spa"></param>
-        /// <param name="y_spa_3_spa"></param>
-        /// <param name="y_spa_4_spa"></param>
-        /// <param name="y_spa_5_spa"></param>
-        /// <param name="default_mode_x"></param>
-        /// <param name="default_mode_y"></param>
-        /// <param name="neglect_dimension"></param>
-        /// <param name="doc"></param>
-        /// <param name="db"></param>
-        /// <param name="str"></param>
         /// <returns></returns>
         private string WritefoundationData(int x_qty, double x_spa, double x_depth, double x_width, int y_qty, double y_spa, double y_depth, double y_width, 
             int x_spa_1_qty, int x_spa_2_qty, int x_spa_3_qty, int x_spa_4_qty, int x_spa_5_qty, double x_spa_1_spa, double x_spa_2_spa, double x_spa_3_spa, double x_spa_4_spa, double x_spa_5_spa, 
@@ -1411,7 +1576,7 @@ namespace EE_Analyzer
                     pl.ColorIndex = 140; // cyan color
 
                     // assign the layer
-                    pl.Layer = EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER;
+//                    pl.Layer = EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER;
 
                     // Set the default properties
                     pl.SetDatabaseDefaults();
@@ -1464,8 +1629,98 @@ namespace EE_Analyzer
             CreateLayer(EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER, doc, db, 2); // red
             CreateLayer(EE_Settings.DEFAULT_PIER_LAYER, doc, db, 2);  // yellow
             CreateLayer(EE_Settings.DEFAULT_PIER_TEXTS_LAYER, doc, db, 2);  // yellow
-
+            CreateLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
         }
+
+        /// <summary>
+        /// A function to run calculations that only need to be selected or run one time per application
+        /// </summary>
+        /// <exception cref="System.Exception"></exception>
+        public void OnFoundationLayoutCreate()
+        {
+            // Get our AutoCAD API objects
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor edt = doc.Editor;
+
+            #region Select Foundation Beam in AutoCAD
+            // Selects the foundation polyline and corrects the winding order to be clockwise.
+
+            var options = new PromptEntityOptions("\nSelect Foundation Polyline");
+            options.SetRejectMessage("\nSelected object is not a polyline.");
+            options.AddAllowedClass(typeof(Polyline), true);
+
+            // Select the polyline for the foundation
+            var result = edt.GetEntity(options);
+
+            FDN_PERIMETER_POLYLINE = ProcessFoundationPerimeter(db, edt, result);
+
+            if (FDN_PERIMETER_POLYLINE is null)
+            {
+                throw new System.Exception("\nInvalid foundation perimeter line selected.");
+            }
+            else
+            {
+                doc.Editor.WriteMessage("\nFoundation perimeter line selected");
+            }
+            #endregion
+
+            #region Create and Draw Bounding Box
+            var lstVertices = GetVertices(FDN_PERIMETER_POLYLINE);
+            doc.Editor.WriteMessage("\n--Foundation perimeter has " + lstVertices.Count + " vertices.");
+            FDN_BOUNDARY_BOX = CreateFoundationBoundingBox(db, edt, lstVertices);
+            doc.Editor.WriteMessage("\n-- Creating foundation bounding box.");
+            if (FDN_BOUNDARY_BOX is null)
+            {
+                throw new System.Exception("Invalid foundation boundary box created.");
+            }
+            #endregion
+
+            #region Zoom Control to improve Autocad View
+            // Zoom to the exents of the bounding box
+            double zoom_factor = 0.02;
+            Point3d zp1 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X * (1-zoom_factor), FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y * (1-zoom_factor), 0);
+            Point3d zp2 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(2).X * (1+zoom_factor), FDN_BOUNDARY_BOX.GetPoint3dAt(2).Y * (1+zoom_factor), 0);
+
+            ZoomWindow(db, doc, zp1, zp2);
+            #endregion
+
+            #region Find the Insert (Basis) Point the GradeBeams
+            // For the detailed spacings, use the lower left corner, otherwise use our algorithm for the optimized location
+            doc.Editor.WriteMessage("\nGet grade beam insert point");
+
+            // use the lower left corner of the bounding box (index 0);
+            FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z); ;
+
+            // Check that the basis point isn't outside of foundation polyline.  If it is, set it to the lower left corner of the boundary box.
+            // TODO:  Figure out why this can happen sometime.  Possible the intersection point test is the cause?
+            if ((FDN_GRADE_BEAM_BASIS_POINT.X < FDN_BOUNDARY_BOX.GetPoint2dAt(0).X) ||
+                (FDN_GRADE_BEAM_BASIS_POINT.X > FDN_BOUNDARY_BOX.GetPoint2dAt(2).X) ||
+                (FDN_GRADE_BEAM_BASIS_POINT.Y < FDN_BOUNDARY_BOX.GetPoint2dAt(0).Y) ||
+                (FDN_GRADE_BEAM_BASIS_POINT.Y > FDN_BOUNDARY_BOX.GetPoint2dAt(2).Y))
+            {
+                // Set the basis point to the lower left and then offset by half the width of the perimeter beam
+                FDN_GRADE_BEAM_BASIS_POINT = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 0.5 * Beam_X_Width, FDN_BOUNDARY_BOX.GetPoint3dAt(0).Z);
+                MessageBox.Show("Moving basis point to the lower left corner of the bounding box");
+            }
+
+            // Add a marker for this point.
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 20, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 25, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 30, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 35, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 45, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+
+            doc.Editor.WriteMessage("\n-Intersection of longest segments at :" + FDN_GRADE_BEAM_BASIS_POINT.X.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Y.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Z.ToString());
+
+            doc.Editor.WriteMessage("\nGrade beam insert point computed succssfully");
+            #endregion
+        }
+
+
+
 
         /// <summary>
         /// Command line to run the foundation detailing progam
@@ -1477,13 +1732,61 @@ namespace EE_Analyzer
             Database db = doc.Database;
             Editor edt = doc.Editor;
 
-            var dialog = new EE_FDNInputDialog();
+            #region Application Setup
+            // Set up layers and linetypes and AutoCAD drawings items
+            EE_ApplicationSetup(doc, db);
+            #endregion
 
-            var result = AcAp.ShowModalWindow(dialog);
-            if (result.Value)
+            FoundationLayout CurrentFoundationLayout = new FoundationLayout();
+            CurrentFoundationLayout.OnFoundationLayoutCreate();
+
+            
+            // Keep reloading the dialog box if we are in preview mode
+            while (PreviewMode = true)
             {
-                edt.WriteMessage("\nDialog displayed and successfully entered");
+                EE_FDNInputDialog dialog;
+                if (FirstLoad)
+                {
+                    // Use the default values
+                    dialog = new EE_FDNInputDialog(CurrentFoundationLayout);
+                    FirstLoad = false;
+                } else
+                {
+                    // Otherwise reload the previous iteration values
+                    dialog = new EE_FDNInputDialog(CurrentFoundationLayout, Beam_X_Qty, Beam_X_Spacing, Beam_X_Width, Beam_X_Depth,
+                    Beam_Y_Qty, Beam_Y_Spacing, Beam_Y_Width, Beam_Y_Depth, Beam_X_Strand_Qty,
+                    Beam_X_Slab_Strand_Qty, Beam_Y_Strand_Qty, Beam_Y_Slab_Strand_Qty, DEFAULT_DONT_DRAW_PT_LENGTH,
+                    Beam_X_DETAIL_QTY_1, Beam_X_DETAIL_QTY_2, Beam_X_DETAIL_QTY_3, Beam_X_DETAIL_QTY_4, Beam_X_DETAIL_QTY_5,
+                    Beam_X_DETAIL_SPA_1, Beam_X_DETAIL_SPA_2, Beam_X_DETAIL_SPA_3, Beam_X_DETAIL_SPA_4, Beam_X_DETAIL_SPA_5,
+                    Beam_Y_DETAIL_QTY_1, Beam_Y_DETAIL_QTY_2, Beam_Y_DETAIL_QTY_3, Beam_Y_DETAIL_QTY_4, Beam_Y_DETAIL_QTY_5,
+                    Beam_Y_DETAIL_SPA_1, Beam_Y_DETAIL_SPA_2, Beam_Y_DETAIL_SPA_3, Beam_Y_DETAIL_SPA_4, Beam_Y_DETAIL_SPA_5,
+                    PiersSpecified, PierShape, PierWidth, PierHeight, ShouldClose);
+                }
+
+                ShouldClose = dialog.dialog_should_close;
+                IsComplete = dialog.dialog_is_complete;
+
+                if (dialog.dialog_should_close || dialog.dialog_is_complete)
+                {
+                    dialog.DialogResult = false;
+                    break; // exit our loop
+                } else
+                {
+                    var result = AcAp.ShowModalWindow(dialog);
+                    if (result.Value)
+                    {
+                        edt.WriteMessage("\nDialog displayed and successfully entered");
+                    } 
+
+
+                }
+
+                if (dialog.DialogResult == false)
+                {
+                    break;
+                }
             }
+
 
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db);
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER, doc, db);

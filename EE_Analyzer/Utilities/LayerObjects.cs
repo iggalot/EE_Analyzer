@@ -44,7 +44,8 @@ namespace EE_Analyzer.Utilities
                         trans.Commit();
                     }
 
-                } catch (System.Exception ex)
+                }
+                catch (System.Exception ex)
                 {
                     doc.Editor.WriteMessage("Error creating layer [" + name + "]: " + ex.Message);
                     trans.Abort();
@@ -111,6 +112,55 @@ namespace EE_Analyzer.Utilities
             }
         }
 
+        public static void DeleteAllObjectsOnLayer(string name, Document doc, Database db)
+        {
+            string layerName = name;
 
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                LayerTable layTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
+
+                try
+                {
+                    if (layTable.Has(name))
+                    {
+                        TypedValue[] tvs = new TypedValue[1]
+                        {
+                            new TypedValue((int)DxfCode.LayerName, layerName)
+                        };
+                        
+                        SelectionFilter sf = new SelectionFilter(tvs);
+
+                        PromptSelectionResult psr = doc.Editor.SelectAll(sf);
+
+                        ObjectIdCollection objColl;
+                        if(psr.Status == PromptStatus.OK)
+                        {
+                            objColl = new ObjectIdCollection(psr.Value.GetObjectIds());
+
+                            foreach(ObjectId id in objColl)
+                            {
+                                Entity ent = trans.GetObject(id, OpenMode.ForWrite) as Entity;
+                                ent.Erase();
+                            }
+                        }
+
+                        trans.Commit();
+                    }
+                    else
+                    {
+                        doc.Editor.WriteMessage("\nLayer [" + name + "] does not exist.");
+
+                        trans.Abort();
+                    }
+
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("Error hiding layer [" + name + "]: " + ex.Message);
+                    trans.Abort();
+                }
+            }
+        }
     }
 }

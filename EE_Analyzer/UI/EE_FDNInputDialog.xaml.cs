@@ -2,6 +2,7 @@
 using EE_Analyzer.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -31,12 +32,56 @@ namespace EE_Analyzer
         public UIModes UI_MODE_X_DIR { get; set; }
         public UIModes UI_MODE_Y_DIR { get; set; }
 
-        private FoundationLayout CurrentFoundationLayout { get; set; }
+        public FoundationLayout FDNLayout { get; set; } = null;
 
         public static string VERSION_INFO { get; } = EE_Settings.CURRENT_VERSION_NUM;
         public static string COPYRIGHT_INFO { get; } = EE_Settings.SIGNATURE_LABEL;
 
+        private int x_qty = 5;
+        private double x_spa = 120;
+        private double x_depth = 24;
+        private double x_width = 12;
+        private int beam_x_strand_qty = 2;
+        private int slab_x_strand_qty = 0;
+        private int y_qty = 5;
+        private double y_spa = 120;
+        private double y_depth = 24;
+        private double y_width = 12;
+        private int beam_y_strand_qty = 2;
+        private int slab_y_strand_qty = 0;
+        private double neglect_pt_dim = 120;
+        private int x_spa_1_qty = 3;
+        private int x_spa_2_qty = 0;
+        private int x_spa_3_qty = 0;
+        private int x_spa_4_qty = 0;
+        private int x_spa_5_qty = 0;
+        private double x_spa_1_spa = 50;
+        private double x_spa_2_spa = 0;
+        private double x_spa_3_spa = 0;
+        private double x_spa_4_spa = 0;
+        private double x_spa_5_spa = 0;
+        private int y_spa_1_qty = 3;
+        private int y_spa_2_qty = 0;
+        private int y_spa_3_qty = 0;
+        private int y_spa_4_qty = 0;
+        private int y_spa_5_qty = 0;
+        private double y_spa_1_spa = 50;
+        private double y_spa_2_spa = 0;
+        private double y_spa_3_spa = 0;
+        private double y_spa_4_spa = 0;
+        private double y_spa_5_spa = 0;
+
+        private bool piers_is_checked = false;
+        private double pier_width = 12;
+        private double pier_height = 12;
+        private PierShapes pier_shape = PierShapes.PIER_UNDEFINED;
+
+        private bool preview_mode = true;
+        public bool dialog_should_close = false;
+        public bool dialog_is_complete = false;
+
         public EE_FDNInputDialog(
+            FoundationLayout fdn_layout,
             int x_qty = 5, double x_spa = 120, double x_width = 12, double x_depth = 24,
             int y_qty = 7, double y_spa = 120, double y_width = 12, double y_depth = 24,
             int beam_x_strand_qty = 2, int slab_x_strand_qty = 8, int beam_y_strand_qty = 2, int slab_y_strand_qty = 8, double neglect_pt_dim = 120,
@@ -44,10 +89,13 @@ namespace EE_Analyzer
             double x_spa_1_spa = 50, double x_spa_2_spa = 0, double x_spa_3_spa = 0, double x_spa_4_spa = 0, double x_spa_5_spa = 0,
             int y_spa_1_qty = 3, int y_spa_2_qty = 0, int y_spa_3_qty = 0, int y_spa_4_qty = 0, int y_spa_5_qty = 0,
             double y_spa_1_spa = 50, double y_spa_2_spa = 0, double y_spa_3_spa = 0, double y_spa_4_spa = 0, double y_spa_5_spa = 0,
-            bool piers_specified = false, PierShapes pier_shape = PierShapes.PIER_UNDEFINED, double pier_width = 12.0, double pier_height = 12.0
+            bool piers_specified = false, PierShapes pier_shape = PierShapes.PIER_UNDEFINED, double pier_width = 12.0, double pier_height = 12.0,
+            bool should_close = false
             )
         {
             InitializeComponent();
+
+            FDNLayout = fdn_layout;
 
             DataContext = this;
 
@@ -92,6 +140,8 @@ namespace EE_Analyzer
             UI_MODE_X_DIR = UIModes.MODE_X_DIR_UNDEFINED;
             UI_MODE_Y_DIR = UIModes.MODE_Y_DIR_UNDEFINED;
 
+            dialog_should_close = should_close;
+
             // Populate our pier shape information
             chPiersActive.IsChecked = piers_specified;
             PIER_DIA.Text = pier_width.ToString();
@@ -100,74 +150,26 @@ namespace EE_Analyzer
             cbPierShape.Items.Add("Circular");
             cbPierShape.Items.Add("Rectangular");
             cbPierShape.SelectedItem="Circular";
-
         }
 
         /// <summary>
-        /// Handles the 'Click' event of the 'OK' button.
+        /// Parses the form data.
         /// </summary>
-        /// <param name="sender">Event source.</param>
-        /// <param name="e">Event data.</param>
-        private void btnOK_Click(object sender, RoutedEventArgs e)
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private bool ParseFormData()
         {
-
-            DialogResult = true;
-
-            int x_qty = 0;
-            double x_spa = 0;
-            double x_depth = 0;
-            double x_width = 0;
-            int beam_x_strand_qty = 0;
-            int slab_x_strand_qty = 0;
-
-            int y_qty = 0;
-            double y_spa = 0;
-            double y_depth = 0;
-            double y_width = 0;
-            int beam_y_strand_qty = 0;
-            int slab_y_strand_qty = 0;
-
-            double neglect_pt_dim = 0;
-             
-            int x_spa_1_qty = 0;
-            int x_spa_2_qty = 0;
-            int x_spa_3_qty = 0;
-            int x_spa_4_qty = 0;
-            int x_spa_5_qty = 0;
-            double x_spa_1_spa = 0;
-            double x_spa_2_spa = 0;
-            double x_spa_3_spa = 0;
-            double x_spa_4_spa = 0;
-            double x_spa_5_spa = 0;
-           
-            int y_spa_1_qty = 0;
-            int y_spa_2_qty = 0;
-            int y_spa_3_qty = 0;
-            int y_spa_4_qty = 0;
-            int y_spa_5_qty = 0;
-            double y_spa_1_spa = 0;
-            double y_spa_2_spa = 0;
-            double y_spa_3_spa = 0;
-            double y_spa_4_spa = 0;
-            double y_spa_5_spa = 0;
-
-            bool piers_is_checked = false;
-            double pier_width = 0;
-            double pier_height = 0;
-            PierShapes pier_shape = PierShapes.PIER_UNDEFINED;
-
             bool resultOK = true;
             // Grab the values from the dialog and check for validity
-            try
-            {
                 if (Double.TryParse(BEAM_X_DEPTH.Text, out x_depth) is false)
                 {
-                    MessageBox.Show("Error reading X-dir beam spacing");
+
+                    MessageBox.Show("Error reading X-dir beam depth");
                     resultOK = false;
                 }
                 if (Double.TryParse(BEAM_X_WIDTH.Text, out x_width) is false)
                 {
-                    MessageBox.Show("Error reading X-dir beam spacing");
+                    MessageBox.Show("Error reading X-dir beam width");
                     resultOK = false;
                 }
                 if (Double.TryParse(NEGLECT_PT_DIM.Text, out neglect_pt_dim) is false)
@@ -197,7 +199,7 @@ namespace EE_Analyzer
                     MessageBox.Show("Error reading Y-dir slab strand qty");
                 }
 
-                
+
                 if (UI_MODE_X_DIR == UIModes.MODE_X_DIR_QTY)
                 {
                     if (Int32.TryParse(BEAM_X_QTY.Text, out x_qty) is false)
@@ -392,7 +394,8 @@ namespace EE_Analyzer
                         default:
                             break;
                     }
-                } else
+                }
+                else
                 {
                     pier_shape = PierShapes.PIER_UNDEFINED;
                     pier_height = 0;
@@ -400,11 +403,80 @@ namespace EE_Analyzer
                     piers_is_checked = false;
                 }
 
-                if (resultOK)
-                {
-                    CurrentFoundationLayout = new FoundationLayout();
+                return resultOK;
+            }
+            
+        /// <summary>
+        /// Update the Foundation Layour data
+        /// </summary>
+        private void StoreFormData()
+        {
+            FDNLayout.PreviewMode = preview_mode;
+            FDNLayout.ShouldClose = dialog_should_close;
 
-                    CurrentFoundationLayout.DrawFoundationDetails(
+            FDNLayout.DEFAULT_DONT_DRAW_PT_LENGTH = neglect_pt_dim;
+
+            FDNLayout.PiersSpecified = piers_is_checked;
+            FDNLayout.PierShape = pier_shape;
+            FDNLayout.PierWidth = pier_width;
+            FDNLayout.PierHeight = pier_height;
+
+            FDNLayout.Beam_X_Spacing = x_spa;  // spacing between horizontal beams
+            FDNLayout.Beam_X_Width = x_width;  // horizontal beam width
+            FDNLayout.Beam_X_Depth = x_depth;  // horizontal beam depth
+            FDNLayout.Beam_X_Qty = x_qty;         // horizontal beam qty
+            FDNLayout.Beam_X_Strand_Qty = beam_x_strand_qty;  // number of strands in each x-direction beam
+            FDNLayout.Beam_X_Slab_Strand_Qty = slab_x_strand_qty;  // number of strands in x-direction slab
+
+            FDNLayout.Beam_Y_Spacing = y_spa;  // spacing between vertical beams
+            FDNLayout.Beam_Y_Width = y_width;  // vertical beam width
+            FDNLayout.Beam_Y_Depth = y_depth;  // vertical beam depth
+            FDNLayout.Beam_Y_Qty = y_qty;         // vertical beam qty 
+            FDNLayout.Beam_Y_Strand_Qty = beam_y_strand_qty;  // number of strands in each y-direction beam
+            FDNLayout.Beam_Y_Slab_Strand_Qty = slab_y_strand_qty;  // number of strands in y-direction slab
+
+            FDNLayout.Beam_X_DETAIL_QTY_1 = x_spa_1_qty;
+            FDNLayout.Beam_X_DETAIL_QTY_2 = x_spa_2_qty;
+            FDNLayout.Beam_X_DETAIL_QTY_3 = x_spa_3_qty;
+            FDNLayout.Beam_X_DETAIL_QTY_4 = x_spa_4_qty;
+            FDNLayout.Beam_X_DETAIL_QTY_5 = x_spa_5_qty;
+
+            FDNLayout.Beam_X_DETAIL_SPA_1 = x_spa_1_spa;
+            FDNLayout.Beam_X_DETAIL_SPA_2 = x_spa_2_spa;
+            FDNLayout.Beam_X_DETAIL_SPA_3 = x_spa_3_spa;
+            FDNLayout.Beam_X_DETAIL_SPA_4 = x_spa_4_spa;
+            FDNLayout.Beam_X_DETAIL_SPA_5 = x_spa_5_spa;
+
+            FDNLayout.Beam_Y_DETAIL_QTY_1 = y_spa_1_qty;
+            FDNLayout.Beam_Y_DETAIL_QTY_2 = y_spa_2_qty;
+            FDNLayout.Beam_Y_DETAIL_QTY_3 = y_spa_3_qty;
+            FDNLayout.Beam_Y_DETAIL_QTY_4 = y_spa_4_qty;
+            FDNLayout.Beam_Y_DETAIL_QTY_5 = y_spa_5_qty;
+
+            FDNLayout.Beam_Y_DETAIL_SPA_1 = y_spa_1_spa;
+            FDNLayout.Beam_Y_DETAIL_SPA_2 = y_spa_2_spa;
+            FDNLayout.Beam_Y_DETAIL_SPA_3 = y_spa_3_spa;
+            FDNLayout.Beam_Y_DETAIL_SPA_4 = y_spa_4_spa;
+            FDNLayout.Beam_Y_DETAIL_SPA_5 = y_spa_5_spa;
+        }
+
+        /// <summary>
+        /// Handles the 'Click' event of the 'OK' button.
+        /// </summary>
+        /// <param name="sender">Event source.</param>
+        /// <param name="e">Event data.</param>
+        private void btnPreview_Click(object sender, RoutedEventArgs e)
+        {
+            preview_mode = true;
+            dialog_should_close = false;
+
+            try { 
+                if (ParseFormData())
+                {
+                    // write the form data to the foundation layout object
+                    StoreFormData();
+
+                    FDNLayout.DrawFoundationDetails(
                         x_qty, x_spa, x_depth, x_width,
                         y_qty, y_spa, y_depth, y_width,
                         beam_x_strand_qty, slab_x_strand_qty, beam_y_strand_qty, slab_y_strand_qty,
@@ -413,10 +485,14 @@ namespace EE_Analyzer
                         y_spa_1_qty, y_spa_2_qty, y_spa_3_qty, y_spa_4_qty, y_spa_5_qty,
                         y_spa_1_spa, y_spa_2_spa, y_spa_3_spa, y_spa_4_spa, y_spa_5_spa, 
                         UI_MODE_X_DIR, UI_MODE_Y_DIR, 
-                        piers_is_checked,  pier_shape, pier_width, pier_height, 
-                        neglect_pt_dim
+                        piers_is_checked,  pier_shape, pier_width, pier_height,
+                        preview_mode, dialog_should_close,
+                        neglect_pt_dim 
                         );
-                } else
+
+                    FDNLayout.IsComplete = dialog_should_close;
+                }
+                else
                 {
                     MessageBox.Show("Error parsing dialog window values");
                     return;
@@ -429,6 +505,65 @@ namespace EE_Analyzer
             }
         }
 
+
+        private void btnCancel_Click(object sender, RoutedEventArgs e)
+        {
+
+            preview_mode = false;
+            dialog_should_close = true;
+        }
+
+        private void btnOK_Click(object sender, RoutedEventArgs e)
+        {
+            preview_mode = false; // turn off preview mode so final drawings can be completed.
+            dialog_should_close = true;
+            try
+            {
+                if (ParseFormData())
+                {
+                    // write the form data to the foundation layout object
+                    StoreFormData();
+
+                    FDNLayout.DrawFoundationDetails(
+                        x_qty, x_spa, x_depth, x_width,
+                        y_qty, y_spa, y_depth, y_width,
+                        beam_x_strand_qty, slab_x_strand_qty, beam_y_strand_qty, slab_y_strand_qty,
+                        x_spa_1_qty, x_spa_2_qty, x_spa_3_qty, x_spa_4_qty, x_spa_5_qty,
+                        x_spa_1_spa, x_spa_2_spa, x_spa_3_spa, x_spa_4_spa, x_spa_5_spa,
+                        y_spa_1_qty, y_spa_2_qty, y_spa_3_qty, y_spa_4_qty, y_spa_5_qty,
+                        y_spa_1_spa, y_spa_2_spa, y_spa_3_spa, y_spa_4_spa, y_spa_5_spa,
+                        UI_MODE_X_DIR, UI_MODE_Y_DIR,
+                        piers_is_checked, pier_shape, pier_width, pier_height,
+                        false, false,
+                        neglect_pt_dim
+                        );
+
+                    // now set the flag to close the dialog
+                    preview_mode = false;
+                    dialog_should_close = true;
+                    dialog_is_complete = true;
+
+                }
+                else
+                {
+                    MessageBox.Show("Error parsing dialog window values");
+                    return;
+                }
+
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show("Error in reading dialog information:  " + ex.Message);
+                return;
+            }
+
+            FDNLayout.PreviewMode = false;
+            FDNLayout.IsComplete = dialog_is_complete;
+            FDNLayout.PreviewMode = preview_mode;
+            this.DialogResult = false;
+
+        }
+
         private void UpdateOKButton()
         {
             if(UI_MODE_X_DIR == UIModes.MODE_X_DIR_UNDEFINED || UI_MODE_Y_DIR == UIModes.MODE_Y_DIR_UNDEFINED)
@@ -439,6 +574,7 @@ namespace EE_Analyzer
                 btnOK.IsEnabled = true;
                 btnOK.Visibility = Visibility.Visible;
             }
+            start.InvalidateArrange();
         }
 
         private void X_Detail_Button_Click(object sender, RoutedEventArgs e)
@@ -553,5 +689,21 @@ namespace EE_Analyzer
                 spPierRectangleData.Visibility = Visibility.Visible;
             }
         }
+
+        /// <summary>
+        /// Needed to help the window start in the upper left corner
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void start_Loaded(object sender, RoutedEventArgs e)
+        {
+            Thread.Sleep(100);
+            Window win = sender as Window;
+            win.WindowStartupLocation = WindowStartupLocation.Manual;
+            win.Top = 0;
+            win.Left = 0;
+ //           win.Show();
+        }
+
     }
 }
