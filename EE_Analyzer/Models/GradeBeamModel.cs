@@ -6,10 +6,8 @@ using System;
 using static EE_Analyzer.Utilities.LineObjects;
 using static EE_Analyzer.Utilities.BlockObjects;
 using static EE_Analyzer.Utilities.DrawObject;
-
-
 using static EE_Analyzer.Utilities.EE_Helpers;
-
+using System.Collections.Generic;
 
 namespace EE_Analyzer.Models
 {
@@ -70,6 +68,8 @@ namespace EE_Analyzer.Models
 
         // A label for the grade beam
         public string Label { get => "GB" + BeamNum.ToString(); }
+
+        private IntersectPointData[] SortedGradeBeamIntersects = null;
 
         public GradeBeamModel(Point3d start, Point3d end, int num_strands, bool is_trimmed, bool is_horizontal, int beam_num, double width = 12.0, double depth = 24.0)
         {
@@ -202,45 +202,90 @@ namespace EE_Analyzer.Models
                 // Edge 1
                 if (E1_Pt_A != null && E1_Pt_B != null)
                 {
-                    // Create the center line objects
-                    Edge1 = OffsetLine(new Line(E1_Pt_A, E1_Pt_B), 0) as Line;  // Must create the edge 1 this way to have it added to the AutoCAD database
+                    // draw line segment from E1_pt_A to first grade beam first point
+                    if(SortedGradeBeamIntersects != null && SortedGradeBeamIntersects.Length > 0)
+                    {
+                        Line ln;
+                        Point3d first = E1_Pt_A;
+                        Point3d second = E1_Pt_B;
 
-                    try
-                    {
-                        MoveLineToLayer(Edge1, layer_name);
-                        LineSetLinetype(Edge1, "HIDDENX2");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered while adding Edge 1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                        trans.Abort();
-                        return;
+                        try
+                        {
+                            for (int i = 0; i < SortedGradeBeamIntersects.Length; i++)
+                            {
+                                Point3d cl_int_pt = SortedGradeBeamIntersects[i].Point;
+                                Point3d a = MathHelpers.Point3dFromVectorOffset(cl_int_pt, VPerpendicular * 0.5 * Width);
+                                second = MathHelpers.Point3dFromVectorOffset(a, VDirection * -0.5 * Width);
+                                ln = OffsetLine(new Line(first, second), 0) as Line;
+                                MoveLineToLayer(ln, layer_name);
+                                LineSetLinetype(ln, "HIDDENX2");
+
+                                // the new first point
+                                first = MathHelpers.Point3dFromVectorOffset(second, VDirection * Width);
+                            }
+
+                            // Now draw the last segment
+                            ln = OffsetLine(new Line(first, E1_Pt_B), 0) as Line;
+                            MoveLineToLayer(ln, layer_name);
+                            LineSetLinetype(ln, "HIDDENX2");
+                        }
+                        catch (System.Exception ex)
+                        {
+                            doc.Editor.WriteMessage("\nError encountered while adding Edge 1 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                            trans.Abort();
+                            return;
+                        }
+
+                        // draw line segment from first grade beam second point to E1_pt_B
+                        Edge1 = new Line(E1_Pt_A, E1_Pt_B);  // Must create the edge 1 this way to have it added to the AutoCAD database
                     }
                 }
 
                 // Edge 2
                 if (E2_Pt_A != null && E2_Pt_B != null)
                 {
-                    // Create the center line objects
-                    Edge2 = OffsetLine(new Line(E2_Pt_A, E2_Pt_B), 0) as Line;  // Must create the edge 2 line this way to have it added to the AutoCAD database
+                    // draw line segment from E1_pt_A to first grade beam first point
+                    if (SortedGradeBeamIntersects != null && SortedGradeBeamIntersects.Length > 0)
+                    {
+                        Line ln;
+                        Point3d first = E2_Pt_A;
+                        Point3d second = E2_Pt_B;
 
-                    try
-                    {
-                        MoveLineToLayer(Edge2, layer_name);
-                        LineSetLinetype(Edge2, "HIDDENX2");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        doc.Editor.WriteMessage("\nError encountered while adding Edge 2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                        trans.Abort();
-                        return;
+                        try
+                        {
+                            for (int i = 0; i < SortedGradeBeamIntersects.Length; i++)
+                            {
+                                Point3d cl_int_pt = SortedGradeBeamIntersects[i].Point;
+                                Point3d a = MathHelpers.Point3dFromVectorOffset(cl_int_pt, VPerpendicular * -0.5 * Width);
+                                second = MathHelpers.Point3dFromVectorOffset(a, VDirection * -0.5 * Width);
+                                ln = OffsetLine(new Line(first, second), 0) as Line;
+                                MoveLineToLayer(ln, layer_name);
+                                LineSetLinetype(ln, "HIDDENX2");
+
+                                // the new first point
+                                first = MathHelpers.Point3dFromVectorOffset(second, VDirection * Width);
+                            }
+
+                            // Now draw the last segment
+                            ln = OffsetLine(new Line(first, E2_Pt_B), 0) as Line;
+                            MoveLineToLayer(ln, layer_name);
+                            LineSetLinetype(ln, "HIDDENX2");
+                        }
+                        catch (System.Exception ex)
+                        {
+                            doc.Editor.WriteMessage("\nError encountered while adding Edge 2 of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                            trans.Abort();
+                            return;
+                        }
+
+                        // draw line segment from first grade beam second point to E1_pt_B
+                        Edge2 = new Line(E2_Pt_A, E2_Pt_B);  // Must create the edge 1 this way to have it added to the AutoCAD database
                     }
                 }
 
                 try
                 {
                     // Draw the beam label
-//                    coll.Add(DrawBeamLabel(db, doc, layer_name));
                     DrawBeamLabel(db, doc, layer_name);
 
                 }
@@ -349,6 +394,82 @@ namespace EE_Analyzer.Models
             }
 
             return strand_layer;
+        }
+
+        public void SetGradeBeamIntersects(List<GradeBeamModel> gb_models)
+        {
+            List<IntersectPointData> lst = new List<IntersectPointData>();
+
+            foreach(GradeBeamModel gb in gb_models)
+            {
+                // Find the intersection point
+                IntersectPointData p1_data = FindPointOfIntersectLines_FromPoint3d(
+                    this.CL_Pt_A,
+                    this.CL_Pt_B,
+                    gb.CL_Pt_A,
+                    gb.CL_Pt_B
+                    );
+
+                if (p1_data == null)
+                {
+                    continue;
+                } else
+                {
+                    if (p1_data.isWithinSegment)
+                    {
+                        lst.Add(p1_data);
+                    }
+                }
+            }
+
+            if(lst.Count < 0)
+            {
+                return;
+            }
+
+            // Create our list of grade beam intersects
+            SortedGradeBeamIntersects = new IntersectPointData[lst.Count];
+            IntersectPointData[] sort_arr;
+
+            if (this.IsHorizontal is true)
+            {
+                sort_arr = lst.ToArray();
+                IntersectPointData temp;
+
+                for (int j = 0; j < lst.Count - 1; j++)
+                {
+                    for (int i = 0; i < lst.Count - 1; i++)
+                    {
+                        if (sort_arr[i].Point.X > sort_arr[i + 1].Point.X)
+                        {
+                            temp = sort_arr[i + 1];
+                            sort_arr[i + 1] = sort_arr[i];
+                            sort_arr[i] = temp;
+                        }
+                    }
+                }
+            } else
+            {
+                sort_arr = lst.ToArray();
+                IntersectPointData temp;
+
+                for (int j = 0; j < lst.Count - 1; j++)
+                {
+                    for (int i = 0; i < lst.Count - 1; i++)
+                    {
+                        if (sort_arr[i].Point.Y > sort_arr[i + 1].Point.Y)
+                        {
+                            temp = sort_arr[i + 1];
+                            sort_arr[i + 1] = sort_arr[i];
+                            sort_arr[i] = temp;
+                        }
+                    }
+                }
+            } 
+            
+            SortedGradeBeamIntersects = sort_arr;
+
+            return;
         }
     }
 }

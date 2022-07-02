@@ -659,6 +659,10 @@ namespace EE_Analyzer
                         lstInteriorGradeBeamsTrimmed[j].CL_Pt_A,
                         lstInteriorGradeBeamsTrimmed[j].CL_Pt_B);
 
+                    // If no intersect point is found, skip and go to the next check
+                    if (p1_data == null)
+                        continue;
+
                     if(p1_data.Point.X == double.MaxValue || p1_data.Point.Y == double.MaxValue)
                     {
                         continue;
@@ -1031,22 +1035,29 @@ namespace EE_Analyzer
                     longestSegmentPoints[0], longestSegmentPoints[1],
                     longestSegmentPoints[2], longestSegmentPoints[3]);
 
-                Point3d intPt = intersectData.Point;
-
-                //DrawCircle(longestSegmentPoints[0], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                //DrawCircle(longestSegmentPoints[1], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                //DrawCircle(longestSegmentPoints[2], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                //DrawCircle(longestSegmentPoints[3], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-
-                if (intPt != null)
+                // Check if an intersect data was found -- if not, set the basis to the default basis point
+                if(intersectData == null)
                 {
-                    //MessageBox.Show("Found a basis point");
-                    basis_pt = intPt;
-                }
-                else
-                {
-                    //MessageBox.Show("Basis point was null.  Using default.");
                     basis_pt = default_basis_pt;
+                } else
+                {
+                    Point3d intPt = intersectData.Point;
+
+                    //DrawCircle(longestSegmentPoints[0], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                    //DrawCircle(longestSegmentPoints[1], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                    //DrawCircle(longestSegmentPoints[2], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                    //DrawCircle(longestSegmentPoints[3], 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+
+                    if (intPt != null)
+                    {
+                        //MessageBox.Show("Found a basis point");
+                        basis_pt = intPt;
+                    }
+                    else
+                    {
+                        //MessageBox.Show("Basis point was null.  Using default.");
+                        basis_pt = default_basis_pt;
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -1151,6 +1162,7 @@ namespace EE_Analyzer
             // Now add the grade beam entities to the drawing
             foreach (GradeBeamModel beam in lstInteriorGradeBeamsUntrimmed)
             {
+                beam.SetGradeBeamIntersects(lstInteriorGradeBeamsUntrimmed);
                 beam.AddToAutoCADDatabase(db, doc);
             }
         }
@@ -1387,6 +1399,7 @@ namespace EE_Analyzer
             {
                 try
                 {
+                    beam.SetGradeBeamIntersects(lstInteriorGradeBeamsTrimmed);
                     beam.AddToAutoCADDatabase(db, doc);
                 }
                 catch (System.Exception e)
@@ -1729,7 +1742,7 @@ namespace EE_Analyzer
         public void ShowModalWpfDialogCmd()
         {
             // rudimentary copy protection based on current time 
-            if(EE_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(EE_Settings.DAYS_UNTIL_EXPIRES))
+            if(EE_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_Settings.DAYS_UNTIL_EXPIRES))
             {
                 // Update the expires 
                 MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");

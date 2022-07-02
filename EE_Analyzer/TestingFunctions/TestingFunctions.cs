@@ -272,42 +272,49 @@ namespace EE_Analyzer.TestingFunctions
 
                 //Determine if the intersection point is a valid point within the polyline segment.
                 IntersectPointData intersectPointData = (EE_Helpers.FindPointOfIntersectLines_FromPoint3d(b1, b2, p1, p2));
-                Point3d intPt = intersectPointData.Point;
-                doc.Editor.WriteMessage("\n--intPt " + intPt.X + "," + intPt.Y);
-                doc.Editor.WriteMessage("\n--b1 " + b1.X + "," + b1.Y);
-                doc.Editor.WriteMessage("\n--b2 " + b2.X + "," + b2.Y);
-                doc.Editor.WriteMessage("\n--p1 " + p1.X + "," + p1.Y);
-                doc.Editor.WriteMessage("\n--p2 " + p2.X + "," + p2.Y);
 
-                // if the intersection point is within the two line segments (meaining that the cross)
-                if (intersectPointData.isWithinSegment is true)
-                {
-                    doc.Editor.WriteMessage("\nintersection point was within the line segment.");
-                }
+                if (intersectPointData == null)
+                    continue;
                 else
                 {
-                    doc.Editor.WriteMessage("\nintersection point not within segment");
-                }
-                doc.Editor.WriteMessage("\n--" + intersectPointData.logMessage);
+                    Point3d intPt = intersectPointData.Point;
+                    doc.Editor.WriteMessage("\n--intPt " + intPt.X + "," + intPt.Y);
+                    doc.Editor.WriteMessage("\n--b1 " + b1.X + "," + b1.Y);
+                    doc.Editor.WriteMessage("\n--b2 " + b2.X + "," + b2.Y);
+                    doc.Editor.WriteMessage("\n--p1 " + p1.X + "," + p1.Y);
+                    doc.Editor.WriteMessage("\n--p2 " + p2.X + "," + p2.Y);
+
+                    // if the intersection point is within the two line segments (meaining that the cross)
+                    if (intersectPointData.isWithinSegment is true)
+                    {
+                        doc.Editor.WriteMessage("\nintersection point was within the line segment.");
+                    }
+                    else
+                    {
+                        doc.Editor.WriteMessage("\nintersection point not within segment");
+                    }
+                    doc.Editor.WriteMessage("\n--" + intersectPointData.logMessage);
 
 
-                if (intersectPointData.isParallel is true)
-                {
-                    doc.Editor.WriteMessage("\nline segment " + i.ToString() + " was parallel");
-                    // skip since intersection points are not possible for parallel lines
-                    continue;
-                }
+                    if (intersectPointData.isParallel is true)
+                    {
+                        doc.Editor.WriteMessage("\nline segment " + i.ToString() + " was parallel");
+                        // skip since intersection points are not possible for parallel lines
+                        continue;
+                    }
 
-                // Add text for debugging
-                DrawMtext(db, doc, intersectPointData.Point, i.ToString() + ":" + str, 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-
-                if (intersectPointData.isWithinSegment is true)
-                {
-                    intPtList.Add(intersectPointData.Point);
-                    DrawCircle(intersectPointData.Point, 15, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                    // Add text for debugging
                     DrawMtext(db, doc, intersectPointData.Point, i.ToString() + ":" + str, 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
-                    continue;
+
+                    if (intersectPointData.isWithinSegment is true)
+                    {
+                        intPtList.Add(intersectPointData.Point);
+                        DrawCircle(intersectPointData.Point, 15, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                        DrawMtext(db, doc, intersectPointData.Point, i.ToString() + ":" + str, 10, EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER);
+                        continue;
+                    }
                 }
+
             }
         }
 

@@ -291,6 +291,12 @@ namespace EE_Analyzer.Utilities
 
         public static IntersectPointData FindPointOfIntersectLines_FromPoint3d(Point3d A1, Point3d A2, Point3d B1, Point3d B2)
         {
+            // Check if the points are the same -- usually occurs when one line is comparing to itself
+            if(A1 == B1 && A2 == B2)
+            {
+                return null;
+            }
+
             Line l1, l2;
             if(A1.X < A2.X)
             {
@@ -407,6 +413,9 @@ namespace EE_Analyzer.Utilities
                         p1,
                         p2
                         );
+
+                    if (intersectPtData == null)
+                        continue;
 
                     grade_beam_intPt = intersectPtData.Point;
 
