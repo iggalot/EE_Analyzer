@@ -90,7 +90,6 @@ namespace EE_Analyzer.Models
 
                         // Add the associative hatch
                         AddRectangularHatch(Location, plineId2, EE_Settings.DEFAULT_PIER_HATCH_TYPE, EE_Settings.DEFAULT_HATCH_PATTERNSCALE);
-
                     }
 
                     trans.Commit();

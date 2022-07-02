@@ -52,7 +52,6 @@ namespace EE_Analyzer.Utilities
                         acHatch.PatternScale = hatch_scale;
                         acHatch.SetHatchPattern(HatchPatternType.PreDefined, EE_Settings.DEFAULT_PIER_HATCH_TYPE);
 
-
                         acBlkTblRec.AppendEntity(acHatch);
                         acTrans.AddNewlyCreatedDBObject(acHatch, true);
 
@@ -89,33 +88,27 @@ namespace EE_Analyzer.Utilities
                 acBlkTblRec = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace],
                                                 OpenMode.ForWrite) as BlockTableRecord;
 
-                // Make a new inner rectangle
-                
-                    // Add the new circle object to the block table record and the transaction
-                    //acBlkTblRec.AppendEntity(acCirc);
-                    //acTrans.AddNewlyCreatedDBObject(acCirc, true);
+                // Adds the rectangle to an object id array
+                ObjectIdCollection acObjIdColl = new ObjectIdCollection();
+                acObjIdColl.Add(plineId);
 
-                    // Adds the circle to an object id array
-                    ObjectIdCollection acObjIdColl = new ObjectIdCollection();
-                    acObjIdColl.Add(plineId);
+                // Create the hatch object and append it to the block table record
+                using (Hatch acHatch = new Hatch())
+                {
+                    acHatch.SetHatchPattern(HatchPatternType.PreDefined, EE_Settings.DEFAULT_PIER_HATCH_TYPE);
+                    acHatch.PatternScale = hatch_scale;
 
-                    // Create the hatch object and append it to the block table record
-                    using (Hatch acHatch = new Hatch())
-                    {
-                        acHatch.SetHatchPattern(HatchPatternType.PreDefined, EE_Settings.DEFAULT_PIER_HATCH_TYPE);
-                        acHatch.PatternScale = hatch_scale;
+                    acBlkTblRec.AppendEntity(acHatch);
+                    acTrans.AddNewlyCreatedDBObject(acHatch, true);
 
-                        acBlkTblRec.AppendEntity(acHatch);
-                        acTrans.AddNewlyCreatedDBObject(acHatch, true);
+                    // Set the properties of the hatch object
+                    // Associative must be set after the hatch object is appended to the 
+                    // block table record and before AppendLoop
 
-                        // Set the properties of the hatch object
-                        // Associative must be set after the hatch object is appended to the 
-                        // block table record and before AppendLoop
-
-                        acHatch.Associative = true;
-                        acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-                        acHatch.EvaluateHatch(true);
-                    }
+                    acHatch.Associative = true;
+                    acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
+                    acHatch.EvaluateHatch(true);
+                }
 
                 // Save the new object to the database
                 acTrans.Commit();

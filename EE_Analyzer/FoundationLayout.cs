@@ -1728,6 +1728,15 @@ namespace EE_Analyzer
         [CommandMethod("EEFDN")]
         public void ShowModalWpfDialogCmd()
         {
+            // rudimentary copy protection based on current time 
+            if(EE_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(EE_Settings.DAYS_UNTIL_EXPIRES))
+            {
+                // Update the expires 
+                MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
+                return;
+            }
+
+
             Document doc = AcAp.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor edt = doc.Editor;

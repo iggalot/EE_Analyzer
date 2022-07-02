@@ -1,10 +1,14 @@
-﻿namespace EE_Analyzer
+﻿using System;
+
+namespace EE_Analyzer
 {
     public static class EE_Settings
     {
         // VERSION INFO
         public const string CURRENT_VERSION_NUM = "Foundation Detailer Ver. 0.9";
         public const string SIGNATURE_LABEL = "Copyright 2022-5-12 by Jay3";
+        public const int DAYS_UNTIL_EXPIRES = 14;
+        public static DateTime APP_REGISTRATION_DATE = new DateTime(2022, 7, 1);
 
 
         // Default layers
