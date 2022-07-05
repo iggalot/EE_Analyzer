@@ -84,7 +84,7 @@ namespace EE_Analyzer
             FoundationLayout fdn_layout,
             int x_qty = 5, double x_spa = 120, double x_width = 12, double x_depth = 24,
             int y_qty = 7, double y_spa = 120, double y_width = 12, double y_depth = 24,
-            int beam_x_strand_qty = 2, int slab_x_strand_qty = 8, int beam_y_strand_qty = 2, int slab_y_strand_qty = 8, double neglect_pt_dim = 120,
+            int beam_x_strand_qty = 2, int slab_x_strand_qty = 8, int beam_y_strand_qty = 2, int slab_y_strand_qty = 8, double neglect_pt_dim = 240,
             int x_spa_1_qty = 3, int x_spa_2_qty = 0, int x_spa_3_qty = 0, int x_spa_4_qty = 0, int x_spa_5_qty = 0,
             double x_spa_1_spa = 50, double x_spa_2_spa = 0, double x_spa_3_spa = 0, double x_spa_4_spa = 0, double x_spa_5_spa = 0,
             int y_spa_1_qty = 3, int y_spa_2_qty = 0, int y_spa_3_qty = 0, int y_spa_4_qty = 0, int y_spa_5_qty = 0,
@@ -113,7 +113,7 @@ namespace EE_Analyzer
             BEAM_Y_STRAND_QTY.Text = beam_y_strand_qty.ToString();
             SLAB_Y_STRAND_QTY.Text = slab_y_strand_qty.ToString();
 
-            NEGLECT_PT_DIM.Text = neglect_pt_dim.ToString();
+            NEGLECT_PT_DIM.Text = EE_Settings.DEFAULT_MIN_PT_LENGTH.ToString();
 
             X_SPA_1_QTY.Text = x_spa_1_qty.ToString();
             X_SPA_2_QTY.Text = x_spa_2_qty.ToString();
@@ -414,7 +414,7 @@ namespace EE_Analyzer
             FDNLayout.PreviewMode = preview_mode;
             FDNLayout.ShouldClose = dialog_should_close;
 
-            FDNLayout.DEFAULT_DONT_DRAW_PT_LENGTH = neglect_pt_dim;
+            EE_Settings.DEFAULT_MIN_PT_LENGTH = neglect_pt_dim;
 
             FDNLayout.PiersSpecified = piers_is_checked;
             FDNLayout.PierShape = pier_shape;

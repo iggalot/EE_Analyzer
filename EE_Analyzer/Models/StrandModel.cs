@@ -12,9 +12,11 @@ namespace EE_Analyzer.Models
 {
     public class StrandModel
     {
+        // strand arrow parameters
+        private double strand_icon_length = EE_Settings.DEFAULT_STRAND_ARROW_LENGTH;
+        private double strand_icon_width = EE_Settings.DEFAULT_STRAND_ARROW_WIDTH;
+
         private int _id = 0;
-        private const double icon_size = 12;
-        private const double icon_thickness = 8;
         public int Id { get; set; }
 
         public Point3d StartPt { get; set; }
@@ -117,18 +119,41 @@ namespace EE_Analyzer.Models
         {
             if(Qty > 0)
             {
-                Centerline = OffsetLine(new Line(StartPt, EndPt), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
-                MoveLineToLayer(Centerline, GetDrawingLayer());
-                LineSetLinetype(Centerline, "CENTERX2");
+                string layer_name = "";
+                if (IsBeamStrand is true)
+                {
+                    if(IsTrimmed == true)
+                    {
+                        layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER;
+                    } else
+                    {
+                        layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER;
 
-                string layer_name = GetDrawingLayer();
+                    }
+                } else
+                {
+                    if (IsTrimmed == true)
+                    {
+                        layer_name = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER;
+                    }
+                    else
+                    {
+                        layer_name = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER;
+
+                    }
+                }
+
+                //// Draw the strand centerline
+                //Centerline = OffsetLine(new Line(StartPt, EndPt), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
+                //MoveLineToLayer(Centerline, layer_name);
+                //LineSetLinetype(Centerline, "CENTERX2");
 
                 //doc.Editor.WriteMessage("Drawing LiveEnd");
                 DrawLiveEndIcon(db, doc, layer_name);
                 //doc.Editor.WriteMessage("Drawing DeadEnd");
                 DrawDeadEndIcon(db, doc, layer_name);
                 //doc.Editor.WriteMessage("Drawing StrandLabel");
-                DrawStrandLabel(db, doc, layer_name);
+                //DrawStrandLabel(db, doc, layer_name);
             }
 
         }
@@ -150,17 +175,18 @@ namespace EE_Analyzer.Models
 
                     Point2d pt1 = new Point2d(StartPt.X, StartPt.Y);
 
-                    pl.AddVertexAt(0, pt1, 0, 1, 0);
-                    pl.SetEndWidthAt(0, icon_size);
+                    // Set the first vertex
+                    pl.AddVertexAt(0, pt1, 0, 0, 0);
+                    pl.SetEndWidthAt(0, strand_icon_width);
                     pl.SetStartWidthAt(0, 0);
 
                     // Specify the polyline parameters 
                     for (int i = 0; i < Qty; i++)
                     {
-                        Point2d pt2 = new Point2d(StartPt.X + Math.Cos(angle)*(i + 1) * icon_size, StartPt.Y+ Math.Sin(angle) * (i + 1) * icon_size);
-                        pl.AddVertexAt(i + 1, pt2, 0, 1, 0);
-                        pl.SetEndWidthAt(i + 1, icon_size);
-                        pl.SetStartWidthAt(i + 1, 0);
+                        Point2d pt2 = new Point2d(StartPt.X + Math.Cos(angle) * (i + 1) * strand_icon_length, StartPt.Y + Math.Sin(angle) * (i + 1) * strand_icon_length);
+                        pl.AddVertexAt(i+1, pt2, 0, 0, 0);
+                        pl.SetEndWidthAt(i+1, strand_icon_width);
+                        pl.SetStartWidthAt(i+1, 0.0);
                     }
 
                     //pl.Closed = true;
@@ -174,13 +200,40 @@ namespace EE_Analyzer.Models
                     btr.AppendEntity(pl);
                     trans.AddNewlyCreatedDBObject(pl, true);
 
+                    // Add a line segment  to show part of the strand
+                    double default_length = 8 * strand_icon_length;                    
+                    Point3d line_end_pt = new Point3d(StartPt.X + Math.Cos(angle) * (default_length), StartPt.Y + Math.Sin(angle) * (default_length),0);
+                    Line ln = OffsetLine(new Line(new Point3d(pt1.X, pt1.Y,0), line_end_pt), 0);
+                    MoveLineToLayer(ln, layer_name);
+
+                    // Draw the strand label
+                    MText mtx = new MText();
+                    try
+                    {
+                        mtx.Contents = Label;
+                        mtx.Location = new Point3d(pt1.X + Math.Cos(angle) * 0.35 * default_length, pt1.Y + Math.Sin(angle) * 0.35 * default_length, 0);
+                        mtx.TextHeight = EE_Settings.DEFAULT_STRAND_INFO_TEXT_SIZE;
+
+                        mtx.Layer = layer_name;
+
+                        mtx.Rotation = angle;
+
+                        btr.AppendEntity(mtx);
+                        trans.AddNewlyCreatedDBObject(mtx, true);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        doc.Editor.WriteMessage("\nError encountered while adding beam label objects: " + ex.Message);
+                        trans.Abort();
+                    }
+
                     trans.Commit();
 
                     return pl;
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError encountered drawing foundation boundary line: " + ex.Message);
+                    doc.Editor.WriteMessage("\nError encountered drawing strand line: " + ex.Message);
                     trans.Abort();
                     return null;
                 }
@@ -207,21 +260,27 @@ namespace EE_Analyzer.Models
 
                     Point2d pt1 = new Point2d(EndPt.X, EndPt.Y);
 
-                    pl.AddVertexAt(0, pt1, 0, icon_thickness, icon_thickness);
+                    pl.AddVertexAt(0, pt1, 0, strand_icon_width, strand_icon_width);
+                    Point2d pt2 = new Point2d(EndPt.X + (0.8 * strand_icon_length) * Math.Cos(angle_reverse), EndPt.Y + (0.8 * strand_icon_length) * Math.Sin(angle_reverse));
+                    pl.AddVertexAt(1, pt2, 0, strand_icon_width, strand_icon_width);
 
-                    // Specify the polyline parameters 
-                    for (int i = 0; i < 2 * Qty; i++)
-                    {
-                        Point2d pt2 = new Point2d(EndPt.X + (i + 1) * (0.8 * icon_size) * Math.Cos(angle_reverse), EndPt.Y + (i + 1) * (0.8 * icon_size) * Math.Sin(angle_reverse));
-                        if (i % 2 != 0)
-                        {
-                            pl.AddVertexAt(i + 1, pt2, 0, icon_thickness, icon_thickness);
-                        }
-                        else
-                        {
-                            pl.AddVertexAt(i + 1, pt2, 0, 0, 0);
-                        }
-                    }
+
+
+
+                    //// For matching number of dead end icons
+                    //// Specify the polyline parameters 
+                    //for (int i = 0; i < 2 * Qty; i++)
+                    //{
+                    //    Point2d pt2 = new Point2d(EndPt.X + (i + 1) * (0.8 * strand_icon_length) * Math.Cos(angle_reverse), EndPt.Y + (i + 1) * (0.8 * strand_icon_length) * Math.Sin(angle_reverse));
+                    //    if (i % 2 != 0)
+                    //    {
+                    //        pl.AddVertexAt(i + 1, pt2, 0, strand_icon_width, strand_icon_width);
+                    //    }
+                    //    else
+                    //    {
+                    //        pl.AddVertexAt(i + 1, pt2, 0, 0, 0);
+                    //    }
+                    //}
 
                     // assign the layer
                     pl.Layer = layer_name;
@@ -230,6 +289,14 @@ namespace EE_Analyzer.Models
                     pl.SetDatabaseDefaults();
                     btr.AppendEntity(pl);
                     trans.AddNewlyCreatedDBObject(pl, true);
+
+
+                    // Add a line segment  to show part of the strand
+                    double default_length = 5 * strand_icon_length;
+                    Point3d line_end_pt = new Point3d(pt1.X + Math.Cos(angle_reverse) * (default_length), pt1.Y + Math.Sin(angle_reverse) * (default_length), 0);
+                    Line ln = OffsetLine(new Line(new Point3d(pt1.X, pt1.Y, 0), line_end_pt), 0);
+                    MoveLineToLayer(ln, layer_name);
+
 
                     trans.Commit();
 
@@ -265,8 +332,8 @@ namespace EE_Analyzer.Models
                 try
                 {
                     mtx.Contents = Label;
-                    mtx.Location = new Point3d(insPt.X + Math.Sin(angle) * 0.8 * icon_size, insPt.Y - Math.Cos(angle) * 0.8 * icon_size, 0);
-                    mtx.TextHeight = 0.75 * icon_size;
+                    mtx.Location = new Point3d(insPt.X + Math.Sin(angle) * 0.8 * strand_icon_length, insPt.Y - Math.Cos(angle) * 0.8 * strand_icon_length, 0);
+                    mtx.TextHeight = EE_Settings.DEFAULT_STRAND_INFO_TEXT_SIZE;
 
                     mtx.Layer = layer_name;
 

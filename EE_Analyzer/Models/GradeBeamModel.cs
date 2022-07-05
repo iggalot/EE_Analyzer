@@ -14,7 +14,7 @@ namespace EE_Analyzer.Models
     public class GradeBeamModel
     {
         private int _beamNum = 0;
-        private const double _labelHt = 5;
+        private const double _labelHt = EE_Settings.DEFAULT_GRADE_BEAM_INFO_TEXT_SIZE;
 
         // Unit vector for the direction of the grade beam from start node to end node
         private Vector3d VDirection { get; set; } = new Vector3d(1, 0, 0);
@@ -187,7 +187,7 @@ namespace EE_Analyzer.Models
                         try
                         {
                             MoveLineToLayer(Centerline, layer_name);
-                            LineSetLinetype(Centerline, "CENTERX2");
+                            LineSetLinetype(Centerline, "CENTER2");
                         }
                         catch (System.Exception ex)
                         {
@@ -396,6 +396,11 @@ namespace EE_Analyzer.Models
             return strand_layer;
         }
 
+        /// <summary>
+        /// Function to determine the intersection points of the centerline of this gradebeam with
+        /// all other gradebeams in the list.
+        /// </summary>
+        /// <param name="gb_models"></param>
         public void SetGradeBeamIntersects(List<GradeBeamModel> gb_models)
         {
             List<IntersectPointData> lst = new List<IntersectPointData>();

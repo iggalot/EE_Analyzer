@@ -24,8 +24,6 @@ namespace EE_Analyzer
 {
     public class FoundationLayout
     {
-        private const double DEFAULT_MIN_PT_LENGTH = 120;  // Length (in inches) for which PT is not practical
-
         private int currentBeamNum = 0;
 
         private bool MODE_X_SELECTED = false;
@@ -39,8 +37,6 @@ namespace EE_Analyzer
 
         private UIModes MODE_X_DIR { get; set; }
         private UIModes MODE_Y_DIR { get; set; }
-
-        public double DEFAULT_DONT_DRAW_PT_LENGTH { get; set; }
 
         // Holds the primary foundation perimeter polyline object.
         public Polyline FDN_PERIMETER_POLYLINE { get; set; } = null;
@@ -57,15 +53,16 @@ namespace EE_Analyzer
         // Data storage Entities
         private List<Line> BeamLines { get; set; } = new List<Line>();
 
-        // Stores the untrimmed grade beams for the foundation
+        // Stores the untrimmed and trimmed grade beams and strands for the foundation
         private List<GradeBeamModel> lstInteriorGradeBeamsUntrimmed { get; set; } = new List<GradeBeamModel>();
         private List<GradeBeamModel> lstInteriorGradeBeamsTrimmed { get; set; } = new List<GradeBeamModel>();
 
         private List<StrandModel> lstSlabStrandsUntrimmed { get; set; } = new List<StrandModel>();
         private List<StrandModel> lstSlabStrandsTrimmed { get; set; } = new List<StrandModel>();
 
-        private List<PierModel> lstPierModels { get; set; } = new List<PierModel>();
 
+        // Pier info
+        private List<PierModel> lstPierModels { get; set; } = new List<PierModel>();
         public bool PiersSpecified { get; set; } = false;
         public PierShapes PierShape { get; set; } = PierShapes.PIER_UNDEFINED;
         public double PierWidth { get; set; } = 12;
@@ -73,28 +70,30 @@ namespace EE_Analyzer
 
         #region PTI Slab Data Values
 
-        public double[] Beam_X_Loc_Data;
-        public double[] Beam_Y_Loc_Data;
+        // Grade beam and strand position data
+        private double[] Beam_X_Loc_Data;          // horizontal grade beams
+        private double[] Beam_Y_Loc_Data;          // vertical grade beams
+        private double[] Slab_Strand_X_Loc_Data;   // horizontal slab strands
+        private double[] Slab_Strand_Y_Loc_Data;   // vertical slab strands
 
+        // Horizontal beams
         public int Beam_X_Qty { get; set; }
         public int Beam_X_Strand_Qty { get; set; }
         public int Beam_X_Slab_Strand_Qty { get; set; }
-
         public double Beam_X_Spacing { get; set; }
         public double Beam_X_Width { get; set; }
         public double Beam_X_Depth { get; set; }
 
-        // TODO:  Start to install variable spacings here....
-
+        // Vertical Beams
         public int Beam_Y_Qty { get; set; }
         public int Beam_Y_Strand_Qty { get; set; }
         public int Beam_Y_Slab_Strand_Qty { get; set; }
-
         public double Beam_Y_Spacing { get; set; }
         public double Beam_Y_Width { get; set; }
         public double Beam_Y_Depth { get; set; }
 
 
+        // Variable quantity and spacing parameters
         public int Beam_X_DETAIL_QTY_1 {get; set;}
         public int Beam_X_DETAIL_QTY_2 {get; set;}
         public int Beam_X_DETAIL_QTY_3 {get; set;}
@@ -115,9 +114,6 @@ namespace EE_Analyzer
         public double Beam_Y_DETAIL_SPA_3 {get; set; }
         public double Beam_Y_DETAIL_SPA_4 {get; set; }
         public double Beam_Y_DETAIL_SPA_5 { get; set; }
-
-
-
         #endregion
 
         /// <summary>
@@ -139,10 +135,11 @@ namespace EE_Analyzer
             UIModes default_mode_x, UIModes default_mode_y,  
             bool piers_active, PierShapes pier_shape, double pier_width, double pier_height,
             bool preview_mode, bool should_close,
-            double neglect_dimension = DEFAULT_MIN_PT_LENGTH)
+            double neglect_dimension)
         {
             ShouldClose = should_close;
             IsComplete = false;
+
             // If the window has been canceled dont bother doing anything else
             if (should_close)
             {
@@ -155,7 +152,8 @@ namespace EE_Analyzer
 
             PreviewMode = preview_mode;
 
-            DEFAULT_DONT_DRAW_PT_LENGTH = neglect_dimension;
+            // Overwrite the minimum specified
+            EE_Settings.DEFAULT_MIN_PT_LENGTH = neglect_dimension;
 
             PiersSpecified = piers_active;
             PierShape = pier_shape;
@@ -207,8 +205,6 @@ namespace EE_Analyzer
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor edt = doc.Editor;
-
-
 
             #region Determine Beam Spacings
             double min_x = FDN_BOUNDARY_BOX.GetPoint3dAt(0).X;
@@ -430,6 +426,32 @@ namespace EE_Analyzer
             }
             #endregion
 
+
+            #region Determine Slab Strand spacings
+            // subtract six inches from the edges for slab strands.
+            // Determine the spacings
+            double slab_strand_x_max_spa = (max_y - min_y - 2 * 6) / (Beam_X_Slab_Strand_Qty - 1);
+            double slab_strand_y_max_spa = (max_x - min_x - 2 * 6) / (Beam_Y_Slab_Strand_Qty - 1);
+
+            Slab_Strand_X_Loc_Data = new double[Beam_X_Slab_Strand_Qty];
+            Slab_Strand_Y_Loc_Data = new double[Beam_Y_Slab_Strand_Qty];
+
+            double slab_curr_spa_x = FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y + 6; // starting at 6 inches from the edge.
+            for (int i = 0; i < Beam_X_Slab_Strand_Qty; i++)
+            {
+                Slab_Strand_X_Loc_Data[i] = slab_curr_spa_x;
+                slab_curr_spa_x += slab_strand_x_max_spa;
+            }
+
+            double slab_curr_spa_y = FDN_BOUNDARY_BOX.GetPoint3dAt(0).X + 6; // starting at 6 inches from the edge.
+            for (int i = 0; i < Beam_Y_Slab_Strand_Qty; i++)
+            {
+                Slab_Strand_Y_Loc_Data[i] = slab_curr_spa_y;
+                slab_curr_spa_y += slab_strand_y_max_spa;
+            }
+
+            #endregion
+
             // If we are in preview mode we will just draw centerlines as a marker.
             // Clear our temporary layer prior to drawing temporary items
             DeleteAllObjectsOnLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
@@ -498,16 +520,16 @@ namespace EE_Analyzer
             #region Draw Untrimmed Slab Strands
 
             doc.Editor.WriteMessage("\nDrawing untrimmed slab strands beams");
-            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, true);  // for horizontal beams
-            CreateUntrimmedSlabStrands(db, doc, FDN_GRADE_BEAM_BASIS_POINT, false); // for vertical beams
+            CreateUntrimmedSlabStrands(db, doc, true);  // for horizontal beams
+            CreateUntrimmedSlabStrands(db, doc, false); // for vertical beams
             doc.Editor.WriteMessage("\n-- Completed drawing untrimmed slab strands. " + lstSlabStrandsUntrimmed.Count + " untrimmed slab strands created.");
 
             #endregion
 
             #region Trim Slab Strands
-            doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed slab strands");
-            CreateTrimmedSlabStrands(db, doc, lstSlabStrandsUntrimmed);
-            doc.Editor.WriteMessage("\n-- Completed drawing trimmed slab strands. " + lstSlabStrandsTrimmed.Count + " trimmed slab strands created.");
+            //doc.Editor.WriteMessage("\nDrawing " + lstInteriorGradeBeamsUntrimmed.Count + " trimmed slab strands");
+            //CreateTrimmedSlabStrands(db, doc, lstSlabStrandsUntrimmed);
+            //doc.Editor.WriteMessage("\n-- Completed drawing trimmed slab strands. " + lstSlabStrandsTrimmed.Count + " trimmed slab strands created.");
 
             #endregion
 
@@ -642,8 +664,6 @@ namespace EE_Analyzer
                 Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
                 trans.Commit();
             }
-
-
         }
 
         private void CreatePiers(Database db, Document doc,  PierShapes shape, double width, double height)
@@ -912,34 +932,28 @@ namespace EE_Analyzer
         /// <param name="basis"></param>
         /// <param name="isHorizontal"></param>
         /// <exception cref="System.Exception"></exception>
-        private void CreateUntrimmedSlabStrands(Database db, Document doc, Point3d basis, bool isHorizontal)
+        private void CreateUntrimmedSlabStrands(Database db, Document doc, bool isHorizontal)
         {
             double width, spacing, depth;
             // retrieve the bounding box
-            var bbox_points = GetVertices(FDN_BOUNDARY_BOX);
+            if (FDN_BOUNDARY_BOX is null)
+                throw new ArgumentNullException("FDN_BOUNDARY_BOX is null.  Aborting");
 
-            if (bbox_points is null || (bbox_points.Count != 4))
+            if (GetVertices(FDN_BOUNDARY_BOX) is null || (GetVertices(FDN_BOUNDARY_BOX).Count != 4))
             {
                 throw new System.Exception("\nFoundation bounding box must have four points");
             }
 
             if (isHorizontal is true)
             {
-                int num_strands = Beam_X_Slab_Strand_Qty + 1;  // one added since the first spacing is half a spacing from bottom edge of boundaing box
-
-                spacing = (FDN_BOUNDARY_BOX.GetPoint3dAt(1).Y-FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y) / num_strands;
-
-                // grade beams to the upper boundary box horizontal edge
-                int count = 0;
-                while (bbox_points[0].Y + 0.5 * spacing + (count * spacing) < bbox_points[1].Y)
+                for (int i = 0; i < Slab_Strand_X_Loc_Data.Length; i++)
                 {
-
-                    Point3d p1 = new Point3d(bbox_points[0].X, bbox_points[0].Y + 0.5 * spacing + (count * spacing), 0);
-                    Point3d p2 = new Point3d(bbox_points[3].X, bbox_points[0].Y + 0.5 * spacing + (count * spacing), 0);
+                    Point3d p1 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X, Slab_Strand_X_Loc_Data[i], 0);
+                    Point3d p2 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(3).X, Slab_Strand_X_Loc_Data[i], 0);
 
                     if (p1 == p2)
                     {
-                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skippingslab strand here.");
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping slab strand here.");
                         continue;
                     }
                     // reverse the points so the smallest X is on the left
@@ -952,27 +966,18 @@ namespace EE_Analyzer
 
                     StrandModel strand = new StrandModel(p1, p2, 1, false, false);
                     lstSlabStrandsUntrimmed.Add(strand);
-
-                    count++;
                 }
             }
             else
             {
-                // for vertical beams
-                int num_strands = Beam_Y_Slab_Strand_Qty + 1;
-
-                spacing = (FDN_BOUNDARY_BOX.GetPoint3dAt(3).X - FDN_BOUNDARY_BOX.GetPoint3dAt(0).X) / num_strands;
-
-
-                int count = 0;
-                while (bbox_points[0].X + 0.5 * spacing + (count * spacing) < bbox_points[3].X)
+                for (int i = 0; i < Slab_Strand_Y_Loc_Data.Length; i++)
                 {
-                    Point3d p1 = new Point3d(bbox_points[0].X + 0.5 * spacing + (count * spacing), bbox_points[0].Y, 0);
-                    Point3d p2 = new Point3d(bbox_points[0].X + 0.5 * spacing + (count * spacing), bbox_points[1].Y, 0);
+                    Point3d p1 = new Point3d(Slab_Strand_Y_Loc_Data[i], FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y, 0);
+                    Point3d p2 = new Point3d(Slab_Strand_Y_Loc_Data[i], FDN_BOUNDARY_BOX.GetPoint3dAt(1).Y, 0);
 
                     if (p1 == p2)
                     {
-                        doc.Editor.WriteMessage("\nStrand line end points are the same.  Skipping strand here.");
+                        doc.Editor.WriteMessage("\nBeam line points are the same.  Skipping slab strand here.");
                         continue;
                     }
                     // reverse the points so the smallest Y is on the bottom
@@ -985,8 +990,6 @@ namespace EE_Analyzer
 
                     StrandModel strand = new StrandModel(p1, p2, 1, false, false);
                     lstSlabStrandsUntrimmed.Add(strand);
-
-                    count++;
                 }
             }
 
@@ -1269,7 +1272,7 @@ namespace EE_Analyzer
                     Point3d p2 = sorted_grade_beam_points[j + 1];
 
                     // check if the grade beam is long enough for PT
-                    if (MathHelpers.Distance3DBetween(p1, p2) <= DEFAULT_DONT_DRAW_PT_LENGTH)
+                    if (MathHelpers.Distance3DBetween(p1, p2) <= EE_Settings.DEFAULT_MIN_PT_LENGTH)
                     {
                         // beam is too short so skip it
                         continue;
@@ -1435,13 +1438,13 @@ namespace EE_Analyzer
                     doc.Editor.WriteMessage("\nCreating perimeter beam center line.");
                     FDN_PERIMETER_CENTERLINE_POLYLINE = OffsetPolyline(FDN_PERIMETER_POLYLINE, beam_x_width * 0.5, bt, btr);
                     MovePolylineToLayer(FDN_PERIMETER_CENTERLINE_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
-                    PolylineSetLinetype(FDN_PERIMETER_CENTERLINE_POLYLINE, "CENTER", bt, btr);
+                    PolylineSetLinetype(FDN_PERIMETER_CENTERLINE_POLYLINE, "CENTER2", bt, btr);
 
                     // Offset the perimeter polyline and move it to its appropriate layer
                     doc.Editor.WriteMessage("\nCreating perimeter beam inner edge line.");
                     FDN_PERIMETER_INTERIOR_EDGE_POLYLINE = OffsetPolyline(FDN_PERIMETER_POLYLINE, beam_x_width, bt, btr);
                     MovePolylineToLayer(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
-                    PolylineSetLinetype(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, "HIDDEN", bt, btr);
+                    PolylineSetLinetype(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, "HIDDENX2", bt, btr);
 
                     trans.Commit();
                 }
@@ -1587,9 +1590,6 @@ namespace EE_Analyzer
                     pl.AddVertexAt(3, boundP4, 0, 0, 0);
                     pl.Closed = true;
                     pl.ColorIndex = 140; // cyan color
-
-                    // assign the layer
-//                    pl.Layer = EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER;
 
                     // Set the default properties
                     pl.SetDatabaseDefaults();
@@ -1777,7 +1777,7 @@ namespace EE_Analyzer
                     // Otherwise reload the previous iteration values
                     dialog = new EE_FDNInputDialog(CurrentFoundationLayout, Beam_X_Qty, Beam_X_Spacing, Beam_X_Width, Beam_X_Depth,
                     Beam_Y_Qty, Beam_Y_Spacing, Beam_Y_Width, Beam_Y_Depth, Beam_X_Strand_Qty,
-                    Beam_X_Slab_Strand_Qty, Beam_Y_Strand_Qty, Beam_Y_Slab_Strand_Qty, DEFAULT_DONT_DRAW_PT_LENGTH,
+                    Beam_X_Slab_Strand_Qty, Beam_Y_Strand_Qty, Beam_Y_Slab_Strand_Qty, EE_Settings.DEFAULT_MIN_PT_LENGTH,
                     Beam_X_DETAIL_QTY_1, Beam_X_DETAIL_QTY_2, Beam_X_DETAIL_QTY_3, Beam_X_DETAIL_QTY_4, Beam_X_DETAIL_QTY_5,
                     Beam_X_DETAIL_SPA_1, Beam_X_DETAIL_SPA_2, Beam_X_DETAIL_SPA_3, Beam_X_DETAIL_SPA_4, Beam_X_DETAIL_SPA_5,
                     Beam_Y_DETAIL_QTY_1, Beam_Y_DETAIL_QTY_2, Beam_Y_DETAIL_QTY_3, Beam_Y_DETAIL_QTY_4, Beam_Y_DETAIL_QTY_5,
