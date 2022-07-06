@@ -475,5 +475,95 @@ namespace EE_Analyzer.TestingFunctions
 
             return ents;
         }
+
+        [CommandMethod("DHOR")]
+        public static void DimHorizontal()
+        {
+            var doc = Application.DocumentManager.MdiActiveDocument;
+            var db = doc.Database;
+            var ed = doc.Editor;
+
+            // get the first point
+            var options = new PromptPointOptions("\nPick the first point: ");
+            var result = ed.GetPoint(options);
+            if (result.Status != PromptStatus.OK)
+                return;
+            var pt1 = result.Value;
+
+            // get the second point (must have a different X value)
+            options.Message = "\nPick the second point: ";
+            options.BasePoint = pt1;
+            options.UseBasePoint = true;
+            while (true)
+            {
+                result = ed.GetPoint(options);
+                if (result.Status != PromptStatus.OK)
+                    return;
+                if (result.Value.X != pt1.X)
+                    break; ;
+                ed.WriteMessage("\nSecond point must have different X value.");
+            }
+            var pt2 = result.Value;
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                // compute the 'dimensionLinePoint' (max Y value + the current dimstyle text height X 5
+                var dimstyle = (DimStyleTableRecord)tr.GetObject(db.Dimstyle, OpenMode.ForRead);
+                var pt3 = new Point3d(pt1.X, Math.Max(pt1.Y, pt2.Y) + 5 * dimstyle.Dimtxt, 0.0);
+
+                // create a new RotatedDimension
+                var cSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                var dim = new RotatedDimension(0.0, pt1, pt2, pt3, "", db.Dimstyle);
+                dim.TransformBy(ed.CurrentUserCoordinateSystem);
+                cSpace.AppendEntity(dim);
+                tr.AddNewlyCreatedDBObject(dim, true);
+                tr.Commit();
+            }
+        }
+
+        [CommandMethod("DVER")]
+        public static void DimVertical()
+        {
+            var doc = Application.DocumentManager.MdiActiveDocument;
+            var db = doc.Database;
+            var ed = doc.Editor;
+
+            // get the first point
+            var options = new PromptPointOptions("\nPick the first point: ");
+            var result = ed.GetPoint(options);
+            if (result.Status != PromptStatus.OK)
+                return;
+            var pt1 = result.Value;
+
+            // get the second point (must have a different Y value)
+            options.Message = "\nPick the second point: ";
+            options.BasePoint = pt1;
+            options.UseBasePoint = true;
+            while (true)
+            {
+                result = ed.GetPoint(options);
+                if (result.Status != PromptStatus.OK)
+                    return;
+                if (result.Value.Y != pt1.Y)
+                    break; ;
+                ed.WriteMessage("\nSecond point must have different Y value.");
+            }
+            var pt2 = result.Value;
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                // compute the 'dimensionLinePoint' (max X value + the current dimstyle text height X 5
+                var dimstyle = (DimStyleTableRecord)tr.GetObject(db.Dimstyle, OpenMode.ForRead);
+                var pt3 = new Point3d(Math.Max(pt1.X, pt2.X) + 5 * dimstyle.Dimtxt, pt1.Y, 0.0);
+
+                // create a new RotatedDimension
+                var cSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                var dim = new RotatedDimension(0.5 * Math.PI, pt1, pt2, pt3, "", db.Dimstyle);
+                dim.TransformBy(ed.CurrentUserCoordinateSystem);
+                cSpace.AppendEntity(dim);
+                tr.AddNewlyCreatedDBObject(dim, true);
+                tr.Commit();
+            }
+        }
     }
 }

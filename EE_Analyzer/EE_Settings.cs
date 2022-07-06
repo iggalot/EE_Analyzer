@@ -42,6 +42,7 @@ namespace EE_Analyzer
         public const double DEFAULT_STRAND_INFO_TEXT_SIZE = 5; // about 150% of arrow width seens about right
 
         public static double DEFAULT_MIN_PT_LENGTH = 240;  // Length (in inches) for which PT is not practical -- so no grade beams
+        public const double DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION = 36;  // amount to add to both dead and live ends for stressing operations
 
 
         // Pier information

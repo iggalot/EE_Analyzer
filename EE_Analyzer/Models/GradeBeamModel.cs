@@ -11,14 +11,14 @@ using System.Collections.Generic;
 
 namespace EE_Analyzer.Models
 {
-    public class GradeBeamModel
+    public class GradeBeamModel : FoundationObject
     {
         private int _beamNum = 0;
         private const double _labelHt = EE_Settings.DEFAULT_GRADE_BEAM_INFO_TEXT_SIZE;
 
-        // Unit vector for the direction of the grade beam from start node to end node
-        private Vector3d VDirection { get; set; } = new Vector3d(1, 0, 0);
-        private Vector3d VPerpendicular { get; set; } = new Vector3d(1, 0, 0);
+        //// Unit vector for the direction of the grade beam from start node to end node
+        //private Vector3d VDirection { get; set; } = new Vector3d(1, 0, 0);
+        //private Vector3d VPerpendicular { get; set; } = new Vector3d(1, 0, 0);
 
         // Depth of the grade beam
         public double Depth { get; set; }
@@ -26,26 +26,26 @@ namespace EE_Analyzer.Models
         // Width of the grade beam
         public double Width { get; set; }
 
-        // Start point for the grade beam
-        public Point3d StartPt { get; set; }
+        //// Start point for the grade beam
+        //public Point3d StartPt { get; set; }
 
-        // End point for the grade beam
-        public Point3d EndPt { get; set; }
+        //// End point for the grade beam
+        //public Point3d EndPt { get; set; }
 
         private Point3d TagEnd { get; set; }
 
         // AutoCAD Centerline object for the grade beam
 
-        public Point3d CL_Pt_A { get; set; }
-        public Point3d CL_Pt_B { get; set; }
+        //public Point3d CL_Pt_A { get; set; }
+        //public Point3d CL_Pt_B { get; set; }
         public Point3d E1_Pt_A { get; set; }
         public Point3d E1_Pt_B { get; set; }
         public Point3d E2_Pt_A { get; set; }
         public Point3d E2_Pt_B { get; set; }
 
 
-        // AutoCAD polyline object for the plan view of the beam centerline
-        public Line Centerline { get; set; } = null;
+        //// AutoCAD polyline object for the plan view of the beam centerline
+        //public Line Centerline { get; set; } = null;
 
         // AutoCAD polyline object for the plan view of edge one
         public Line Edge1 { get; set; } = null;
@@ -63,83 +63,24 @@ namespace EE_Analyzer.Models
             } 
         }
 
-        public bool IsTrimmed { get; set; } = false;
-        public bool IsHorizontal { get; set; } = true;
+        //public bool IsTrimmed { get; set; } = false;
+        //public bool IsHorizontal { get; set; } = true;
 
         // A label for the grade beam
         public string Label { get => "GB" + BeamNum.ToString(); }
 
         private IntersectPointData[] SortedGradeBeamIntersects = null;
 
-        public GradeBeamModel(Point3d start, Point3d end, int num_strands, bool is_trimmed, bool is_horizontal, int beam_num, double width = 12.0, double depth = 24.0)
+        public GradeBeamModel(Point3d start, Point3d end, int num_strands, bool is_trimmed, bool is_horizontal, int beam_num, double width = 12.0, double depth = 24.0) : base(start, end, 0, is_horizontal)
         {
             // Set basic info
-            IsHorizontal = is_horizontal;
             Width = width;
             Depth = depth;
             IsTrimmed = is_trimmed;
             _beamNum = beam_num;  // update the grade beam number
 
-            // swap the start point and end point based on lowest X then lowest Y
-            bool shouldSwap = false;
-            if (is_horizontal)
-            {
-                if (start.X > end.X)
-                {
-                    shouldSwap = true;
-                }
-                else if (start.X == end.X)
-                {
-                    if (start.Y > end.Y)
-                    {
-                        shouldSwap = true;
-                    }
-                }
-                else
-                {
-                    shouldSwap = false;
-                }
-            } else
-            {
-                if (start.Y > end.Y)
-                {
-                    shouldSwap = true;
-                }
-                else if (start.Y == end.Y)
-                {
-                    if (start.X > end.X)
-                    {
-                        shouldSwap = true;
-                    }
-                }
-                else
-                {
-                    shouldSwap = false;
-                }
-            }
-
-            // Now swap the points
-            if (shouldSwap is true)
-            {
-                StartPt = end;
-                EndPt = start;
-                CL_Pt_A = end;
-                CL_Pt_B = start;
-            }
-            else
-            {
-                StartPt = start;
-                EndPt = end;
-                CL_Pt_A = start;
-                CL_Pt_B = end;
-            }
-
             // which end of the beam to display the labels
             TagEnd = StartPt;
-
-            // set the direction unit vector
-            VDirection = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
-            VPerpendicular = MathHelpers.Normalize(MathHelpers.CrossProduct(Vector3d.ZAxis, VDirection));
 
             // Computes the end points for the edge lines of Edge 1 and Edge2
             E1_Pt_A = MathHelpers.Point3dFromVectorOffset(CL_Pt_A, VPerpendicular * width * 0.5);
@@ -148,7 +89,7 @@ namespace EE_Analyzer.Models
             E2_Pt_B = MathHelpers.Point3dFromVectorOffset(CL_Pt_B, (-1.0) * VPerpendicular * width * 0.5);
 
             // Create the beam strand info
-            StrandInfo = new StrandModel(CL_Pt_A, CL_Pt_B, num_strands, true, is_trimmed);
+            StrandInfo = new StrandModel(CL_Pt_A, CL_Pt_B, width, num_strands, true, is_trimmed, is_horizontal);
 
         }
 
@@ -157,7 +98,7 @@ namespace EE_Analyzer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public void AddToAutoCADDatabase(Database db, Document doc)
+        public override void AddToAutoCADDatabase(Database db, Document doc)
         {
             string layer_name = "";
             if(IsTrimmed)
@@ -178,24 +119,29 @@ namespace EE_Analyzer.Models
                 
                 if(CL_Pt_A != null && CL_Pt_B != null)
                 {
-                    // if strand qty = 0, we need to draw the centerline, otherwise we don't draw it because the strand line will be present
-                    if(StrandInfo.Qty == 0)
-                    {
-                        // Create the center line objects
-                        Centerline = OffsetLine(new Line(CL_Pt_A, CL_Pt_B), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
 
-                        try
-                        {
-                            MoveLineToLayer(Centerline, layer_name);
-                            LineSetLinetype(Centerline, "CENTER2");
-                        }
-                        catch (System.Exception ex)
-                        {
-                            doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
-                            trans.Abort();
-                            return;
-                        }
-                    }
+                    //// if strand qty = 0, we need to draw the centerline, otherwise we don't draw it because the strand line will be present
+                    //if(StrandInfo.Qty == 0)
+                    //{
+                    //    // Create the center line objects
+                    //    Centerline = OffsetLine(new Line(CL_Pt_A, CL_Pt_B), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
+
+                    //    try
+                    //    {
+                    //        MoveLineToLayer(Centerline, layer_name);
+                    //        LineSetLinetype(Centerline, "CENTER2");
+                    //    }
+                    //    catch (System.Exception ex)
+                    //    {
+                    //        doc.Editor.WriteMessage("\nError encountered while adding Centerline of Gradebeam entities to AutoCAD DB: " + ex.Message);
+                    //        trans.Abort();
+                    //        return;
+                    //    }
+                    //}
+
+                    Centerline = OffsetLine(new Line(CL_Pt_A, CL_Pt_B), 0) as Line;  // Must create the centerline this way to have it added to the AutoCAD database
+                    MoveLineToLayer(Centerline, layer_name);
+                    LineSetLinetype(Centerline, "CENTER2");
 
                 }
 
@@ -286,8 +232,11 @@ namespace EE_Analyzer.Models
                 try
                 {
                     // Draw the beam label
+                    if (IsTrimmed)
+                    {
+                        layer_name = EE_Settings.DEFAULT_FDN_TEXTS_LAYER;
+                    }
                     DrawBeamLabel(db, doc, layer_name);
-
                 }
                 catch (System.Exception ex)
                 {
@@ -348,7 +297,7 @@ namespace EE_Analyzer.Models
                 Point3d insPt = StartPt;
 
                 // Get the angle of the polyline
-                var angle = Math.Atan((EndPt.Y - StartPt.Y) / (EndPt.X - StartPt.X));
+                var angle = Angle;
 
                 try
                 {

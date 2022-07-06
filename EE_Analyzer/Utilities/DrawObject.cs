@@ -255,5 +255,39 @@ namespace EE_Analyzer.Utilities
                 }
             }
         }
+
+        public static void DrawVerticalDimension(Database db, Document doc, Point3d dim_leader_pt1, Point3d dim_leader_pt2, Point3d dim_line_pt )
+        {
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                // compute the 'dimensionLinePoint' (max X value + the current dimstyle text height X 5
+                var dimstyle = (DimStyleTableRecord)tr.GetObject(db.Dimstyle, OpenMode.ForRead);
+
+                                // create a new RotatedDimension
+                var cSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                var dim = new RotatedDimension(0.5 * Math.PI, dim_leader_pt1, dim_leader_pt2, dim_line_pt, "", db.Dimstyle);
+                dim.TransformBy(doc.Editor.CurrentUserCoordinateSystem);
+                cSpace.AppendEntity(dim);
+                tr.AddNewlyCreatedDBObject(dim, true);
+                tr.Commit();
+            }
+        }
+
+        public static void DrawHorizontalDimension(Database db, Document doc, Point3d dim_leader_pt1, Point3d dim_leader_pt2, Point3d dim_line_pt)
+        {
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                // compute the 'dimensionLinePoint' (max X value + the current dimstyle text height X 5
+                var dimstyle = (DimStyleTableRecord)tr.GetObject(db.Dimstyle, OpenMode.ForRead);
+
+                // create a new RotatedDimension
+                var cSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                var dim = new RotatedDimension(0, dim_leader_pt1, dim_leader_pt2, dim_line_pt, "", db.Dimstyle);
+                dim.TransformBy(doc.Editor.CurrentUserCoordinateSystem);
+                cSpace.AppendEntity(dim);
+                tr.AddNewlyCreatedDBObject(dim, true);
+                tr.Commit();
+            }
+        }
     }
 }

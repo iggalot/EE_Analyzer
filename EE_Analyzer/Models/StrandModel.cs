@@ -10,70 +10,36 @@ using static EE_Analyzer.Utilities.MathHelpers;
 
 namespace EE_Analyzer.Models
 {
-    public class StrandModel
+    public class StrandModel : FoundationObject
     {
         // strand arrow parameters
         private double strand_icon_length = EE_Settings.DEFAULT_STRAND_ARROW_LENGTH;
         private double strand_icon_width = EE_Settings.DEFAULT_STRAND_ARROW_WIDTH;
 
-        private int _id = 0;
-        public int Id { get; set; }
+        private int _strand_id = 0;
+        public int StrandID { get; set; }
 
-        public Point3d StartPt { get; set; }
-        public Point3d EndPt { get; set; }
+        //public Point3d StartPt { get; set; }
+        //public Point3d EndPt { get; set; }
         public string Label { get; set; } = "SXX";
-        public double Length { get; set; }
+        //public double Length { get; set; }
 
-        public Line Centerline { get; set; }
+        //public Line Centerline { get; set; }
 
         public Point3d LiveEnd { get; set; }
         public int Qty { get; set; } = 1;
 
-        public Polyline LiveEndIcon;
-        public Polyline DeadEndIcon;
+        //public Polyline LiveEndIcon;
+        //public Polyline DeadEndIcon;
 
         public bool IsBeamStrand { get; set; } = false;
-        public bool IsTrimmed { get; set; } = false; 
+        //public bool IsTrimmed { get; set; } = false; 
 
-        public StrandModel(Point3d start, Point3d end, int qty, bool isBeamStrand, bool isTrimmed)
+        public StrandModel(Point3d start, Point3d end, double perim_beam_wdith, int qty, bool isBeamStrand, bool isTrimmed, bool is_horizontal) : base(start, end, perim_beam_wdith, is_horizontal)
         {
-
-
-            // swap the start point and end point based on lowest X then lowest Y
-            bool shouldSwap = false;
-            if (start.X > end.X)
-            {
-                shouldSwap = true;
-            }
-            else if (start.X == end.X)
-            {
-                if (start.Y > end.Y)
-                {
-                    shouldSwap = true;
-                }
-            } else
-            {
-                shouldSwap = false;
-            }
-
-            if (shouldSwap is true)
-            {
-                StartPt = end;
-                EndPt = start;
-            }
-            else
-            {
-                StartPt = start;
-                EndPt = end;
-            }
-
             IsBeamStrand = isBeamStrand;
             IsTrimmed = isTrimmed;
             Qty = qty;
-
-
-
-            Length = MathHelpers.Distance3DBetween(start, end);
 
             string str = Qty + "x ";
             if (isBeamStrand)
@@ -83,8 +49,19 @@ namespace EE_Analyzer.Models
 
             Label = str + "S" + (Math.Ceiling(Length * 10 / 12).ToString());
 
-            Id = _id;
-            _id++;
+            StrandID = _strand_id;
+            _strand_id++;
+
+            // Offset the beam strands by the width of the perimeter beam.  Slab strands do not need this offset since they are trimmed to another line.
+            // StartPt end goes in negative VDirection
+            // EndPt end goes in positive Vdirection
+            if(isBeamStrand)
+            {
+                StartPt = Point3dFromVectorOffset(StartPt, -perim_beam_wdith * VDirection);
+                EndPt = Point3dFromVectorOffset(EndPt, perim_beam_wdith * VDirection);
+            }
+
+
         }
 
         /// <summary>
@@ -115,7 +92,7 @@ namespace EE_Analyzer.Models
             return strand_layer;
         }
 
-        public void AddToAutoCADDatabase(Database db, Document doc)
+        public override void AddToAutoCADDatabase(Database db, Document doc)
         {
             if(Qty > 0)
             {
@@ -155,7 +132,6 @@ namespace EE_Analyzer.Models
                 //doc.Editor.WriteMessage("Drawing StrandLabel");
                 //DrawStrandLabel(db, doc, layer_name);
             }
-
         }
 
         public Polyline DrawLiveEndIcon(Database db, Document doc, string layer_name)
@@ -171,7 +147,7 @@ namespace EE_Analyzer.Models
                 try
                 {
                     // Get the angle of the polyline
-                    var angle = Math.Atan((EndPt.Y - StartPt.Y) / (EndPt.X - StartPt.X));
+                    var angle = Angle;
 
                     Point2d pt1 = new Point2d(StartPt.X, StartPt.Y);
 
@@ -253,7 +229,7 @@ namespace EE_Analyzer.Models
                 try
                 {
                     // Get the angle of the polyline
-                    var angle = Math.Atan((EndPt.Y - StartPt.Y) / (EndPt.X - StartPt.X));
+                    var angle = Angle;
 
                     // And add 180degrees to reverse it.
                     var angle_reverse = angle + Math.PI;
@@ -263,9 +239,6 @@ namespace EE_Analyzer.Models
                     pl.AddVertexAt(0, pt1, 0, strand_icon_width, strand_icon_width);
                     Point2d pt2 = new Point2d(EndPt.X + (0.8 * strand_icon_length) * Math.Cos(angle_reverse), EndPt.Y + (0.8 * strand_icon_length) * Math.Sin(angle_reverse));
                     pl.AddVertexAt(1, pt2, 0, strand_icon_width, strand_icon_width);
-
-
-
 
                     //// For matching number of dead end icons
                     //// Specify the polyline parameters 
@@ -308,49 +281,6 @@ namespace EE_Analyzer.Models
                     trans.Abort();
                     return null;
                 }
-            }
-        }
-
-        private void DrawStrandLabel(Database db, Document doc, string layer_name)
-        {
-            Vector3d vector = StartPt.GetVectorTo(EndPt);
-
-            var length = vector.Length;
-
-            // at this point we know an entity has been selected and it is a Polyline
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-                Point3d insPt = StartPt;
-
-                // Get the angle of the polyline
-                var angle = Math.Atan((EndPt.Y - StartPt.Y) / (EndPt.X - StartPt.X));
-
-                MText mtx = new MText();
-                try
-                {
-                    mtx.Contents = Label;
-                    mtx.Location = new Point3d(insPt.X + Math.Sin(angle) * 0.8 * strand_icon_length, insPt.Y - Math.Cos(angle) * 0.8 * strand_icon_length, 0);
-                    mtx.TextHeight = EE_Settings.DEFAULT_STRAND_INFO_TEXT_SIZE;
-
-                    mtx.Layer = layer_name;
-
-                    mtx.Rotation = angle;
-
-                    btr.AppendEntity(mtx);
-                    trans.AddNewlyCreatedDBObject(mtx, true);
-
-                    trans.Commit();
-                }
-                catch (System.Exception ex)
-                {
-                    doc.Editor.WriteMessage("\nError encountered while adding beam label objects: " + ex.Message);
-                    trans.Abort();
-                    return;
-                }
-
             }
         }
     }

@@ -58,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EE_Settings.cs" />
+    <Compile Include="Models\FoundationObject.cs" />
     <Compile Include="Models\GradeBeamModel.cs" />
     <Compile Include="Models\PierModel.cs" />
     <Compile Include="Models\StrandModel.cs" />
