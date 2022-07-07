@@ -35,7 +35,7 @@ namespace EE_Analyzer.Utilities
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
 
-           // doc.Editor.WriteMessage("offsetting foundation line by: " + offset_dist);
+            // doc.Editor.WriteMessage("offsetting foundation line by: " + offset_dist);
 
             Polyline newPline = new Polyline();
             DBObjectCollection objCollection;
@@ -101,7 +101,7 @@ namespace EE_Analyzer.Utilities
                 }
             }
 
-            return newPline ;
+            return newPline;
         }
         public static void MovePolylineToLayer(Polyline obj, string layer_name, BlockTable bt, BlockTableRecord btr)
         {
@@ -261,7 +261,8 @@ namespace EE_Analyzer.Utilities
                     }
                     trans.Commit();
                 }
-                catch (System.Exception ex) {
+                catch (System.Exception ex)
+                {
                     doc.Editor.WriteMessage("\nError encountered while reversing polyline winding direction: " + ex.Message);
                     trans.Abort();
                     return null;
@@ -278,7 +279,7 @@ namespace EE_Analyzer.Utilities
             Point3d[] points = new Point3d[4];
             int numVertices = pline.NumberOfVertices;
 
-            if(numVertices < 3)
+            if (numVertices < 3)
             {
                 throw new System.Exception("Polyline must have at least two segements (requires three vertices)");
             }
@@ -298,10 +299,10 @@ namespace EE_Analyzer.Utilities
                 Point3d p2 = pline.GetPoint3dAt((i + 1) % numVertices);
                 double length = MathHelpers.Distance3DBetween(p1, p2);
 
-                if(length >= max_length_1)
+                if (length >= max_length_1)
                 {
                     // check if our test segment is not parallel to the current longest
-                    if(EE_Helpers.GetSlopeOfPts(p1,p2) != EE_Helpers.GetSlopeOfPts(p1_longest_1, p2_longest_1))
+                    if (EE_Helpers.GetSlopeOfPts(p1, p2) != EE_Helpers.GetSlopeOfPts(p1_longest_1, p2_longest_1))
                     {
                         // first move the first point to the second
                         p1_longest_2 = p1_longest_1;
@@ -314,7 +315,8 @@ namespace EE_Analyzer.Utilities
                         max_length_1 = length;
                     }
 
-                } else if (length >= max_length_2)
+                }
+                else if (length >= max_length_2)
                 {
                     // check if our test segment is not parallel to the current longest
                     if (EE_Helpers.GetSlopeOfPts(p1, p2) != EE_Helpers.GetSlopeOfPts(p1_longest_2, p2_longest_2))
@@ -328,7 +330,7 @@ namespace EE_Analyzer.Utilities
             }
 
             // Check to make sure we found a non-zero length
-            if(max_length_1 == 0.0 || max_length_2 == 0.0) 
+            if (max_length_1 == 0.0 || max_length_2 == 0.0)
             {
                 throw new System.Exception("Polyline segment lengths all returned a zero value");
             }

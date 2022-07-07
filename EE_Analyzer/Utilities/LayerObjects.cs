@@ -128,17 +128,17 @@ namespace EE_Analyzer.Utilities
                         {
                             new TypedValue((int)DxfCode.LayerName, layerName)
                         };
-                        
+
                         SelectionFilter sf = new SelectionFilter(tvs);
 
                         PromptSelectionResult psr = doc.Editor.SelectAll(sf);
 
                         ObjectIdCollection objColl;
-                        if(psr.Status == PromptStatus.OK)
+                        if (psr.Status == PromptStatus.OK)
                         {
                             objColl = new ObjectIdCollection(psr.Value.GetObjectIds());
 
-                            foreach(ObjectId id in objColl)
+                            foreach (ObjectId id in objColl)
                             {
                                 Entity ent = trans.GetObject(id, OpenMode.ForWrite) as Entity;
                                 ent.Erase();
@@ -161,6 +161,30 @@ namespace EE_Analyzer.Utilities
                     trans.Abort();
                 }
             }
+        }
+
+        public static void MakeLayerCurrent(string name, Document doc, Database db)
+        {
+            // Start a transaction
+            using (Transaction acTrans = doc.TransactionManager.StartTransaction())
+            {
+                // Open the Layer table for read
+                LayerTable acLyrTbl;
+                acLyrTbl = acTrans.GetObject(db.LayerTableId,
+                                                   OpenMode.ForRead) as LayerTable;
+                if (acLyrTbl.Has(name) == true)
+                {
+                    // Set the layer Center current
+                    db.Clayer = acLyrTbl[name];
+                    // Save the changes
+                    acTrans.Commit();
+                }
+            }
+        }
+
+        public static string GetCurrentLayerName()
+        {
+            return Autodesk.AutoCAD.ApplicationServices.Application.GetSystemVariable("clayer").ToString();
         }
     }
 }

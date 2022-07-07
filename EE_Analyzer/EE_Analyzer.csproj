@@ -64,6 +64,7 @@
     <Compile Include="Models\StrandModel.cs" />
     <Compile Include="TestingFunctions\TestingFunctions.cs" />
     <Compile Include="Utilities\BlockObjects.cs" />
+    <Compile Include="Utilities\DimensionObjects.cs" />
     <Compile Include="Utilities\DrawObject.cs" />
     <Compile Include="Utilities\EE_Helpers.cs" />
     <Compile Include="FoundationLayout.cs" />

@@ -88,7 +88,7 @@ namespace EE_Analyzer.Utilities
             view.CenterPoint = min2d + ((max2d - min2d) / 2.0);
             view.Height = max2d.Y - min2d.Y;
             view.Width = max2d.X - min2d.X;
-            ed.SetCurrentView(view);            
+            ed.SetCurrentView(view);
         }
     }
 }

@@ -1,9 +1,9 @@
-﻿using System;
-using Autodesk.AutoCAD.ApplicationServices;
+﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.Runtime;
+using System;
 
 namespace EE_Analyzer
 {
@@ -31,7 +31,7 @@ namespace EE_Analyzer
                 using (Transaction trans = db.TransactionManager.StartTransaction())
                 {
                     BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                    BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord; 
+                    BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                     switch (answer)
                     {
@@ -62,7 +62,7 @@ namespace EE_Analyzer
                             mtx.TextHeight = 10;
                             mtx.ColorIndex = 2;
                             btr.AppendEntity(mtx);
-                            trans.AddNewlyCreatedDBObject(mtx, true);   
+                            trans.AddNewlyCreatedDBObject(mtx, true);
                             break;
                         default:
                             doc.Editor.WriteMessage("No option selected");
@@ -152,12 +152,12 @@ namespace EE_Analyzer
                 // Get the result of the user input using a PromptResult
                 PromptResult result = edt.GetString(prompt);
 
-                if(result.Status == PromptStatus.OK)
+                if (result.Status == PromptStatus.OK)
                 {
                     string layerName = result.StringResult;
-                    
+
                     // Check if the entered layer name exists in the layer database
-                    if(lyTab.Has(layerName) == true)
+                    if (lyTab.Has(layerName) == true)
                     {
                         // Set the layer current
                         db.Clayer = lyTab[layerName];
@@ -192,7 +192,7 @@ namespace EE_Analyzer
 
             // Get the results of the user input using a PromptResult
             PromptResult result = edt.GetString(prompt);
-            if(result.Status == PromptStatus.OK)
+            if (result.Status == PromptStatus.OK)
             {
                 string name = result.StringResult;
                 edt.WriteMessage("Hello there: " + name);

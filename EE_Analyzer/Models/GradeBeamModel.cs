@@ -3,11 +3,11 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using EE_Analyzer.Utilities;
 using System;
-using static EE_Analyzer.Utilities.LineObjects;
+using System.Collections.Generic;
 using static EE_Analyzer.Utilities.BlockObjects;
 using static EE_Analyzer.Utilities.DrawObject;
 using static EE_Analyzer.Utilities.EE_Helpers;
-using System.Collections.Generic;
+using static EE_Analyzer.Utilities.LineObjects;
 
 namespace EE_Analyzer.Models
 {
@@ -56,11 +56,13 @@ namespace EE_Analyzer.Models
         public StrandModel StrandInfo { get; set; } = null;
 
         // The index number for the grade beam
-        public int BeamNum { 
-            get => _beamNum; 
-            set {
+        public int BeamNum
+        {
+            get => _beamNum;
+            set
+            {
                 _beamNum = value;
-            } 
+            }
         }
 
         //public bool IsTrimmed { get; set; } = false;
@@ -101,10 +103,11 @@ namespace EE_Analyzer.Models
         public override void AddToAutoCADDatabase(Database db, Document doc)
         {
             string layer_name = "";
-            if(IsTrimmed)
+            if (IsTrimmed)
             {
                 layer_name = EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
-            } else
+            }
+            else
             {
                 layer_name = EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER;
             }
@@ -116,8 +119,8 @@ namespace EE_Analyzer.Models
             {
                 BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                
-                if(CL_Pt_A != null && CL_Pt_B != null)
+
+                if (CL_Pt_A != null && CL_Pt_B != null)
                 {
 
                     //// if strand qty = 0, we need to draw the centerline, otherwise we don't draw it because the strand line will be present
@@ -149,7 +152,7 @@ namespace EE_Analyzer.Models
                 if (E1_Pt_A != null && E1_Pt_B != null)
                 {
                     // draw line segment from E1_pt_A to first grade beam first point
-                    if(SortedGradeBeamIntersects != null && SortedGradeBeamIntersects.Length > 0)
+                    if (SortedGradeBeamIntersects != null && SortedGradeBeamIntersects.Length > 0)
                     {
                         Line ln;
                         Point3d first = E1_Pt_A;
@@ -304,7 +307,7 @@ namespace EE_Analyzer.Models
                     //mtx = new MText();
 
                     mtx.Contents = Label;
-                    mtx.Location = new Point3d(insPt.X - Math.Sin(angle) * 1.25* Width, insPt.Y + Math.Cos(angle) * 1.25 * Width, 0);
+                    mtx.Location = new Point3d(insPt.X - Math.Sin(angle) * 1.25 * Width, insPt.Y + Math.Cos(angle) * 1.25 * Width, 0);
                     mtx.TextHeight = _labelHt;
 
                     mtx.Layer = layer_name;
@@ -354,7 +357,7 @@ namespace EE_Analyzer.Models
         {
             List<IntersectPointData> lst = new List<IntersectPointData>();
 
-            foreach(GradeBeamModel gb in gb_models)
+            foreach (GradeBeamModel gb in gb_models)
             {
                 // Find the intersection point
                 IntersectPointData p1_data = FindPointOfIntersectLines_FromPoint3d(
@@ -367,7 +370,8 @@ namespace EE_Analyzer.Models
                 if (p1_data == null)
                 {
                     continue;
-                } else
+                }
+                else
                 {
                     if (p1_data.isWithinSegment)
                     {
@@ -376,7 +380,7 @@ namespace EE_Analyzer.Models
                 }
             }
 
-            if(lst.Count < 0)
+            if (lst.Count < 0)
             {
                 return;
             }
@@ -402,7 +406,8 @@ namespace EE_Analyzer.Models
                         }
                     }
                 }
-            } else
+            }
+            else
             {
                 sort_arr = lst.ToArray();
                 IntersectPointData temp;
@@ -419,8 +424,8 @@ namespace EE_Analyzer.Models
                         }
                     }
                 }
-            } 
-            
+            }
+
             SortedGradeBeamIntersects = sort_arr;
 
             return;

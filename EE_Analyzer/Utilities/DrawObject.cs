@@ -1,9 +1,9 @@
-﻿using System;
-using Autodesk.AutoCAD.ApplicationServices;
+﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.Runtime;
+using System;
 
 namespace EE_Analyzer.Utilities
 {
@@ -170,7 +170,7 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        public static Line DrawLine(Point3d pt1, Point3d pt2, string layer_name, string linetype_name="CONTINUOUS")
+        public static Line DrawLine(Point3d pt1, Point3d pt2, string layer_name, string linetype_name = "CONTINUOUS")
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -188,7 +188,7 @@ namespace EE_Analyzer.Utilities
                     bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
 
                     BlockTableRecord btr;
-                    btr=trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                    btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
                     // Send a message to the user
                     // edt.WriteMessage("\nDrawing a Line object: ");
@@ -208,7 +208,7 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    edt.WriteMessage("Error encountered drawing line from " + pt1.X + "," + pt1.Y + " to " + pt2.X + "," + pt2.Y +" -- " + ex.Message);
+                    edt.WriteMessage("Error encountered drawing line from " + pt1.X + "," + pt1.Y + " to " + pt2.X + "," + pt2.Y + " -- " + ex.Message);
                     trans.Abort();
                 }
             }
@@ -256,38 +256,6 @@ namespace EE_Analyzer.Utilities
             }
         }
 
-        public static void DrawVerticalDimension(Database db, Document doc, Point3d dim_leader_pt1, Point3d dim_leader_pt2, Point3d dim_line_pt )
-        {
-            using (var tr = db.TransactionManager.StartTransaction())
-            {
-                // compute the 'dimensionLinePoint' (max X value + the current dimstyle text height X 5
-                var dimstyle = (DimStyleTableRecord)tr.GetObject(db.Dimstyle, OpenMode.ForRead);
 
-                                // create a new RotatedDimension
-                var cSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
-                var dim = new RotatedDimension(0.5 * Math.PI, dim_leader_pt1, dim_leader_pt2, dim_line_pt, "", db.Dimstyle);
-                dim.TransformBy(doc.Editor.CurrentUserCoordinateSystem);
-                cSpace.AppendEntity(dim);
-                tr.AddNewlyCreatedDBObject(dim, true);
-                tr.Commit();
-            }
-        }
-
-        public static void DrawHorizontalDimension(Database db, Document doc, Point3d dim_leader_pt1, Point3d dim_leader_pt2, Point3d dim_line_pt)
-        {
-            using (var tr = db.TransactionManager.StartTransaction())
-            {
-                // compute the 'dimensionLinePoint' (max X value + the current dimstyle text height X 5
-                var dimstyle = (DimStyleTableRecord)tr.GetObject(db.Dimstyle, OpenMode.ForRead);
-
-                // create a new RotatedDimension
-                var cSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
-                var dim = new RotatedDimension(0, dim_leader_pt1, dim_leader_pt2, dim_line_pt, "", db.Dimstyle);
-                dim.TransformBy(doc.Editor.CurrentUserCoordinateSystem);
-                cSpace.AppendEntity(dim);
-                tr.AddNewlyCreatedDBObject(dim, true);
-                tr.Commit();
-            }
-        }
     }
 }

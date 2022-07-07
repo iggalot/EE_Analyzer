@@ -4,21 +4,22 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
+using EE_Analyzer.Models;
+using EE_Analyzer.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static EE_Analyzer.Utilities.LinetypeObjects;
-using static EE_Analyzer.Utilities.LayerObjects;
-using static EE_Analyzer.Utilities.EE_Helpers;
-using static EE_Analyzer.Utilities.PolylineObjects;
-using static EE_Analyzer.Utilities.LineObjects;
+using System.Windows;
 using static EE_Analyzer.Utilities.DrawObject;
+using static EE_Analyzer.Utilities.EE_Helpers;
+using static EE_Analyzer.Utilities.LayerObjects;
+using static EE_Analyzer.Utilities.LineObjects;
+using static EE_Analyzer.Utilities.LinetypeObjects;
 using static EE_Analyzer.Utilities.ModifyAutoCADGraphics;
+using static EE_Analyzer.Utilities.PolylineObjects;
+using static EE_Analyzer.Utilities.DimensionObjects;
 
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
-using EE_Analyzer.Models;
-using EE_Analyzer.Utilities;
-using System.Windows;
 
 namespace EE_Analyzer
 {
@@ -94,25 +95,25 @@ namespace EE_Analyzer
 
 
         // Variable quantity and spacing parameters
-        public int Beam_X_DETAIL_QTY_1 {get; set;}
-        public int Beam_X_DETAIL_QTY_2 {get; set;}
-        public int Beam_X_DETAIL_QTY_3 {get; set;}
-        public int Beam_X_DETAIL_QTY_4 {get; set;}
+        public int Beam_X_DETAIL_QTY_1 { get; set; }
+        public int Beam_X_DETAIL_QTY_2 { get; set; }
+        public int Beam_X_DETAIL_QTY_3 { get; set; }
+        public int Beam_X_DETAIL_QTY_4 { get; set; }
         public int Beam_X_DETAIL_QTY_5 { get; set; }
-        public double Beam_X_DETAIL_SPA_1 {get; set;}
-        public double Beam_X_DETAIL_SPA_2 {get; set;}
-        public double Beam_X_DETAIL_SPA_3 {get; set;}
-        public double Beam_X_DETAIL_SPA_4 {get; set;}
+        public double Beam_X_DETAIL_SPA_1 { get; set; }
+        public double Beam_X_DETAIL_SPA_2 { get; set; }
+        public double Beam_X_DETAIL_SPA_3 { get; set; }
+        public double Beam_X_DETAIL_SPA_4 { get; set; }
         public double Beam_X_DETAIL_SPA_5 { get; set; }
-        public int Beam_Y_DETAIL_QTY_1 {get; set; }
-        public int Beam_Y_DETAIL_QTY_2 {get; set; }
-        public int Beam_Y_DETAIL_QTY_3 {get; set; }
-        public int Beam_Y_DETAIL_QTY_4 {get; set; }
+        public int Beam_Y_DETAIL_QTY_1 { get; set; }
+        public int Beam_Y_DETAIL_QTY_2 { get; set; }
+        public int Beam_Y_DETAIL_QTY_3 { get; set; }
+        public int Beam_Y_DETAIL_QTY_4 { get; set; }
         public int Beam_Y_DETAIL_QTY_5 { get; set; }
-        public double Beam_Y_DETAIL_SPA_1 {get; set; }
-        public double Beam_Y_DETAIL_SPA_2 {get; set; }
-        public double Beam_Y_DETAIL_SPA_3 {get; set; }
-        public double Beam_Y_DETAIL_SPA_4 {get; set; }
+        public double Beam_Y_DETAIL_SPA_1 { get; set; }
+        public double Beam_Y_DETAIL_SPA_2 { get; set; }
+        public double Beam_Y_DETAIL_SPA_3 { get; set; }
+        public double Beam_Y_DETAIL_SPA_4 { get; set; }
         public double Beam_Y_DETAIL_SPA_5 { get; set; }
         #endregion
 
@@ -130,9 +131,9 @@ namespace EE_Analyzer
             int bx_strand_qty, int sx_strand_qty, int by_strand_qty, int sy_strand_qty,
             int x_spa_1_qty, int x_spa_2_qty, int x_spa_3_qty, int x_spa_4_qty, int x_spa_5_qty,
             double x_spa_1_spa, double x_spa_2_spa, double x_spa_3_spa, double x_spa_4_spa, double x_spa_5_spa,
-            int y_spa_1_qty, int y_spa_2_qty, int y_spa_3_qty, int y_spa_4_qty, int y_spa_5_qty ,
-            double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa, 
-            UIModes default_mode_x, UIModes default_mode_y,  
+            int y_spa_1_qty, int y_spa_2_qty, int y_spa_3_qty, int y_spa_4_qty, int y_spa_5_qty,
+            double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa,
+            UIModes default_mode_x, UIModes default_mode_y,
             bool piers_active, PierShapes pier_shape, double pier_width, double pier_height,
             bool preview_mode, bool should_close,
             double neglect_dimension)
@@ -250,7 +251,7 @@ namespace EE_Analyzer
 
                 if (x_spa_1_qty > 0)
                 {
-                    if(x_spa_1_spa > 0)
+                    if (x_spa_1_spa > 0)
                     {
                         for (int i = temp_count; i < x_spa_1_qty; i++)
                         {
@@ -274,7 +275,7 @@ namespace EE_Analyzer
                     }
                 }
 
-                if(x_spa_3_qty > 0)
+                if (x_spa_3_qty > 0)
                 {
                     if (x_spa_3_spa > 0)
                     {
@@ -537,18 +538,11 @@ namespace EE_Analyzer
             if (PiersSpecified)
             {
                 doc.Editor.WriteMessage("\nDrawing piers");
-                CreatePiers(db, doc, PierShape, PierWidth, PierHeight);
+                CreateInteriorPiers(db, doc, PierShape, PierWidth, PierHeight);
                 doc.Editor.WriteMessage("\n-- Completed piers");
 
             }
 
-            #endregion
-
-            #region Bill of Materials
-            // compute concrete volumes
-            doc.Editor.WriteMessage("\nDrawing bill of materials");
-            CreateBillOfMaterials(db, doc);
-            doc.Editor.WriteMessage("\n-- Completed bill of materials");
             #endregion
 
             #region Draw Grade Beam dimensions
@@ -566,10 +560,12 @@ namespace EE_Analyzer
                     second_dim_hor = MathHelpers.Point3dFromVectorOffset(lstInteriorGradeBeamsTrimmed[i].StartPt, new Vector3d(-20, 0, 0));
 
                     DrawVerticalDimension(db, doc, first_dim_hor, second_dim_hor,
-                            MathHelpers.Point3dFromVectorOffset(FDN_BOUNDARY_BOX.GetPoint3dAt(0), new Vector3d(-75, 75, 0)));
+                            MathHelpers.Point3dFromVectorOffset(FDN_BOUNDARY_BOX.GetPoint3dAt(0), new Vector3d(-75, 75, 0)),
+                            EE_Settings.DEFAULT_EE_DIMSTYLE_NAME);
 
                     first_dim_hor = second_dim_hor;
-                } else
+                }
+                else
                 {
                     second_dim_ver = MathHelpers.Point3dFromVectorOffset(lstInteriorGradeBeamsTrimmed[i].EndPt, new Vector3d(0, 20, 0));
 
@@ -582,6 +578,14 @@ namespace EE_Analyzer
 
 
             #endregion
+
+            #region Bill of Materials
+            // compute concrete volumes
+            doc.Editor.WriteMessage("\nDrawing bill of materials");
+            CreateBillOfMaterials(db, doc);
+            doc.Editor.WriteMessage("\n-- Completed bill of materials");
+            #endregion
+
             //// compute strand quantities
             //#endregion
 
@@ -595,6 +599,7 @@ namespace EE_Analyzer
             ShouldClose = true;
             IsComplete = true;
             ModifyAutoCADGraphics.ForceRedraw(db, doc);
+
             return IsComplete;
         }
 
@@ -697,7 +702,15 @@ namespace EE_Analyzer
             }
         }
 
-        private void CreatePiers(Database db, Document doc,  PierShapes shape, double width, double height)
+        /// <summary>
+        /// Create the pier models and draw them to the intersections of the gradebeams
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="doc"></param>
+        /// <param name="shape"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        private void CreateInteriorPiers(Database db, Document doc, PierShapes shape, double width, double height)
         {
             double tol = 0.001;
             int count = 0;
@@ -714,13 +727,13 @@ namespace EE_Analyzer
                     if (p1_data == null)
                         continue;
 
-                    if(p1_data.Point.X == double.MaxValue || p1_data.Point.Y == double.MaxValue)
+                    if (p1_data.Point.X == double.MaxValue || p1_data.Point.Y == double.MaxValue)
                     {
                         continue;
                     }
 
                     // TODO:  skip points that don't occur at physical intersection of grade beams
-                    if(p1_data.isWithinSegment)
+                    if (p1_data.isWithinSegment)
                     {
                         count++;
                         PierModel pm = new PierModel(p1_data.Point, shape, width, height, count);
@@ -739,9 +752,9 @@ namespace EE_Analyzer
         /// Writes the design data to the drawing file.
         /// </summary>
         /// <returns></returns>
-        private string WritefoundationData(int x_qty, double x_spa, double x_depth, double x_width, int y_qty, double y_spa, double y_depth, double y_width, 
-            int x_spa_1_qty, int x_spa_2_qty, int x_spa_3_qty, int x_spa_4_qty, int x_spa_5_qty, double x_spa_1_spa, double x_spa_2_spa, double x_spa_3_spa, double x_spa_4_spa, double x_spa_5_spa, 
-            int y_spa_1_qty, int y_spa_2_qty, int y_spa_3_qty, int y_spa_4_qty, int y_spa_5_qty, double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa, 
+        private string WritefoundationData(int x_qty, double x_spa, double x_depth, double x_width, int y_qty, double y_spa, double y_depth, double y_width,
+            int x_spa_1_qty, int x_spa_2_qty, int x_spa_3_qty, int x_spa_4_qty, int x_spa_5_qty, double x_spa_1_spa, double x_spa_2_spa, double x_spa_3_spa, double x_spa_4_spa, double x_spa_5_spa,
+            int y_spa_1_qty, int y_spa_2_qty, int y_spa_3_qty, int y_spa_4_qty, int y_spa_5_qty, double y_spa_1_spa, double y_spa_2_spa, double y_spa_3_spa, double y_spa_4_spa, double y_spa_5_spa,
             UIModes default_mode_x, UIModes default_mode_y, double neglect_dimension, Document doc, Database db)
         {
             string str = "";
@@ -819,7 +832,7 @@ namespace EE_Analyzer
             {
                 // retrieve the strand label
                 string str = item.Label;
-                int index = str.IndexOf('x'); 
+                int index = str.IndexOf('x');
                 string label_str = str.Substring(index + 1);  // display everything after the 'x'
 
                 // Draw the line of text for the BOM
@@ -834,9 +847,12 @@ namespace EE_Analyzer
 
                 // Draw length
                 Point3d pt3 = new Point3d(pt2.X + 4 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
-                DrawObject.DrawMtext(db, doc, pt3, (Math.Ceiling(item.Length / 12.0)).ToString(), EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                DrawObject.DrawMtext(db, doc, pt3, "(" + (Math.Ceiling(item.Length / 12.0)).ToString() + " ft. + 2 x " + EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0 + " ft.) = "
+                    + (Math.Ceiling(item.Length / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.Qty,
+                    EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
 
-                total_length += Math.Ceiling(item.Length) * item.Qty;
+                // length of the strand plus extra for construction (usually about 3ft each end
+                total_length += ((Math.Ceiling(item.Length) / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.Qty;  
                 count++;
             }
 
@@ -855,24 +871,32 @@ namespace EE_Analyzer
 
                 // Draw qty
                 Point3d pt2 = new Point3d(pt1.X + 8 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt1.Y, 0);
-                DrawObject.DrawMtext(db, doc, pt2, item.StrandInfo.Qty.ToString(), EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER); ;
+                DrawObject.DrawMtext(db, doc, pt2, item.StrandInfo.Qty.ToString() + " x ", EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER); ;
 
                 // Draw length
                 Point3d pt3 = new Point3d(pt2.X + 4 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
-                DrawObject.DrawMtext(db, doc, pt3, (Math.Ceiling(item.StrandInfo.Length / 12.0)).ToString(), EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                DrawObject.DrawMtext(db, doc, pt3, "(" + (Math.Ceiling(item.StrandInfo.Length / 12.0)).ToString() + " ft. + 2 x " + EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0 + " ft.) = "
+                    + (Math.Ceiling(item.Length / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.StrandInfo.Qty + " ft.", 
+                    EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
 
-                total_length += Math.Ceiling(item.StrandInfo.Length) * item.StrandInfo.Qty;
-
+                total_length += ((Math.Ceiling(item.StrandInfo.Length) / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.StrandInfo.Qty;
                 count++;
             }
 
             Point3d total_str_pt1 = new Point3d(base_pt.X + 10.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
-                                            base_pt.Y - count * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
-            DrawObject.DrawMtext(db, doc, total_str_pt1, "TOTAL LENGTH", EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                                            base_pt.Y - (count) * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
 
-            // Draw qty
-            Point3d total_str_pt2 = new Point3d(total_str_pt1.X + 15 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, total_str_pt1.Y, 0);
-            DrawObject.DrawMtext(db, doc, total_str_pt2, Math.Ceiling(total_length/12).ToString(), EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER); ;
+            DrawObject.DrawMtext(db, doc, total_str_pt1, "-------------------------------------------------------------------",
+                                EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+
+            Point3d total_str_pt2 = new Point3d(base_pt.X + 10.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
+                    base_pt.Y - (count + 1) * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
+
+            Point3d total_str_pt3 = new Point3d(total_str_pt2.X + 18.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
+                    base_pt.Y - (count + 1) * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
+
+            DrawObject.DrawMtext(db, doc, total_str_pt2, "TOTAL LENGTH (approx.) = ", EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+            DrawObject.DrawMtext(db, doc, total_str_pt3, Math.Ceiling(total_length).ToString() + " ft.", EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
         }
 
         /// <summary>
@@ -1113,9 +1137,9 @@ namespace EE_Analyzer
                 Point3d[] longestSegmentPoints = FindTwoLongestNonParallelSegmentsOnPolyline(FDN_PERIMETER_CENTERLINE_POLYLINE);
 
                 // if there aren't at least two points, return the lower left of the bounding box (offset by the width of the beam).
-                if(longestSegmentPoints.Length != 4)
+                if (longestSegmentPoints.Length != 4)
                 {
-                    doc.Editor.WriteMessage("Invalid number of points for polyline segments."); 
+                    doc.Editor.WriteMessage("Invalid number of points for polyline segments.");
                     basis_pt = default_basis_pt;
                 }
 
@@ -1124,10 +1148,11 @@ namespace EE_Analyzer
                     longestSegmentPoints[2], longestSegmentPoints[3]);
 
                 // Check if an intersect data was found -- if not, set the basis to the default basis point
-                if(intersectData == null)
+                if (intersectData == null)
                 {
                     basis_pt = default_basis_pt;
-                } else
+                }
+                else
                 {
                     Point3d intPt = intersectData.Point;
 
@@ -1211,7 +1236,8 @@ namespace EE_Analyzer
                     currentBeamNum++;
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
                 }
-            } else
+            }
+            else
             {
                 // grade beams to the upper boundary box horizontal edge
                 for (int i = 0; i < Beam_Y_Loc_Data.Length; i++)
@@ -1246,7 +1272,7 @@ namespace EE_Analyzer
                     lstInteriorGradeBeamsUntrimmed.Add(beam);
                 }
             }
-          
+
             // Now add the grade beam entities to the drawing
             foreach (GradeBeamModel beam in lstInteriorGradeBeamsUntrimmed)
             {
@@ -1302,7 +1328,7 @@ namespace EE_Analyzer
                     // Figure out the logic here to draw a grade beam when one edge has more intersection points than the other -- results when close to boundary
                     // If there are less than two points on the intersection of the center line, skip the grade beam altogether
                     if (lst_grade_beam_points.Count < 2)
-                    { 
+                    {
                         doc.Editor.WriteMessage("\n--Only " + lst_grade_beam_points.Count + " intersection points found - no grade beam possible for grade beam between ("
                             + "\n" + b1.X.ToString() + "," + b1.Y.ToString() + ") and \n("
                             + b2.X.ToString() + "," + b2.Y.ToString() + ") -- skipping grade beam");
@@ -1334,7 +1360,8 @@ namespace EE_Analyzer
                         doc.Editor.WriteMessage("\n--Error sorting grade beam points");
                         continue;
                     }
-                } catch (System.Exception ex)
+                }
+                catch (System.Exception ex)
                 {
                     doc.Editor.WriteMessage("\n-Error finding trimmed grade beam points from centerline data: " + ex.Message);
                 }
@@ -1344,7 +1371,7 @@ namespace EE_Analyzer
                     continue;
                 }
 
-                if(sorted_grade_beam_points.Length < 2)
+                if (sorted_grade_beam_points.Length < 2)
                 {
                     doc.Editor.WriteMessage("\n-- at least two points required to make a grade beam.");
                     continue;
@@ -1352,7 +1379,7 @@ namespace EE_Analyzer
 
                 for (int j = 0; j < sorted_grade_beam_points.Length - 1; j = j + 2)
                 {
-                    
+
                     Point3d p1 = sorted_grade_beam_points[j];
                     Point3d p2 = sorted_grade_beam_points[j + 1];
 
@@ -1518,7 +1545,8 @@ namespace EE_Analyzer
 
                         trans.Commit();
 
-                    } catch (System.Exception ex)
+                    }
+                    catch (System.Exception ex)
                     {
                         edt.WriteMessage("\nError encountered processing foundation polyline winding direction: " + ex.Message);
                         trans.Abort();
@@ -1544,7 +1572,7 @@ namespace EE_Analyzer
         /// <exception cref="System.Exception"></exception>
         private Polyline CreateFoundationBoundingBox(Database db, Editor edt, List<Point2d> lstVertices)
         {
-            if(lstVertices is null)
+            if (lstVertices is null)
             {
                 throw new System.Exception("Error in creating bounding box from foundation perimeter beam");
             }
@@ -1606,6 +1634,8 @@ namespace EE_Analyzer
 
                     trans.Commit();
 
+                    MovePolylineToLayer(pl, EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, bt, btr);
+
                     return pl;
                 }
                 catch (System.Exception ex)
@@ -1651,6 +1681,9 @@ namespace EE_Analyzer
             CreateLayer(EE_Settings.DEFAULT_PIER_LAYER, doc, db, 2);  // yellow
             CreateLayer(EE_Settings.DEFAULT_PIER_TEXTS_LAYER, doc, db, 2);  // yellow
             CreateLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
+
+            //Create the EE dimension style
+            CreateEE_DimensionStyle(EE_Settings.DEFAULT_EE_DIMSTYLE_NAME);
         }
 
         /// <summary>
@@ -1700,8 +1733,8 @@ namespace EE_Analyzer
             #region Zoom Control to improve Autocad View
             // Zoom to the exents of the bounding box
             double zoom_factor = 0.02;
-            Point3d zp1 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X * (1-zoom_factor), FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y * (1-zoom_factor), 0);
-            Point3d zp2 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(2).X * (1+zoom_factor), FDN_BOUNDARY_BOX.GetPoint3dAt(2).Y * (1+zoom_factor), 0);
+            Point3d zp1 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(0).X * (1 - zoom_factor), FDN_BOUNDARY_BOX.GetPoint3dAt(0).Y * (1 - zoom_factor), 0);
+            Point3d zp2 = new Point3d(FDN_BOUNDARY_BOX.GetPoint3dAt(2).X * (1 + zoom_factor), FDN_BOUNDARY_BOX.GetPoint3dAt(2).Y * (1 + zoom_factor), 0);
 
             ZoomWindow(db, doc, zp1, zp2);
             #endregion
@@ -1749,14 +1782,15 @@ namespace EE_Analyzer
         [CommandMethod("EEFDN")]
         public void ShowModalWpfDialogCmd()
         {
+            FirstLoad = true;   // set this to true in case we want to run the routine a second time.
+
             // rudimentary copy protection based on current time 
-            if(EE_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_Settings.DAYS_UNTIL_EXPIRES))
+            if (EE_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_Settings.DAYS_UNTIL_EXPIRES))
             {
                 // Update the expires 
                 MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
                 return;
             }
-
 
             Document doc = AcAp.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -1769,7 +1803,6 @@ namespace EE_Analyzer
 
             FoundationLayout CurrentFoundationLayout = new FoundationLayout();
             CurrentFoundationLayout.OnFoundationLayoutCreate();
-
             
             // Keep reloading the dialog box if we are in preview mode
             while (PreviewMode = true)
@@ -1780,7 +1813,8 @@ namespace EE_Analyzer
                     // Use the default values
                     dialog = new EE_FDNInputDialog(CurrentFoundationLayout);
                     FirstLoad = false;
-                } else
+                }
+                else
                 {
                     // Otherwise reload the previous iteration values
                     dialog = new EE_FDNInputDialog(CurrentFoundationLayout, Beam_X_Qty, Beam_X_Spacing, Beam_X_Width, Beam_X_Depth,
@@ -1800,13 +1834,14 @@ namespace EE_Analyzer
                 {
                     dialog.DialogResult = false;
                     break; // exit our loop
-                } else
+                }
+                else
                 {
                     var result = AcAp.ShowModalWindow(dialog);
                     if (result.Value)
                     {
                         edt.WriteMessage("\nDialog displayed and successfully entered");
-                    } 
+                    }
 
 
                 }
@@ -1817,11 +1852,12 @@ namespace EE_Analyzer
                 }
             }
 
-
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db);
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER, doc, db);
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER, doc, db);
             LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER, doc, db);
+            LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db);
+
 
         }
 

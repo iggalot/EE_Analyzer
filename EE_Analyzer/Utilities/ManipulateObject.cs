@@ -84,7 +84,7 @@ namespace EE_Analyzer.Utilities
 
                         // Create a matrix and move the circle using a vector from (0,0,0)
                         Point3d startPt = new Point3d(0, 0, 0);
-                        Vector3d destVector = startPt.GetVectorTo(new Point3d(2,0,0));
+                        Vector3d destVector = startPt.GetVectorTo(new Point3d(2, 0, 0));
 
                         c1.TransformBy(Matrix3d.Displacement(destVector));
 

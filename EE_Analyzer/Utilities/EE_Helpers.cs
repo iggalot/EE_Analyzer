@@ -292,16 +292,17 @@ namespace EE_Analyzer.Utilities
         public static IntersectPointData FindPointOfIntersectLines_FromPoint3d(Point3d A1, Point3d A2, Point3d B1, Point3d B2)
         {
             // Check if the points are the same -- usually occurs when one line is comparing to itself
-            if(A1 == B1 && A2 == B2)
+            if (A1 == B1 && A2 == B2)
             {
                 return null;
             }
 
             Line l1, l2;
-            if(A1.X < A2.X)
+            if (A1.X < A2.X)
             {
                 l1 = new Line(A1, A2);
-            } else
+            }
+            else
             {
                 l1 = new Line(A2, A1);
             }
@@ -430,7 +431,7 @@ namespace EE_Analyzer.Utilities
 
                         //MessageBox.Show("-- intersection point found");
 
-  //                      beam_points.Add(grade_beam_intPt);
+                        //                      beam_points.Add(grade_beam_intPt);
 
                         double slope1_line_segment = EE_Helpers.GetSlopeOfPts(b1, b2);
                         double slope2_line_segment = EE_Helpers.GetSlopeOfPts(b2, b1);
@@ -446,8 +447,8 @@ namespace EE_Analyzer.Utilities
                                 // add both points to the list
                                 beam_points.Add(p1);
                                 beam_points.Add(p2);
-//                                // assign the midpoint of the polyline segment as the intersection point
-//                                beam_points.Add(new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0));
+                                //                                // assign the midpoint of the polyline segment as the intersection point
+                                //                                beam_points.Add(new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0));
                                 continue;
                             }
                         }

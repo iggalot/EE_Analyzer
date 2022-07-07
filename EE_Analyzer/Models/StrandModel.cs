@@ -55,7 +55,7 @@ namespace EE_Analyzer.Models
             // Offset the beam strands by the width of the perimeter beam.  Slab strands do not need this offset since they are trimmed to another line.
             // StartPt end goes in negative VDirection
             // EndPt end goes in positive Vdirection
-            if(isBeamStrand)
+            if (isBeamStrand)
             {
                 StartPt = Point3dFromVectorOffset(StartPt, -perim_beam_wdith * VDirection);
                 EndPt = Point3dFromVectorOffset(EndPt, perim_beam_wdith * VDirection);
@@ -94,20 +94,22 @@ namespace EE_Analyzer.Models
 
         public override void AddToAutoCADDatabase(Database db, Document doc)
         {
-            if(Qty > 0)
+            if (Qty > 0)
             {
                 string layer_name = "";
                 if (IsBeamStrand is true)
                 {
-                    if(IsTrimmed == true)
+                    if (IsTrimmed == true)
                     {
                         layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER;
-                    } else
+                    }
+                    else
                     {
                         layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER;
 
                     }
-                } else
+                }
+                else
                 {
                     if (IsTrimmed == true)
                     {
@@ -160,9 +162,9 @@ namespace EE_Analyzer.Models
                     for (int i = 0; i < Qty; i++)
                     {
                         Point2d pt2 = new Point2d(StartPt.X + Math.Cos(angle) * (i + 1) * strand_icon_length, StartPt.Y + Math.Sin(angle) * (i + 1) * strand_icon_length);
-                        pl.AddVertexAt(i+1, pt2, 0, 0, 0);
-                        pl.SetEndWidthAt(i+1, strand_icon_width);
-                        pl.SetStartWidthAt(i+1, 0.0);
+                        pl.AddVertexAt(i + 1, pt2, 0, 0, 0);
+                        pl.SetEndWidthAt(i + 1, strand_icon_width);
+                        pl.SetStartWidthAt(i + 1, 0.0);
                     }
 
                     //pl.Closed = true;
@@ -177,9 +179,9 @@ namespace EE_Analyzer.Models
                     trans.AddNewlyCreatedDBObject(pl, true);
 
                     // Add a line segment  to show part of the strand
-                    double default_length = 8 * strand_icon_length;                    
-                    Point3d line_end_pt = new Point3d(StartPt.X + Math.Cos(angle) * (default_length), StartPt.Y + Math.Sin(angle) * (default_length),0);
-                    Line ln = OffsetLine(new Line(new Point3d(pt1.X, pt1.Y,0), line_end_pt), 0);
+                    double default_length = 8 * strand_icon_length;
+                    Point3d line_end_pt = new Point3d(StartPt.X + Math.Cos(angle) * (default_length), StartPt.Y + Math.Sin(angle) * (default_length), 0);
+                    Line ln = OffsetLine(new Line(new Point3d(pt1.X, pt1.Y, 0), line_end_pt), 0);
                     MoveLineToLayer(ln, layer_name);
 
                     // Draw the strand label
@@ -257,7 +259,7 @@ namespace EE_Analyzer.Models
 
                     // assign the layer
                     pl.Layer = layer_name;
-                    
+
                     // Set the default properties
                     pl.SetDatabaseDefaults();
                     btr.AppendEntity(pl);

@@ -31,7 +31,7 @@ namespace EE_Analyzer.Models
         public double Angle { get; set; } = 0;
 
         public Line Centerline { get; set; } = null;
-        
+
         public bool IsTrimmed { get; set; } = false;
         public bool IsHorizontal { get; set; } = true;
         public int Id { get; set; }
