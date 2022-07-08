@@ -197,7 +197,7 @@ namespace EE_Analyzer.Utilities
         public static void DrawVerticalDimension(Database db, Document doc, Point3d dim_leader_pt1, Point3d dim_leader_pt2, Point3d dim_line_pt, string style_name)
         {
             string curr_layer = GetCurrentLayerName();  // get the current layer and save it
-            MakeLayerCurrent(EE_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db); // switch to current layer
+            MakeLayerCurrent(EE_FDN_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db); // switch to current layer
 
             using (var tr = db.TransactionManager.StartTransaction())
             {
@@ -227,7 +227,7 @@ namespace EE_Analyzer.Utilities
         public static void DrawHorizontalDimension(Database db, Document doc, Point3d dim_leader_pt1, Point3d dim_leader_pt2, Point3d dim_line_pt)
         {
             string curr_layer = GetCurrentLayerName();  // get the current layer and save it
-            MakeLayerCurrent(EE_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db); // switch to current layer
+            MakeLayerCurrent(EE_FDN_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db); // switch to current layer
 
             using (var tr = db.TransactionManager.StartTransaction())
             {

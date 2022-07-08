@@ -138,11 +138,14 @@ namespace EE_Analyzer.Utilities
                         {
                             objColl = new ObjectIdCollection(psr.Value.GetObjectIds());
 
+                            int entcount = 0;
                             foreach (ObjectId id in objColl)
                             {
                                 Entity ent = trans.GetObject(id, OpenMode.ForWrite) as Entity;
                                 ent.Erase();
+                                entcount++;
                             }
+                            doc.Editor.WriteMessage("\n" + entcount.ToString() + " entities erased");
                         }
 
                         trans.Commit();
@@ -161,6 +164,8 @@ namespace EE_Analyzer.Utilities
                     trans.Abort();
                 }
             }
+
+            ModifyAutoCADGraphics.ForceRedraw(db, doc);
         }
 
         public static void MakeLayerCurrent(string name, Document doc, Database db)

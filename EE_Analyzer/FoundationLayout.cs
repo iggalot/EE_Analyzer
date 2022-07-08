@@ -154,7 +154,7 @@ namespace EE_Analyzer
             PreviewMode = preview_mode;
 
             // Overwrite the minimum specified
-            EE_Settings.DEFAULT_MIN_PT_LENGTH = neglect_dimension;
+            EE_FDN_Settings.DEFAULT_MIN_PT_LENGTH = neglect_dimension;
 
             PiersSpecified = piers_active;
             PierShape = pier_shape;
@@ -455,7 +455,7 @@ namespace EE_Analyzer
 
             // If we are in preview mode we will just draw centerlines as a marker.
             // Clear our temporary layer prior to drawing temporary items
-            DeleteAllObjectsOnLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+            DeleteAllObjectsOnLayer(EE_FDN_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
             if (PreviewMode is true)
             {
@@ -477,7 +477,7 @@ namespace EE_Analyzer
             }
 
             // Clear our temporary layer
-            DeleteAllObjectsOnLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+            DeleteAllObjectsOnLayer(EE_FDN_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
 
             #region Draw Parameter Data to Drawing
@@ -561,7 +561,7 @@ namespace EE_Analyzer
 
                     DrawVerticalDimension(db, doc, first_dim_hor, second_dim_hor,
                             MathHelpers.Point3dFromVectorOffset(FDN_BOUNDARY_BOX.GetPoint3dAt(0), new Vector3d(-75, 75, 0)),
-                            EE_Settings.DEFAULT_EE_DIMSTYLE_NAME);
+                            EE_FDN_Settings.DEFAULT_EE_DIMSTYLE_NAME);
 
                     first_dim_hor = second_dim_hor;
                 }
@@ -653,7 +653,7 @@ namespace EE_Analyzer
                     }
 
                     // draw our line object
-                    MoveLineToLayer(OffsetLine(new Line(p1, p2), 0) as Line, EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+                    MoveLineToLayer(OffsetLine(new Line(p1, p2), 0) as Line, EE_FDN_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
 
                 }
             }
@@ -687,7 +687,7 @@ namespace EE_Analyzer
                     }
 
                     // draw our line object
-                    MoveLineToLayer(OffsetLine(new Line(p1, p2), 0) as Line, EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+                    MoveLineToLayer(OffsetLine(new Line(p1, p2), 0) as Line, EE_FDN_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
                 }
             }
 
@@ -812,7 +812,7 @@ namespace EE_Analyzer
             }
             str += "\nNeglect grade beam length: " + neglect_dimension;
 
-            DrawMtext(db, doc, FDN_BOUNDARY_BOX.GetPoint3dAt(0), str, 5, EE_Settings.DEFAULT_FDN_TEXTS_LAYER, 0);
+            DrawMtext(db, doc, FDN_BOUNDARY_BOX.GetPoint3dAt(0), str, 5, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER, 0);
             return str;
         }
 
@@ -837,22 +837,22 @@ namespace EE_Analyzer
 
                 // Draw the line of text for the BOM
                 // first write the label
-                Point3d pt1 = new Point3d(base_pt.X + 10.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
-                                            base_pt.Y - count * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
-                DrawObject.DrawMtext(db, doc, pt1, label_str, EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                Point3d pt1 = new Point3d(base_pt.X + 10.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
+                                            base_pt.Y - count * 2.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
+                DrawObject.DrawMtext(db, doc, pt1, label_str, EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER);
 
                 // Draw qty
-                Point3d pt2 = new Point3d(pt1.X + 8 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt1.Y, 0);
-                DrawObject.DrawMtext(db, doc, pt2, item.Qty.ToString(), EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER); ;
+                Point3d pt2 = new Point3d(pt1.X + 8 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt1.Y, 0);
+                DrawObject.DrawMtext(db, doc, pt2, item.Qty.ToString(), EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER); ;
 
                 // Draw length
-                Point3d pt3 = new Point3d(pt2.X + 4 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
-                DrawObject.DrawMtext(db, doc, pt3, "(" + (Math.Ceiling(item.Length / 12.0)).ToString() + " ft. + 2 x " + EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0 + " ft.) = "
-                    + (Math.Ceiling(item.Length / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.Qty,
-                    EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                Point3d pt3 = new Point3d(pt2.X + 4 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
+                DrawObject.DrawMtext(db, doc, pt3, "(" + (Math.Ceiling(item.Length / 12.0)).ToString() + " ft. + 2 x " + EE_FDN_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0 + " ft.) = "
+                    + (Math.Ceiling(item.Length / 12.0) + 2 * EE_FDN_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.Qty,
+                    EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER);
 
                 // length of the strand plus extra for construction (usually about 3ft each end
-                total_length += ((Math.Ceiling(item.Length) / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.Qty;  
+                total_length += ((Math.Ceiling(item.Length) / 12.0) + 2 * EE_FDN_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.Qty;  
                 count++;
             }
 
@@ -865,38 +865,38 @@ namespace EE_Analyzer
                 string label_str = str.Substring(index + 1);
 
                 // Draw label
-                Point3d pt1 = new Point3d(base_pt.X + 10.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
-                                            base_pt.Y - count * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
-                DrawObject.DrawMtext(db, doc, pt1, label_str, EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                Point3d pt1 = new Point3d(base_pt.X + 10.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
+                                            base_pt.Y - count * 2.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
+                DrawObject.DrawMtext(db, doc, pt1, label_str, EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER);
 
                 // Draw qty
-                Point3d pt2 = new Point3d(pt1.X + 8 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt1.Y, 0);
-                DrawObject.DrawMtext(db, doc, pt2, item.StrandInfo.Qty.ToString() + " x ", EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER); ;
+                Point3d pt2 = new Point3d(pt1.X + 8 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt1.Y, 0);
+                DrawObject.DrawMtext(db, doc, pt2, item.StrandInfo.Qty.ToString() + " x ", EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER); ;
 
                 // Draw length
-                Point3d pt3 = new Point3d(pt2.X + 4 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
-                DrawObject.DrawMtext(db, doc, pt3, "(" + (Math.Ceiling(item.StrandInfo.Length / 12.0)).ToString() + " ft. + 2 x " + EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0 + " ft.) = "
-                    + (Math.Ceiling(item.Length / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.StrandInfo.Qty + " ft.", 
-                    EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                Point3d pt3 = new Point3d(pt2.X + 4 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, pt2.Y, 0);
+                DrawObject.DrawMtext(db, doc, pt3, "(" + (Math.Ceiling(item.StrandInfo.Length / 12.0)).ToString() + " ft. + 2 x " + EE_FDN_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0 + " ft.) = "
+                    + (Math.Ceiling(item.Length / 12.0) + 2 * EE_FDN_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.StrandInfo.Qty + " ft.", 
+                    EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER);
 
-                total_length += ((Math.Ceiling(item.StrandInfo.Length) / 12.0) + 2 * EE_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.StrandInfo.Qty;
+                total_length += ((Math.Ceiling(item.StrandInfo.Length) / 12.0) + 2 * EE_FDN_Settings.DEFAULT_PT_LENGTH_EXCESS_CONSTRUCTION / 12.0) * item.StrandInfo.Qty;
                 count++;
             }
 
-            Point3d total_str_pt1 = new Point3d(base_pt.X + 10.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
-                                            base_pt.Y - (count) * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
+            Point3d total_str_pt1 = new Point3d(base_pt.X + 10.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
+                                            base_pt.Y - (count) * 2.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
 
             DrawObject.DrawMtext(db, doc, total_str_pt1, "-------------------------------------------------------------------",
-                                EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+                                EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER);
 
-            Point3d total_str_pt2 = new Point3d(base_pt.X + 10.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
-                    base_pt.Y - (count + 1) * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
+            Point3d total_str_pt2 = new Point3d(base_pt.X + 10.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
+                    base_pt.Y - (count + 1) * 2.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
 
-            Point3d total_str_pt3 = new Point3d(total_str_pt2.X + 18.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
-                    base_pt.Y - (count + 1) * 2.0 * EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
+            Point3d total_str_pt3 = new Point3d(total_str_pt2.X + 18.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE,
+                    base_pt.Y - (count + 1) * 2.0 * EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, 0);
 
-            DrawObject.DrawMtext(db, doc, total_str_pt2, "TOTAL LENGTH (approx.) = ", EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
-            DrawObject.DrawMtext(db, doc, total_str_pt3, Math.Ceiling(total_length).ToString() + " ft.", EE_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_Settings.DEFAULT_FDN_TEXTS_LAYER);
+            DrawObject.DrawMtext(db, doc, total_str_pt2, "TOTAL LENGTH (approx.) = ", EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER);
+            DrawObject.DrawMtext(db, doc, total_str_pt3, Math.Ceiling(total_length).ToString() + " ft.", EE_FDN_Settings.DEFAULT_BILL_OF_MATERIALS_TEXT_SIZE, EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER);
         }
 
         /// <summary>
@@ -974,7 +974,7 @@ namespace EE_Analyzer
                     Point3d p2 = sorted_strand_points[j + 1];
 
                     // check if the strand is long enough for PT
-                    if (MathHelpers.Distance3DBetween(p1, p2) <= EE_Settings.DEFAULT_MIN_PT_LENGTH)
+                    if (MathHelpers.Distance3DBetween(p1, p2) <= EE_FDN_Settings.DEFAULT_MIN_PT_LENGTH)
                     {
                         // beam is too short so skip it
                         continue;
@@ -1013,9 +1013,9 @@ namespace EE_Analyzer
                     catch (System.Exception e)
                     {
                         doc.Editor.WriteMessage("\nError creating slab strand at " + sorted_strand_points[j].X + ", " + sorted_strand_points[j + 1].Y);
-                        DrawCircle(p1, 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(p1, 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(p1, 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 40, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 50, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 60, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
                     }
                 }
             }
@@ -1384,7 +1384,7 @@ namespace EE_Analyzer
                     Point3d p2 = sorted_grade_beam_points[j + 1];
 
                     // check if the grade beam is long enough for PT
-                    if (MathHelpers.Distance3DBetween(p1, p2) <= EE_Settings.DEFAULT_MIN_PT_LENGTH)
+                    if (MathHelpers.Distance3DBetween(p1, p2) <= EE_FDN_Settings.DEFAULT_MIN_PT_LENGTH)
                     {
                         // beam is too short so skip it
                         continue;
@@ -1425,9 +1425,9 @@ namespace EE_Analyzer
                     catch (System.Exception e)
                     {
                         doc.Editor.WriteMessage("\nError creating grade beam at " + sorted_grade_beam_points[j].X + ", " + sorted_grade_beam_points[j + 1].Y);
-                        DrawCircle(p1, 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(p1, 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-                        DrawCircle(p1, 60, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 40, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 50, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+                        DrawCircle(p1, 60, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
                     }
                 }
             }
@@ -1466,19 +1466,19 @@ namespace EE_Analyzer
 
                     // Redraw the perimeter beam
                     doc.Editor.WriteMessage("\nCreating perimeter beam outer edge line.");
-                    MovePolylineToLayer(FDN_PERIMETER_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
+                    MovePolylineToLayer(FDN_PERIMETER_POLYLINE, EE_FDN_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
                     PolylineSetLinetype(FDN_PERIMETER_POLYLINE, "CONTINUOUS", bt, btr);
 
                     // Draw the perimeter beam centerline
                     doc.Editor.WriteMessage("\nCreating perimeter beam center line.");
                     FDN_PERIMETER_CENTERLINE_POLYLINE = OffsetPolyline(FDN_PERIMETER_POLYLINE, beam_x_width * 0.5, bt, btr);
-                    MovePolylineToLayer(FDN_PERIMETER_CENTERLINE_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
+                    MovePolylineToLayer(FDN_PERIMETER_CENTERLINE_POLYLINE, EE_FDN_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
                     PolylineSetLinetype(FDN_PERIMETER_CENTERLINE_POLYLINE, "CENTER2", bt, btr);
 
                     // Offset the perimeter polyline and move it to its appropriate layer
                     doc.Editor.WriteMessage("\nCreating perimeter beam inner edge line.");
                     FDN_PERIMETER_INTERIOR_EDGE_POLYLINE = OffsetPolyline(FDN_PERIMETER_POLYLINE, beam_x_width, bt, btr);
-                    MovePolylineToLayer(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
+                    MovePolylineToLayer(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, EE_FDN_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, bt, btr);
                     PolylineSetLinetype(FDN_PERIMETER_INTERIOR_EDGE_POLYLINE, "HIDDENX2", bt, btr);
 
                     trans.Commit();
@@ -1634,7 +1634,7 @@ namespace EE_Analyzer
 
                     trans.Commit();
 
-                    MovePolylineToLayer(pl, EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, bt, btr);
+                    MovePolylineToLayer(pl, EE_FDN_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, bt, btr);
 
                     return pl;
                 }
@@ -1666,24 +1666,24 @@ namespace EE_Analyzer
             LoadLineTypes("HIDDEN2", doc, db);
 
             // Create our layers
-            CreateLayer(EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db, 4); // cyan
-            CreateLayer(EE_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, doc, db, 3); // green
-            CreateLayer(EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER, doc, db, 1); // red
-            CreateLayer(EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER, doc, db, 140); // blue
-            CreateLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER, doc, db, 1);  // green
-            CreateLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER, doc, db, 3);  // green
-            CreateLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER, doc, db, 2);  // yellow
-            CreateLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER, doc, db, 2);  // yellow
-            CreateLayer(EE_Settings.DEFAULT_FDN_TEXTS_LAYER, doc, db, 2); // yellow
-            CreateLayer(EE_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db, 2); // yellow
-            CreateLayer(EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db, 1); // red
-            CreateLayer(EE_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER, doc, db, 2); // red
-            CreateLayer(EE_Settings.DEFAULT_PIER_LAYER, doc, db, 2);  // yellow
-            CreateLayer(EE_Settings.DEFAULT_PIER_TEXTS_LAYER, doc, db, 2);  // yellow
-            CreateLayer(EE_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db, 4); // cyan
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_BOUNDARY_PERIMENTER_LAYER, doc, db, 3); // green
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER, doc, db, 1); // red
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER, doc, db, 140); // blue
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER, doc, db, 1);  // green
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER, doc, db, 3);  // green
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER, doc, db, 2); // yellow
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_DIMENSIONS_LAYER, doc, db, 2); // yellow
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db, 1); // red
+            CreateLayer(EE_FDN_Settings.DEFAULT_FDN_STRAND_ANNOTATION_LAYER, doc, db, 2); // red
+            CreateLayer(EE_FDN_Settings.DEFAULT_PIER_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_FDN_Settings.DEFAULT_PIER_TEXTS_LAYER, doc, db, 2);  // yellow
+            CreateLayer(EE_FDN_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
 
             //Create the EE dimension style
-            CreateEE_DimensionStyle(EE_Settings.DEFAULT_EE_DIMSTYLE_NAME);
+            CreateEE_DimensionStyle(EE_FDN_Settings.DEFAULT_EE_DIMSTYLE_NAME);
         }
 
         /// <summary>
@@ -1759,13 +1759,13 @@ namespace EE_Analyzer
             }
 
             // Add a marker for this point.
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 20, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 25, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 30, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 35, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 40, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 45, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
-            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 50, EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 20, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 25, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 30, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 35, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 40, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 45, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
+            DrawCircle(FDN_GRADE_BEAM_BASIS_POINT, 50, EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER);
 
             doc.Editor.WriteMessage("\n-Intersection of longest segments at :" + FDN_GRADE_BEAM_BASIS_POINT.X.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Y.ToString() + ", " + FDN_GRADE_BEAM_BASIS_POINT.Z.ToString());
 
@@ -1785,7 +1785,7 @@ namespace EE_Analyzer
             FirstLoad = true;   // set this to true in case we want to run the routine a second time.
 
             // rudimentary copy protection based on current time 
-            if (EE_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_Settings.DAYS_UNTIL_EXPIRES))
+            if (EE_FDN_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_FDN_Settings.DAYS_UNTIL_EXPIRES))
             {
                 // Update the expires 
                 MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
@@ -1819,7 +1819,7 @@ namespace EE_Analyzer
                     // Otherwise reload the previous iteration values
                     dialog = new EE_FDNInputDialog(CurrentFoundationLayout, Beam_X_Qty, Beam_X_Spacing, Beam_X_Width, Beam_X_Depth,
                     Beam_Y_Qty, Beam_Y_Spacing, Beam_Y_Width, Beam_Y_Depth, Beam_X_Strand_Qty,
-                    Beam_X_Slab_Strand_Qty, Beam_Y_Strand_Qty, Beam_Y_Slab_Strand_Qty, EE_Settings.DEFAULT_MIN_PT_LENGTH,
+                    Beam_X_Slab_Strand_Qty, Beam_Y_Strand_Qty, Beam_Y_Slab_Strand_Qty, EE_FDN_Settings.DEFAULT_MIN_PT_LENGTH,
                     Beam_X_DETAIL_QTY_1, Beam_X_DETAIL_QTY_2, Beam_X_DETAIL_QTY_3, Beam_X_DETAIL_QTY_4, Beam_X_DETAIL_QTY_5,
                     Beam_X_DETAIL_SPA_1, Beam_X_DETAIL_SPA_2, Beam_X_DETAIL_SPA_3, Beam_X_DETAIL_SPA_4, Beam_X_DETAIL_SPA_5,
                     Beam_Y_DETAIL_QTY_1, Beam_Y_DETAIL_QTY_2, Beam_Y_DETAIL_QTY_3, Beam_Y_DETAIL_QTY_4, Beam_Y_DETAIL_QTY_5,
@@ -1852,11 +1852,11 @@ namespace EE_Analyzer
                 }
             }
 
-            LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db);
-            LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER, doc, db);
-            LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER, doc, db);
-            LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER, doc, db);
-            LayerObjects.HideLayer(EE_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db);
+            LayerObjects.HideLayer(EE_FDN_Settings.DEFAULT_FDN_ANNOTATION_LAYER, doc, db);
+            LayerObjects.HideLayer(EE_FDN_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER, doc, db);
+            LayerObjects.HideLayer(EE_FDN_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER, doc, db);
+            LayerObjects.HideLayer(EE_FDN_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER, doc, db);
+            LayerObjects.HideLayer(EE_FDN_Settings.DEFAULT_FDN_BOUNDINGBOX_LAYER, doc, db);
 
 
         }

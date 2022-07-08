@@ -146,7 +146,7 @@ namespace EE_Analyzer.Utilities
         {
             Point3d[] sorted_list;
             // If the point is horizontal
-            if (Math.Abs(lst[1].Y - lst[0].Y) < EE_Settings.DEFAULT_HORIZONTAL_TOLERANCE)
+            if (Math.Abs(lst[1].Y - lst[0].Y) < EE_FDN_Settings.DEFAULT_HORIZONTAL_TOLERANCE)
             {
                 sorted_list = sortPoint3dListByHorizontally(lst);
             }
@@ -480,7 +480,7 @@ namespace EE_Analyzer.Utilities
 
             foreach (var p in beam_points)
             {
-                DrawCircle(p, EE_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER);
+                DrawCircle(p, EE_FDN_Settings.DEFAULT_INTERSECTION_CIRCLE_RADIUS, EE_FDN_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER);
             }
 
             try
@@ -511,7 +511,7 @@ namespace EE_Analyzer.Utilities
                         Point3d[] sorted_points = new Point3d[beam_points.Count];
 
                         // If the point is horizontal
-                        if (Math.Abs(beam_points[1].Y - beam_points[0].Y) < EE_Settings.DEFAULT_HORIZONTAL_TOLERANCE)
+                        if (Math.Abs(beam_points[1].Y - beam_points[0].Y) < EE_FDN_Settings.DEFAULT_HORIZONTAL_TOLERANCE)
                         {
                             sorted_points = sortPoint3dListByHorizontally(beam_points);
                         }

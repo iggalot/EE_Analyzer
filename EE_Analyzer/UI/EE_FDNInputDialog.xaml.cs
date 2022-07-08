@@ -34,8 +34,8 @@ namespace EE_Analyzer
 
         public FoundationLayout FDNLayout { get; set; } = null;
 
-        public static string VERSION_INFO { get; } = EE_Settings.CURRENT_VERSION_NUM;
-        public static string COPYRIGHT_INFO { get; } = EE_Settings.SIGNATURE_LABEL;
+        public static string VERSION_INFO { get; } = EE_FDN_Settings.CURRENT_VERSION_NUM;
+        public static string COPYRIGHT_INFO { get; } = EE_FDN_Settings.SIGNATURE_LABEL;
 
         private int x_qty = 5;
         private double x_spa = 120;
@@ -113,7 +113,7 @@ namespace EE_Analyzer
             BEAM_Y_STRAND_QTY.Text = beam_y_strand_qty.ToString();
             SLAB_Y_STRAND_QTY.Text = slab_y_strand_qty.ToString();
 
-            NEGLECT_PT_DIM.Text = EE_Settings.DEFAULT_MIN_PT_LENGTH.ToString();
+            NEGLECT_PT_DIM.Text = EE_FDN_Settings.DEFAULT_MIN_PT_LENGTH.ToString();
 
             X_SPA_1_QTY.Text = x_spa_1_qty.ToString();
             X_SPA_2_QTY.Text = x_spa_2_qty.ToString();
@@ -414,7 +414,7 @@ namespace EE_Analyzer
             FDNLayout.PreviewMode = preview_mode;
             FDNLayout.ShouldClose = dialog_should_close;
 
-            EE_Settings.DEFAULT_MIN_PT_LENGTH = neglect_pt_dim;
+            EE_FDN_Settings.DEFAULT_MIN_PT_LENGTH = neglect_pt_dim;
 
             FDNLayout.PiersSpecified = piers_is_checked;
             FDNLayout.PierShape = pier_shape;

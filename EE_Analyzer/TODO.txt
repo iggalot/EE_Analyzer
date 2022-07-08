@@ -1,0 +1,6 @@
+﻿FUTURE FEATURES:
+1.  Dimensions for slab strands
+2.  Bill of materials for concrete
+3.  Drawing sections
+4.  Saving data
+5.  

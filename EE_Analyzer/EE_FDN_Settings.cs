@@ -2,10 +2,10 @@
 
 namespace EE_Analyzer
 {
-    public static class EE_Settings
+    public static class EE_FDN_Settings
     {
         // VERSION INFO
-        public const string CURRENT_VERSION_NUM = "Foundation Detailer Ver. 0.9";
+        public const string CURRENT_VERSION_NUM = "Foundation Detailer Ver. 1.0";
         public const string SIGNATURE_LABEL = "Copyright 2022-5-12 by Jay3";
         public const string LAST_UPDATED = "2022-07-06";
         public const int DAYS_UNTIL_EXPIRES = 25;

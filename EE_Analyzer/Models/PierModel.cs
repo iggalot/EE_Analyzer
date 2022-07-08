@@ -57,13 +57,13 @@ namespace EE_Analyzer.Models
                     // Add a label
                     DrawMtext(db, doc,
                         new Point3d(Location.X + Width / 2.0 * Math.Cos(-0.785), Location.Y + Width / 2.0 * Math.Sin(-0.785), 0),
-                        "P" + Id.ToString(), 5, EE_Settings.DEFAULT_PIER_TEXTS_LAYER);
+                        "P" + Id.ToString(), 5, EE_FDN_Settings.DEFAULT_PIER_TEXTS_LAYER);
 
                     if (PierShape == PierShapes.PIER_CIRCLE)
                     {
-                        DrawCircle(Location, Width / 2.0, EE_Settings.DEFAULT_PIER_LAYER, "HIDDEN2");  // outer pier diameter
+                        DrawCircle(Location, Width / 2.0, EE_FDN_Settings.DEFAULT_PIER_LAYER, "HIDDEN2");  // outer pier diameter
                         //DrawCircle(Location, (Width * 0.9) / 2.0, EE_Settings.DEFAULT_PIER_LAYER, "HIDDEN2"); // inner pier circle
-                        AddCircularHatch(Location, Width * 0.9, EE_Settings.DEFAULT_PIER_HATCH_TYPE, EE_Settings.DEFAULT_HATCH_PATTERNSCALE);
+                        AddCircularHatch(Location, Width * 0.9, EE_FDN_Settings.DEFAULT_PIER_HATCH_TYPE, EE_FDN_Settings.DEFAULT_HATCH_PATTERNSCALE);
                     }
                     else if (PierShape == PierShapes.PIER_RECTANGLE)
                     {
@@ -75,7 +75,7 @@ namespace EE_Analyzer.Models
 
                         pline.SetDatabaseDefaults();
                         pline.Closed = true;
-                        pline.Layer = EE_Settings.DEFAULT_PIER_LAYER;
+                        pline.Layer = EE_FDN_Settings.DEFAULT_PIER_LAYER;
                         pline.Linetype = "HIDDEN2";
                         //pline.SetDatabaseDefaults();
                         ObjectId plineId = btr.AppendEntity(pline);
@@ -84,12 +84,12 @@ namespace EE_Analyzer.Models
                         // Now create the inner rectangle (offset by 10%)
                         Polyline inner_pline = new Polyline();
                         inner_pline = OffsetPolyline(pline, 0.1 * Width, bt, btr);
-                        MovePolylineToLayer(inner_pline, EE_Settings.DEFAULT_PIER_LAYER, bt, btr);
+                        MovePolylineToLayer(inner_pline, EE_FDN_Settings.DEFAULT_PIER_LAYER, bt, btr);
                         PolylineSetLinetype(inner_pline, "HIDDEN2", bt, btr);
                         ObjectId plineId2 = inner_pline.ObjectId;
 
                         // Add the associative hatch
-                        AddRectangularHatch(Location, plineId2, EE_Settings.DEFAULT_PIER_HATCH_TYPE, EE_Settings.DEFAULT_HATCH_PATTERNSCALE);
+                        AddRectangularHatch(Location, plineId2, EE_FDN_Settings.DEFAULT_PIER_HATCH_TYPE, EE_FDN_Settings.DEFAULT_HATCH_PATTERNSCALE);
                     }
 
                     trans.Commit();

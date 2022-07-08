@@ -13,8 +13,8 @@ namespace EE_Analyzer.Models
     public class StrandModel : FoundationObject
     {
         // strand arrow parameters
-        private double strand_icon_length = EE_Settings.DEFAULT_STRAND_ARROW_LENGTH;
-        private double strand_icon_width = EE_Settings.DEFAULT_STRAND_ARROW_WIDTH;
+        private double strand_icon_length = EE_FDN_Settings.DEFAULT_STRAND_ARROW_LENGTH;
+        private double strand_icon_width = EE_FDN_Settings.DEFAULT_STRAND_ARROW_WIDTH;
 
         private int _strand_id = 0;
         public int StrandID { get; set; }
@@ -73,20 +73,20 @@ namespace EE_Analyzer.Models
             string strand_layer = "";
             if (IsBeamStrand is true && IsTrimmed == true)
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER;
+                strand_layer = EE_FDN_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER;
             }
             else if (IsBeamStrand is false && IsTrimmed == true)
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER;
+                strand_layer = EE_FDN_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER;
 
             }
             else if (IsBeamStrand is true && IsTrimmed == false)
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER;
+                strand_layer = EE_FDN_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER;
             }
             else
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER;
+                strand_layer = EE_FDN_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER;
             }
 
             return strand_layer;
@@ -101,11 +101,11 @@ namespace EE_Analyzer.Models
                 {
                     if (IsTrimmed == true)
                     {
-                        layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER;
+                        layer_name = EE_FDN_Settings.DEFAULT_FDN_BEAM_STRANDS_TRIMMED_LAYER;
                     }
                     else
                     {
-                        layer_name = EE_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER;
+                        layer_name = EE_FDN_Settings.DEFAULT_FDN_BEAM_STRANDS_UNTRIMMED_LAYER;
 
                     }
                 }
@@ -113,11 +113,11 @@ namespace EE_Analyzer.Models
                 {
                     if (IsTrimmed == true)
                     {
-                        layer_name = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER;
+                        layer_name = EE_FDN_Settings.DEFAULT_FDN_SLAB_STRANDS_TRIMMED_LAYER;
                     }
                     else
                     {
-                        layer_name = EE_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER;
+                        layer_name = EE_FDN_Settings.DEFAULT_FDN_SLAB_STRANDS_UNTRIMMED_LAYER;
 
                     }
                 }
@@ -190,7 +190,7 @@ namespace EE_Analyzer.Models
                     {
                         mtx.Contents = Label;
                         mtx.Location = new Point3d(pt1.X + Math.Cos(angle) * 0.35 * default_length, pt1.Y + Math.Sin(angle) * 0.35 * default_length, 0);
-                        mtx.TextHeight = EE_Settings.DEFAULT_STRAND_INFO_TEXT_SIZE;
+                        mtx.TextHeight = EE_FDN_Settings.DEFAULT_STRAND_INFO_TEXT_SIZE;
 
                         mtx.Layer = layer_name;
 

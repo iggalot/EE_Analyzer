@@ -50,7 +50,7 @@ namespace EE_Analyzer.Utilities
                     using (Hatch acHatch = new Hatch())
                     {
                         acHatch.PatternScale = hatch_scale;
-                        acHatch.SetHatchPattern(HatchPatternType.PreDefined, EE_Settings.DEFAULT_PIER_HATCH_TYPE);
+                        acHatch.SetHatchPattern(HatchPatternType.PreDefined, EE_FDN_Settings.DEFAULT_PIER_HATCH_TYPE);
 
                         acBlkTblRec.AppendEntity(acHatch);
                         acTrans.AddNewlyCreatedDBObject(acHatch, true);
@@ -95,7 +95,7 @@ namespace EE_Analyzer.Utilities
                 // Create the hatch object and append it to the block table record
                 using (Hatch acHatch = new Hatch())
                 {
-                    acHatch.SetHatchPattern(HatchPatternType.PreDefined, EE_Settings.DEFAULT_PIER_HATCH_TYPE);
+                    acHatch.SetHatchPattern(HatchPatternType.PreDefined, EE_FDN_Settings.DEFAULT_PIER_HATCH_TYPE);
                     acHatch.PatternScale = hatch_scale;
 
                     acBlkTblRec.AppendEntity(acHatch);

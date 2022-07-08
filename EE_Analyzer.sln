@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32228.343
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32228.430
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EE_Analyzer", "EE_Analyzer\EE_Analyzer.csproj", "{D92F86B2-9F0F-4B79-BC89-5E03C372264F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EE_RoofFramer", "EE_RoofFramer\EE_RoofFramer.csproj", "{0AF5F880-EA6E-44C2-A84B-339FB2E5D621}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{D92F86B2-9F0F-4B79-BC89-5E03C372264F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D92F86B2-9F0F-4B79-BC89-5E03C372264F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D92F86B2-9F0F-4B79-BC89-5E03C372264F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AF5F880-EA6E-44C2-A84B-339FB2E5D621}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0AF5F880-EA6E-44C2-A84B-339FB2E5D621}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AF5F880-EA6E-44C2-A84B-339FB2E5D621}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0AF5F880-EA6E-44C2-A84B-339FB2E5D621}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -14,7 +14,7 @@ namespace EE_Analyzer.Models
     public class GradeBeamModel : FoundationObject
     {
         private int _beamNum = 0;
-        private const double _labelHt = EE_Settings.DEFAULT_GRADE_BEAM_INFO_TEXT_SIZE;
+        private const double _labelHt = EE_FDN_Settings.DEFAULT_GRADE_BEAM_INFO_TEXT_SIZE;
 
         //// Unit vector for the direction of the grade beam from start node to end node
         //private Vector3d VDirection { get; set; } = new Vector3d(1, 0, 0);
@@ -105,11 +105,11 @@ namespace EE_Analyzer.Models
             string layer_name = "";
             if (IsTrimmed)
             {
-                layer_name = EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
+                layer_name = EE_FDN_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
             }
             else
             {
-                layer_name = EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER;
+                layer_name = EE_FDN_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER;
             }
 
             DBObjectCollection coll = new DBObjectCollection();
@@ -237,7 +237,7 @@ namespace EE_Analyzer.Models
                     // Draw the beam label
                     if (IsTrimmed)
                     {
-                        layer_name = EE_Settings.DEFAULT_FDN_TEXTS_LAYER;
+                        layer_name = EE_FDN_Settings.DEFAULT_FDN_TEXTS_LAYER;
                     }
                     DrawBeamLabel(db, doc, layer_name);
                 }
@@ -338,11 +338,11 @@ namespace EE_Analyzer.Models
             string strand_layer = "";
             if (IsTrimmed == true)
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
+                strand_layer = EE_FDN_Settings.DEFAULT_FDN_BEAMS_TRIMMED_LAYER;
             }
             else
             {
-                strand_layer = EE_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER;
+                strand_layer = EE_FDN_Settings.DEFAULT_FDN_BEAMS_UNTRIMMED_LAYER;
             }
 
             return strand_layer;
