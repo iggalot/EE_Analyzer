@@ -559,7 +559,6 @@ namespace EE_Analyzer
                 return;
             }
 
-            FDNLayout.PreviewMode = false;
             FDNLayout.IsComplete = dialog_is_complete;
             FDNLayout.PreviewMode = preview_mode;
             this.DialogResult = false;
@@ -620,8 +619,6 @@ namespace EE_Analyzer
             spX_DIR_DETAILS.Visibility = Visibility.Collapsed;
 
             UpdateOKButton();
-            UpdateOKButton();
-
         }
 
         private void Y_Detail_Button_Click(object sender, RoutedEventArgs e)

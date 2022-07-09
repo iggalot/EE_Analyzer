@@ -32,6 +32,8 @@ namespace EE_RoofFramer
         public const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal
 
         public const double DEFAULT_ROOF_TEXT_SIZE = 5;  // the size of the text in the bill of materials.
+
+        public const double DEFAULT_MAX_PURLIN_SPACING = 144;  // measured in inches -- typical max is 12ft
       
     }
 }

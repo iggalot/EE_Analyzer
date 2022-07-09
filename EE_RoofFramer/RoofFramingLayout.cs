@@ -74,30 +74,90 @@ namespace EE_RoofFramer
                 return IsComplete;
             }
 
-
             // Get our AutoCAD API objects
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor edt = doc.Editor;
-
 
             Point3d start = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(0);
             Point3d end = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(1);
 
             // If we are in preview mode we will just draw centerlines as a marker.
             // Clear our temporary layer prior to drawing temporary items
-            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
             if (PreviewMode is true)
             {
+                // If we are in preview mode we will just draw centerlines as a marker.
+                // Clear our temporary layer prior to drawing temporary items
+                DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+
                 DoPreviewMode(doc, db, start, end);
+
+                ModifyAutoCADGraphics.ForceRedraw(db, doc);
 
                 IsComplete = false;
                 return IsComplete;
             }
 
             //// Clear our temporary layer
-            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+ //           DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+
+            #region Trim Rafters
+            //foreach(RafterModel model in lstRafters_Untrimmed)
+            //{
+            //    List<Point3d> intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(model.StartPt, model.EndPt), ROOF_BOUNDARY_BOX);
+
+            //    foreach(Point3d pt in intPt)
+            //    {
+            //        DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+            //    }
+
+            //    RafterModel new_model = new RafterModel(model.StartPt, intPt[0]);
+            //    lstRafters_Trimmed.Add(new_model);
+            //}
+
+            ////// Clear our temporary layer
+            //DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+
+            //foreach (var item in lstRafters_Trimmed)
+            //{
+            //    MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+            //}
+
+            //// Now force a redraw
+            //using (Transaction trans = db.TransactionManager.StartTransaction())
+            //{
+            //    // Force a redraw of the screen?
+            //    doc.TransactionManager.EnableGraphicsFlush(true);
+            //    doc.TransactionManager.QueueForGraphicsFlush();
+            //    Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
+            //    trans.Commit();
+            //}
+            #endregion
+
+            #region Draw Purlins
+
+            //bool exceed_length = true;
+            //int count = 1;
+            //while(exceed_length is true)
+            //{
+            //    exceed_length = false;
+
+            //    foreach (var item in lstRafters_Trimmed)
+            //    {
+            //        if (item.Length > EE_ROOF_Settings.DEFAULT_MAX_PURLIN_SPACING * count)
+            //        {
+            //            Point3d purlin_pt = MathHelpers.Point3dFromVectorOffset(item.StartPt, item.vDir * EE_ROOF_Settings.DEFAULT_MAX_PURLIN_SPACING * count);
+            //            DrawCircle(purlin_pt, 6, EE_ROOF_Settings.DEFAULT_ROOF_PURLIN_LAYER);
+            //            exceed_length = true;
+            //        }
+            //    }
+
+            //    count++;
+            //}
+
+
+            #endregion
 
 
 
@@ -106,10 +166,7 @@ namespace EE_RoofFramer
 
 
 
-
-
-
-        // Do other stuff here to finalize drawing
+            // Do other stuff here to finalize drawing
 
 
 
@@ -158,7 +215,7 @@ namespace EE_RoofFramer
 
             foreach (var item in lstRafters_Untrimmed)
             {
-                MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_FDN_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+                MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
             }
 
             // Now force a redraw
@@ -202,7 +259,7 @@ namespace EE_RoofFramer
             num_spaces_from_intpt_to_start = (int)Math.Ceiling(MathHelpers.Magnitude(dir_vec_intpt_to_start) / rafter_spacing) + 1;
             num_spaces_from_intpt_to_end = (int)Math.Ceiling(MathHelpers.Magnitude(dir_vec_intpt_to_end) / rafter_spacing) + 1;
 
-            DrawCircle(temp_vertex, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
+            DrawCircle(temp_vertex, 10, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
 
             // Draw rafters from intersect point to start point
             for (int i = 0; i < num_spaces_from_intpt_to_start - 1; i++)
@@ -294,13 +351,11 @@ namespace EE_RoofFramer
             // get unit vect perpendicular to selected edge
             Vector3d perp_unit_vec = MathHelpers.Normalize(MathHelpers.CrossProduct(dir_vec, new Vector3d(0, 0, 1)));
 
-            int num_spaces_from_intpt_to_start = 0;
-            int num_spaces_from_intpt_to_end = 0;
-
             // find furthest point on perpendicular line
             IntersectPointData intPt = null;
             double max_length = 0;
-            Point3d longest_vertex = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(0); 
+            Point3d longest_vertex = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(0);
+            Vector3d v1 = new Vector3d();
 
             for (int i = 0; i < ROOF_PERIMETER_POLYLINE.NumberOfVertices; i++)
             {
@@ -312,8 +367,7 @@ namespace EE_RoofFramer
                     continue;
                 }
 
-                //Point3d current_vertex = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(start_node_index);
-                Point3d temp_pt = MathHelpers.Point3dFromVectorOffset(current_vertex, perp_unit_vec * 10000);
+                Point3d temp_pt = MathHelpers.Point3dFromVectorOffset(current_vertex, perp_unit_vec * 100);
                 IntersectPointData current_intPt = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(start, end, current_vertex, temp_pt);
 
                 double length = (MathHelpers.Magnitude(current_intPt.Point.GetVectorTo(current_vertex)));
@@ -323,38 +377,172 @@ namespace EE_RoofFramer
                     max_length = length;
                     intPt = current_intPt;
                     longest_vertex = temp_pt;
+                    v1 = MathHelpers.Normalize(longest_vertex.GetVectorTo(current_intPt.Point));
                 }
             }
 
-            Vector3d dir_vec_intpt_to_start = intPt.Point.GetVectorTo(start);
-            Vector3d dir_vec_intpt_to_end = intPt.Point.GetVectorTo(end);
+            // Compute the vectors from our vertex to each of the four corners of the bounding box.
+            Vector3d vert_toBB0 = longest_vertex.GetVectorTo(ROOF_BOUNDARY_BOX.GetPoint3dAt(0));
+            Vector3d vert_toBB1 = longest_vertex.GetVectorTo(ROOF_BOUNDARY_BOX.GetPoint3dAt(1));
+            Vector3d vert_toBB2 = longest_vertex.GetVectorTo(ROOF_BOUNDARY_BOX.GetPoint3dAt(2));
+            Vector3d vert_toBB3 = longest_vertex.GetVectorTo(ROOF_BOUNDARY_BOX.GetPoint3dAt(3));
 
-            num_spaces_from_intpt_to_start = (int)Math.Ceiling(MathHelpers.Magnitude(dir_vec_intpt_to_start) / rafter_spacing) + 1;
-            num_spaces_from_intpt_to_end = (int)Math.Ceiling(MathHelpers.Magnitude(dir_vec_intpt_to_end) / rafter_spacing) + 1;
+            // Project each vector onto a unit direction vector for the rafter
+            double d0_proj = MathHelpers.DotProduct(vert_toBB0, perp_unit_vec);
+            double d1_proj = MathHelpers.DotProduct(vert_toBB1, perp_unit_vec);
+            double d2_proj = MathHelpers.DotProduct(vert_toBB2, perp_unit_vec);
+            double d3_proj = MathHelpers.DotProduct(vert_toBB3, perp_unit_vec);
 
-            DrawCircle(intPt.Point, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
-//            DrawLine(intPt.Point, longest_vertex, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER, "HIDDEN2");
+            // max distance
+            double max_dist = Math.Max(d0_proj, Math.Max(d1_proj, Math.Max(d2_proj, d3_proj)));
+            double min_dist = Math.Min(d0_proj, Math.Min(d1_proj, Math.Min(d2_proj, d3_proj)));
+
+            doc.Editor.WriteMessage("\nd0: " + d0_proj + "   d1: " + d1_proj + "   d2: " + d2_proj + "   d3: " + d3_proj);
+            doc.Editor.WriteMessage("Max: " + max_dist + "   Min: " + min_dist);
+
+            Point3d start_pt = MathHelpers.Point3dFromVectorOffset(longest_vertex, perp_unit_vec * max_dist);
+            Point3d end_pt = MathHelpers.Point3dFromVectorOffset(longest_vertex, perp_unit_vec * min_dist);
+            double length_of_untrimmed = MathHelpers.Magnitude(start_pt.GetVectorTo(end_pt));
+
+            //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
+            //DrawCircle(end_pt, 20, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
+            DrawLine(start_pt, end_pt, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, "HIDDEN2");
+            
+            // Create a line from each corner of bounding box to arbitrary point along the dir_unit_vec for the side
+            Point3d bb0_a = ROOF_BOUNDARY_BOX.GetPoint3dAt(0);
+            Point3d bb1_a = ROOF_BOUNDARY_BOX.GetPoint3dAt(1);
+            Point3d bb2_a = ROOF_BOUNDARY_BOX.GetPoint3dAt(2);
+            Point3d bb3_a = ROOF_BOUNDARY_BOX.GetPoint3dAt(3);
+
+            // The other end of the arbitrary line
+            Point3d bb0_b = MathHelpers.Point3dFromVectorOffset(ROOF_BOUNDARY_BOX.GetPoint3dAt(0), dir_unit_vec * 1000);
+            Point3d bb1_b = MathHelpers.Point3dFromVectorOffset(ROOF_BOUNDARY_BOX.GetPoint3dAt(1), dir_unit_vec * 1000);
+            Point3d bb2_b = MathHelpers.Point3dFromVectorOffset(ROOF_BOUNDARY_BOX.GetPoint3dAt(2), dir_unit_vec * 1000);
+            Point3d bb3_b = MathHelpers.Point3dFromVectorOffset(ROOF_BOUNDARY_BOX.GetPoint3dAt(3), dir_unit_vec * 1000);
+
+            
+            //DrawLine(bb0_a, bb0_b, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, "HIDDEN2");
+            //DrawLine(bb1_a, bb1_b, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, "HIDDEN2");
+            //DrawLine(bb2_a, bb2_b, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, "HIDDEN2");
+            //DrawLine(bb3_a, bb3_b, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, "HIDDEN2");
 
 
-            // Draw rafters from intersect point to start point
-            for (int i = 0; i < num_spaces_from_intpt_to_start - 1; i++)
+            // Find intersection points of these line segments with our longest rafter
+            // BB0
+            IntersectPointData ipd_bb0 = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(start_pt, end_pt, bb0_a, bb0_b);
+            Point3d intpt_bb0 = ipd_bb0.Point;
+            Vector3d v0_bb0 = intpt_bb0.GetVectorTo(bb0_a);
+            double len0 = MathHelpers.Magnitude(v0_bb0);
+            Vector3d uv0_bb0 = v0_bb0 / len0;  // unit vector
+            DrawCircle(intpt_bb0, 5, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+
+            // BB1
+            IntersectPointData ipd_bb1= EE_Helpers.FindPointOfIntersectLines_FromPoint3d(start_pt, end_pt, bb1_a, bb1_b);
+            Point3d intpt_bb1 = ipd_bb1.Point;
+            Vector3d v1_bb1 = intpt_bb1.GetVectorTo(bb1_a);
+            double len1 = MathHelpers.Magnitude(v1_bb1);
+            Vector3d uv1_bb1 = v1_bb1 / len1;  // unit vector
+            DrawCircle(intpt_bb1, 5, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+
+            // BB2
+            IntersectPointData ipd_bb2 = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(start_pt, end_pt, bb2_a, bb2_b);
+            Point3d intpt_bb2 = ipd_bb2.Point;
+            Vector3d v2_bb2 = intpt_bb2.GetVectorTo(bb2_a);
+            double len2 = MathHelpers.Magnitude(v2_bb2);
+            Vector3d uv2_bb2 = v2_bb2 / len2;  // unit vector
+            DrawCircle(intpt_bb2, 5, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+
+            // BB3
+            IntersectPointData ipd_bb3 = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(start_pt, end_pt, bb3_a, bb3_b);
+            Point3d intpt_bb3 = ipd_bb3.Point;
+            Vector3d v3_bb3 = intpt_bb3.GetVectorTo(bb3_a);
+            double len3 = MathHelpers.Magnitude(v3_bb3);
+            Vector3d uv3_bb3 = v3_bb3 / len3;  // unit vector
+            DrawCircle(intpt_bb3, 5, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+
+            //Find the two unit vectors  away from this main rafter
+            // One of the vectors has to be the first one.
+            List<Vector3d> lst_v_side1 = new List<Vector3d>();
+            List<Vector3d> lst_v_side2 = new List<Vector3d>();
+
+            lst_v_side1.Add(v0_bb0); 
+            
+            // if the vector coefficients have the same sign (products are greater than 0) for all components, we know they are in the same direction.
+            if((v0_bb0.X * v1_bb1.X >= 0) && (v0_bb0.Y * v1_bb1.Y >= 0) && (v0_bb0.Z * v1_bb1.Z >= 0))
             {
-                Point3d start_pt = MathHelpers.Point3dFromVectorOffset(intPt.Point, -dir_unit_vec * i * rafter_spacing);
-                Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, perp_unit_vec * max_length);
+                lst_v_side1.Add(v1_bb1);
+            } else
+            {
+                lst_v_side2.Add(v1_bb1);
+            }
 
-                RafterModel model = new RafterModel(start_pt, new_pt);
+            if ((v0_bb0.X * v2_bb2.X >= 0) && (v0_bb0.Y * v2_bb2.Y >= 0) && (v0_bb0.Z * v2_bb2.Z >= 0))
+            {
+                lst_v_side1.Add(v2_bb2);
+            }
+            else
+            {
+                lst_v_side2.Add(v2_bb2);
+            }
 
+            if ((v0_bb0.X * v3_bb3.X >= 0) && (v0_bb0.Y * v3_bb3.Y >= 0) && (v0_bb0.Z * v3_bb3.Z >= 0))
+            {
+                lst_v_side1.Add(v3_bb3);
+            }
+            else
+            {
+                lst_v_side2.Add(v3_bb3);
+            }
+
+            // Now find the max magnitude of the vectors in each of these two lists
+            double  max_list1 = 0;
+            Vector3d uv_list1 = new Vector3d(); // unit vector
+
+            foreach (var item in lst_v_side1)
+            {
+                double len = MathHelpers.Magnitude(item);
+                if (len > max_list1)
+                {
+                    max_list1 = len;
+                    uv_list1 = item / len;
+                }
+            }
+
+            double max_list2 = 0;
+            Vector3d uv_list2 = new Vector3d(); // unit vector
+            foreach (var item in lst_v_side2)
+            {
+                double len = MathHelpers.Magnitude(item);
+                if (len > max_list2)
+                {
+                    max_list2 = len;
+                    uv_list2 = item / len;
+                }
+            }
+
+            // now compute the number of rafters for each side
+            int num_rafters_side1 = (int)(Math.Ceiling(max_list1 / rafter_spacing));
+            int num_rafters_side2 = (int)(Math.Ceiling(max_list2 / rafter_spacing));
+
+            // Draw rafters from our longest rafter to the farthest corner on the bounding box
+            for (int i = 0; i < num_rafters_side1; i++)
+            {
+                Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list1 * i * rafter_spacing);
+                Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list1 * i * rafter_spacing);
+
+                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt);
+                //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 lstRafters_Untrimmed.Add(model);
             }
 
-            // Draw rafters from intersect point to end point -- start at index of 1 so we dont double draw the longest rafter
-            for (int i = 1; i < num_spaces_from_intpt_to_end - 1; i++)
+            // Draw rafters from intersect point to start point -- start at index 1 so we dont duplicate the middle rafter
+            for (int i = 1; i < num_rafters_side2; i++)
             {
-                Point3d start_pt = MathHelpers.Point3dFromVectorOffset(intPt.Point, dir_unit_vec * i * rafter_spacing);
-                Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, perp_unit_vec * max_length);
+                Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list2 * i * rafter_spacing);
+                Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list2 * i * rafter_spacing);
 
-                RafterModel model = new RafterModel(start_pt, new_pt);
-
+                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt);
+                //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 lstRafters_Untrimmed.Add(model);
             }
         }

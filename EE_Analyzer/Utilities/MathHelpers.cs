@@ -43,6 +43,17 @@ namespace EE_Analyzer.Utilities
         }
 
         /// <summary>
+        /// Computes a dot product or vector projection of A onto nonzero vector b
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static double DotProduct(Vector3d a, Vector3d b)
+        {
+            return a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+        }
+
+        /// <summary>
         /// Returns a Point3d coordinate from a vector offset from a point.
         /// </summary>
         /// <param name="p0">Base point</param>

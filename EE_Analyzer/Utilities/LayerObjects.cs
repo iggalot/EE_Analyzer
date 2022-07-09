@@ -145,7 +145,7 @@ namespace EE_Analyzer.Utilities
                                 ent.Erase();
                                 entcount++;
                             }
-                            doc.Editor.WriteMessage("\n" + entcount.ToString() + " entities erased");
+                            //doc.Editor.WriteMessage("\n" + entcount.ToString() + " entities erased");
                         }
 
                         trans.Commit();

@@ -1,6 +1,7 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
+using EE_Analyzer.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,8 +20,11 @@ namespace EE_RoofFramer.Models
         public Point3d EndPt { get; set; }
         
         Line Centerline { get; set; } 
+
+        // unit vector for direction of the rafter
         public Vector3d vDir { get; set; }
 
+        public Double Length { get; set; }
 
         public RafterModel()
         {
@@ -32,7 +36,8 @@ namespace EE_RoofFramer.Models
             StartPt = start;
             EndPt = end;
 
-            vDir = start.GetVectorTo(end);
+            vDir = MathHelpers.Normalize(start.GetVectorTo(end));
+            Length = MathHelpers.Magnitude(StartPt.GetVectorTo(EndPt));
         }
 
         public void AddToAutoCADDatabase(Database db, Document doc)

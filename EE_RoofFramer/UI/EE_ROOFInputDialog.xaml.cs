@@ -74,7 +74,6 @@ namespace EE_RoofFramer
         {
             preview_mode = true;
             dialog_should_close = false;
-            this.DialogResult = true;
 
             try
             {
@@ -88,8 +87,6 @@ namespace EE_RoofFramer
                         );
 
                     current_preview_mode_number++;
-                    preview_mode = true;
-                    dialog_should_close = false;
                 }
                 else
                 {
@@ -104,7 +101,7 @@ namespace EE_RoofFramer
                 return;
             }
 
-
+            UpdateOKButton();
         }
 
 
