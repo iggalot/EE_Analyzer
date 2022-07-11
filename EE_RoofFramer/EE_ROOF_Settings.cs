@@ -13,13 +13,17 @@ namespace EE_RoofFramer
 
         // Default layers
         public const string DEFAULT_ROOF_BOUNDINGBOX_LAYER = "_EE_ROOF_BOUNDINGBOX"; // Contains the bounding box 
-        public const string DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER = "_EE_ROOF_RAFTERS_TRIMMED"; // For the untrimmed ribs of the foundation
-        public const string DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER = "_EE_ROOF_RAFTERS_UNTRIMMED"; // For the untrimmed ribs of the foundation
+        public const string DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER = "_EE_ROOF_RAFTERS_TRIMMED"; // For the trimmed roof rafters
+        public const string DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER = "_EE_ROOF_RAFTERS_UNTRIMMED"; // For the untrimmed roof rafters
 
-        public const string DEFAULT_ROOF_RIDGE_LAYER = "_EE_ROOF_RIDGE"; // For the untrimmed ribs of the foundation
-        public const string DEFAULT_ROOF_HIPVALLEY_LAYER = "_EE_ROOF_HIPVALLEY"; // For the untrimmed ribs of the foundation
+        public const string DEFAULT_ROOF_RIDGE_SUPPORT_LAYER = "_EE_ROOF_RIDGE_SUPPORT"; // For ridge supports
+        public const string DEFAULT_ROOF_HIPVALLEY_SUPPORT_LAYER = "_EE_ROOF_HIPVALLEY_SUPPORT"; // For the hip valley supports
+        public const string DEFAULT_ROOF_WALL_SUPPORT_LAYER = "_EE_ROOF_WALL_SUPPORT"; // For the wall supports
+        public const string DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER = "_EE_ROOF_STEEL_BEAM_SUPPORT"; // For the beam supports
+        public const string DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER = "_EE_ROOF_STEEL_BEAM_SUPPORT"; // For the beam supports
 
-        public const string DEFAULT_ROOF_PURLIN_LAYER = "_EE_ROOF_PURLIN";
+        public const string DEFAULT_ROOF_PURLIN_SUPPORT_LAYER = "_EE_ROOF_PURLIN"; // For purlin supports
+
         public const string DEFAULT_ROOF_TEXTS_LAYER = "_EE_ROOF_TEXT";
         public const string DEFAULT_ROOF_DIMENSIONS_LAYER = "_EE_ROOF_DIMENSIONS";
         public const string DEFAULT_ROOF_ANNOTATION_LAYER = "_EE_ROOF_ANNOTATION_LAYER"; // for notes and markers

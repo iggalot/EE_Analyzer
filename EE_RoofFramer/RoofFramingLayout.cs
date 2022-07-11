@@ -103,36 +103,37 @@ namespace EE_RoofFramer
  //           DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
             #region Trim Rafters
-            //foreach(RafterModel model in lstRafters_Untrimmed)
-            //{
-            //    List<Point3d> intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(model.StartPt, model.EndPt), ROOF_BOUNDARY_BOX);
+            foreach(RafterModel model in lstRafters_Untrimmed)
+            {
+                List<Point3d> intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(model.StartPt, model.EndPt), ROOF_BOUNDARY_BOX);
 
-            //    foreach(Point3d pt in intPt)
-            //    {
-            //        DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
-            //    }
+                foreach (Point3d pt in intPt)
+                {
+                    DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+                }
 
-            //    RafterModel new_model = new RafterModel(model.StartPt, intPt[0]);
-            //    lstRafters_Trimmed.Add(new_model);
-            //}
+                RafterModel new_model = new RafterModel(model.StartPt, intPt[0], rafter_spacing);
+                new_model.AddLoads(10, 20, 20);
+                lstRafters_Trimmed.Add(new_model);
+            }
 
-            ////// Clear our temporary layer
-            //DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+            //// Clear our temporary layer
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
-            //foreach (var item in lstRafters_Trimmed)
-            //{
-            //    MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
-            //}
+            foreach (var item in lstRafters_Trimmed)
+            {
+                MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+            }
 
-            //// Now force a redraw
-            //using (Transaction trans = db.TransactionManager.StartTransaction())
-            //{
-            //    // Force a redraw of the screen?
-            //    doc.TransactionManager.EnableGraphicsFlush(true);
-            //    doc.TransactionManager.QueueForGraphicsFlush();
-            //    Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
-            //    trans.Commit();
-            //}
+            // Now force a redraw
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // Force a redraw of the screen?
+                doc.TransactionManager.EnableGraphicsFlush(true);
+                doc.TransactionManager.QueueForGraphicsFlush();
+                Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
+                trans.Commit();
+            }
             #endregion
 
             #region Draw Purlins
@@ -215,7 +216,8 @@ namespace EE_RoofFramer
 
             foreach (var item in lstRafters_Untrimmed)
             {
-                MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+                item.AddToAutoCADDatabase(db, doc);
+  //              MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
             }
 
             // Now force a redraw
@@ -267,7 +269,8 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel model = new RafterModel(start_pt, new_pt);
+                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                model.AddLoads(10, 20, 20);
 
                 lstRafters_Untrimmed.Add(model);
             }
@@ -278,7 +281,9 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel model = new RafterModel(start_pt, new_pt);
+                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                model.AddLoads(10, 20, 20);
+
 
                 lstRafters_Untrimmed.Add(model);
             }
@@ -316,7 +321,8 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1,0,0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel model = new RafterModel(start_pt, new_pt);
+                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                model.AddLoads(10, 20, 20);
 
                 lstRafters_Untrimmed.Add(model);
             }
@@ -327,7 +333,8 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1, 0, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel model = new RafterModel(start_pt, new_pt);
+                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                model.AddLoads(10, 20, 20);
 
                 lstRafters_Untrimmed.Add(model);
             }
@@ -530,7 +537,8 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list1 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list1 * i * rafter_spacing);
 
-                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt);
+                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
+                model.AddLoads(10, 20, 20);
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 lstRafters_Untrimmed.Add(model);
             }
@@ -541,7 +549,9 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list2 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list2 * i * rafter_spacing);
 
-                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt);
+                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
+                model.AddLoads(10, 20, 20);
+
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 lstRafters_Untrimmed.Add(model);
             }
@@ -643,9 +653,13 @@ namespace EE_RoofFramer
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, doc, db, 3); // green
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, doc, db, 2); // yellow
 
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_HIPVALLEY_LAYER, doc, db, 1); // red
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_PURLIN_LAYER, doc, db, 140); // blue
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RIDGE_LAYER, doc, db, 4); // blue
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RIDGE_SUPPORT_LAYER, doc, db, 3); // blue
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_HIPVALLEY_SUPPORT_LAYER, doc, db, 3); // red
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WALL_SUPPORT_LAYER, doc, db, 2); // yellow
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db, 1); // red
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER, doc, db, 2); // yellow
+
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_PURLIN_SUPPORT_LAYER, doc, db, 140); // blue
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_DIMENSIONS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_ANNOTATION_LAYER, doc, db, 1); // red
