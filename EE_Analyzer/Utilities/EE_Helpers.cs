@@ -190,6 +190,10 @@ namespace EE_Analyzer.Utilities
 
                 //Determine if the intersection point is a valid point within the polyline segment.
                 IntersectPointData intersectPointData = (EE_Helpers.FindPointOfIntersectLines_FromPoint3d(b1, b2, p1, p2));
+
+                if (intersectPointData == null)
+                    continue;
+
                 Point3d intPt = intersectPointData.Point;
 
                 if (intersectPointData.isParallel is true)

@@ -13,6 +13,8 @@ using static EE_Analyzer.Utilities.LinetypeObjects;
 using static EE_Analyzer.Utilities.ModifyAutoCADGraphics;
 using static EE_Analyzer.Utilities.PolylineObjects;
 using static EE_Analyzer.Utilities.DimensionObjects;
+using static EE_RoofFramer.Utilities.FileObjects;
+
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
@@ -22,6 +24,7 @@ using EE_Analyzer.Utilities;
 
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using EE_RoofFramer.Models;
+using EE_RoofFramer.Utilities;
 
 namespace EE_RoofFramer
 {
@@ -44,8 +47,11 @@ namespace EE_RoofFramer
         // Holds the basis point for the grade beam grid
         public Point3d ROOF_FRAMING_BASIS_POINT { get; set; } = new Point3d();
 
-        List<RafterModel> lstRafters_Untrimmed { get; set; } = new List<RafterModel>();
-        List<RafterModel> lstRafters_Trimmed { get; set; } = new List<RafterModel>();
+        public static List<RafterModel> lstRafters_Untrimmed { get; set; } = new List<RafterModel>();
+        public static  List<RafterModel> lstRafters_Trimmed { get; set; } = new List<RafterModel>();
+        public static  List<SupportConnection> lstConnections { get; set; } = new List<SupportConnection>();
+        public static  List<SupportModel_SS_Beam> lstSupportBeams { get; set; } = new List<SupportModel_SS_Beam>();
+
 
 
         public RoofFramingLayout()
@@ -84,7 +90,7 @@ namespace EE_RoofFramer
 
             // If we are in preview mode we will just draw centerlines as a marker.
             // Clear our temporary layer prior to drawing temporary items
-
+            #region Preview Mode
             if (PreviewMode is true)
             {
                 // If we are in preview mode we will just draw centerlines as a marker.
@@ -93,47 +99,58 @@ namespace EE_RoofFramer
 
                 DoPreviewMode(doc, db, start, end);
 
+                foreach (var item in lstRafters_Untrimmed)
+                {
+                    item.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+                }
+
                 ModifyAutoCADGraphics.ForceRedraw(db, doc);
 
                 IsComplete = false;
                 return IsComplete;
             }
 
-            //// Clear our temporary layer
- //           DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+            #endregion
+
+            // Clear our temporary layer
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
             #region Trim Rafters
-            foreach(RafterModel model in lstRafters_Untrimmed)
+            foreach (RafterModel model in lstRafters_Untrimmed)
             {
-                List<Point3d> intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(model.StartPt, model.EndPt), ROOF_BOUNDARY_BOX);
+                List<Point3d> lst_intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(model.StartPt, model.EndPt), ROOF_PERIMETER_POLYLINE);
 
-                foreach (Point3d pt in intPt)
+                // is it a valid list of intersection points
+                if (lst_intPt == null)
+                {
+                    continue;
+                }
+
+                // need two points to make a rafter
+                if (lst_intPt.Count < 2)
+                {
+                    continue;
+                }
+
+                foreach (Point3d pt in lst_intPt)
                 {
                     DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
                 }
 
-                RafterModel new_model = new RafterModel(model.StartPt, intPt[0], rafter_spacing);
+                RafterModel new_model = new RafterModel(lst_intPt[0], lst_intPt[1], rafter_spacing);
                 new_model.AddLoads(10, 20, 20);
                 lstRafters_Trimmed.Add(new_model);
             }
 
             //// Clear our temporary layer
-            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+            DrawAllRoofFraming(db, doc);
 
+            // Write each rafter info to a file
             foreach (var item in lstRafters_Trimmed)
             {
-                MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
+                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, item.ToFile());
             }
 
-            // Now force a redraw
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                // Force a redraw of the screen?
-                doc.TransactionManager.EnableGraphicsFlush(true);
-                doc.TransactionManager.QueueForGraphicsFlush();
-                Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
-                trans.Commit();
-            }
             #endregion
 
             #region Draw Purlins
@@ -214,22 +231,15 @@ namespace EE_RoofFramer
                     }
             }
 
-            foreach (var item in lstRafters_Untrimmed)
-            {
-                item.AddToAutoCADDatabase(db, doc);
-  //              MoveLineToLayer(OffsetLine(new Line(item.StartPt, item.EndPt), 0) as Line, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);  // Must create the centerline this way to have it added to the AutoCAD database
-            }
+            // Delete temporary objects
+//            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+            //foreach (var item in lstRafters_Untrimmed)
+            //{
+            //    item.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
+            //}
 
-            // Now force a redraw
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                // Force a redraw of the screen?
-                doc.TransactionManager.EnableGraphicsFlush(true);
-                doc.TransactionManager.QueueForGraphicsFlush();
-                Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
-                trans.Commit();
-            }
-
+            //// Now force a redraw
+            //ModifyAutoCADGraphics.ForceRedraw(db, doc);
         }
 
 
@@ -665,6 +675,9 @@ namespace EE_RoofFramer
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_ANNOTATION_LAYER, doc, db, 1); // red
             CreateLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
 
+            CreateLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db, 140);  // yellow
+
+
             //Create the EE dimension style
             CreateEE_DimensionStyle(EE_ROOF_Settings.DEFAULT_EE_DIMSTYLE_NAME);
         }
@@ -808,6 +821,37 @@ namespace EE_RoofFramer
             }
         }
 
+        public static void DrawAllRoofFraming(Database db, Document doc)
+        {
+            // Delete drawing objects on trimmed rafter layer
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, doc, db);
+            // Now draw the current rafter file contents
+            foreach (RafterModel item in lstRafters_Trimmed)
+            {
+                item.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
+            }
+
+            // Delete drawing objects on trimmed rafter layer
+            //DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db);
+            // Draw the support connections contents
+            foreach (SupportConnection item in lstConnections)
+            {
+                item.AddToAutoCADDatabase(db, doc);
+            }
+
+            // Delete drawing objects on trimmed rafter layer
+            //DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db);
+            // Draw the support beams
+            foreach (SupportModel_SS_Beam item in lstSupportBeams)
+            {
+                item.AddToAutoCADDatabase(db, doc);
+            }
+
+            // Now force a redraw
+            ModifyAutoCADGraphics.ForceRedraw(db, doc);
+
+        }
+
         [CommandMethod("EER")]
         public void ShowModalWpfDialogCmd()
         {
@@ -875,5 +919,126 @@ namespace EE_RoofFramer
 
             }
         }
+
+
+        /// <summary>
+        /// The command to add a new beam to the screen.
+        /// </summary>
+        [CommandMethod("ENB")]
+        public async void CreateNewSupportBeam()
+        {
+            Document doc = AcAp.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor edt = doc.Editor;
+
+            // rudimentary copy protection based on current time 
+            if (EE_ROOF_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_ROOF_Settings.DAYS_UNTIL_EXPIRES))
+            {
+                // Update the expires 
+                MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
+                return;
+            }
+
+            #region Application Setup
+
+            // Set up layers and linetypes and AutoCAD drawings items
+            EE_ApplicationSetup(doc, db);
+
+            #endregion
+
+            Point3d[] pt = PromptUserforLineEndPoints(db, doc);
+
+            if((pt == null) || pt.Length < 2)
+            {
+                doc.Editor.WriteMessage("\nInvalid input for endpoints in CreateNewSupportBeam");
+                return;
+            }
+
+            SupportModel_SS_Beam beam = new SupportModel_SS_Beam(pt[0], pt[1]);
+            lstSupportBeams.Add(beam);
+            //beam.AddToAutoCADDatabase(db, doc);
+
+            // read the rafter model information from the file
+            // Read the entire file
+            string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);
+
+            // Parse the individual lines
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                lstRafters_Trimmed.Add(new RafterModel(line));
+            }
+
+            // Now check if the support intersects the rafter
+            foreach(RafterModel item in lstRafters_Trimmed)
+            {
+                IntersectPointData intPt = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(beam.Start, beam.End, item.StartPt, item.EndPt);
+                if(intPt is null)
+                {
+                    continue;
+                }
+
+                if(intPt.isWithinSegment is true)
+                {
+                    SupportConnection support_conn = new SupportConnection(intPt.Point, item.Id, beam.Id);
+                    // add the connection to the support member
+                    lstConnections.Add(support_conn);
+
+                    // update the rafter object to indicate the support in it
+                    item.AddSupportConnection(support_conn);
+                }
+            }
+
+            DrawAllRoofFraming(db, doc);
+
+            // Write each rafter info to the file
+            FileObjects.DeleteFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);
+            foreach (var item in lstRafters_Trimmed)
+            {
+                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, item.ToFile());
+            }
+        }
+
+        /// <summary>
+        /// Function to test reading and storing of raftermodel information.  Can we retrieve the model info between commands?
+        /// </summary>
+        [CommandMethod("ERD")]
+        public void ParseRafterModelTest()
+        {
+            Document doc = AcAp.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor edt = doc.Editor;
+
+            // rudimentary copy protection based on current time 
+            if (EE_ROOF_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_ROOF_Settings.DAYS_UNTIL_EXPIRES))
+            {
+                // Update the expires 
+                MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
+                return;
+            }
+
+            #region Application Setup
+
+            // Set up layers and linetypes and AutoCAD drawings items
+            EE_ApplicationSetup(doc, db);
+
+            #endregion
+
+            // Read the entire rafter file
+            string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);           
+
+            // Parse the individual lines
+            for (int i=0; i< lines.Length; i++)
+            {
+                string line = lines[i];
+                lstRafters_Trimmed.Add(new RafterModel(line));
+            }
+
+            // Draw the model objects
+            DrawAllRoofFraming(db, doc);
+
+        }
+
+
     }
 }

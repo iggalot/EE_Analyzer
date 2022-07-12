@@ -27,5 +27,12 @@ namespace EE_RoofFramer.Models
             return "DL: " + Math.Ceiling(DL) + "\nLL: " + Math.Ceiling(LL) + "\nRLL: " + Math.Ceiling(RLL) + " (lbs)";
 
         }
+
+        public string ToFile()
+        {
+            return "L:," + DL + "," + LL + "," + RLL + ",";
+        }
+
+        
     }
 }

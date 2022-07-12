@@ -1,6 +1,7 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -134,6 +135,73 @@ namespace EE_Analyzer.Utilities
             }
         }
 
+        public static void ChangeLineColor(Line obj, string color)
+        {
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            int colorIndex = ColorIndexFromString(color);
+
+            // Start a transaction
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                try
+                {
+                    LayerTable lt = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
+
+                    //obj.LayerId = lid;
+                    Entity ent = trans.GetObject(obj.Id, OpenMode.ForWrite) as Entity;
+                    ent.ColorIndex = colorIndex;
+
+                    trans.Commit();
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("\nError changing line [" + obj.Handle.ToString() + "] to color [" + color + "]: " + ex.Message);
+                    trans.Abort();
+                }
+            }
+        }
+
+        public static int ColorIndexFromString(string color)
+        {
+            int result = -1;
+            if(Int32.TryParse(color, out result))
+            {
+                result = ((result >= 0) && (result <= 256) ? result : 256);
+            } else
+            {
+                try
+                {
+                    MyColors colorIndex = (MyColors)Enum.Parse(typeof(MyColors), color, true);
+                    if(Enum.IsDefined(typeof(MyColors), colorIndex))
+                    {
+                        result = (int)colorIndex;
+                    }
+                } catch (ArgumentException)
+                {
+
+                    return 256;
+                }
+            }
+            return result;
+        }
+
+        private enum MyColors
+        {
+            ByBlock = 0,
+            Red = 1,
+            Yellow = 2,
+            Green = 3,
+            Cyan = 4,
+            Blue = 5,
+            Magenta = 6,
+            White = 7,
+            Grey = 8,
+            ByLayer = 256
+        };
+
         public static void LineSetLinetype(Line obj, string linetype_name)
         {
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
@@ -194,6 +262,35 @@ namespace EE_Analyzer.Utilities
 
             return line;
         }
+        
+        public static Point3d[] PromptUserforLineEndPoints(Database db, Document doc)
+        {
+            Point3d[] points = new Point3d[2]; ;
 
+            PromptPointResult pPtRes;
+            PromptPointOptions pPtOpts = new PromptPointOptions("");
+
+            // Prompt for the start point
+            pPtOpts.Message = "\nEnter the start point of the line: ";
+            pPtRes = doc.Editor.GetPoint(pPtOpts);
+            points[0] = pPtRes.Value;
+
+            // Exit if the user presses ESC or cancels the command
+            if (pPtRes.Status == PromptStatus.Cancel) 
+                return points;
+
+            // Prompt for the end point
+            pPtOpts.Message = "\nEnter the end point of the line: ";
+            pPtOpts.UseBasePoint = true;
+            pPtOpts.BasePoint = points[0];
+            pPtRes = doc.Editor.GetPoint(pPtOpts);
+            
+            points[1] = pPtRes.Value;
+
+            if (pPtRes.Status == PromptStatus.Cancel) 
+                return null;
+
+            return points;
+        }
     }
 }

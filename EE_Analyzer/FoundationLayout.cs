@@ -464,14 +464,6 @@ namespace EE_Analyzer
 
                 ModifyAutoCADGraphics.ForceRedraw(db, doc);
 
-                //using (Transaction trans = db.TransactionManager.StartTransaction())
-                //{
-                //    // Force a redraw of the screen?
-                //    doc.TransactionManager.EnableGraphicsFlush(true);
-                //    doc.TransactionManager.QueueForGraphicsFlush();
-                //    Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
-                //    trans.Commit();
-                //}
                 IsComplete = false;
                 return IsComplete;
             }
@@ -692,14 +684,7 @@ namespace EE_Analyzer
             }
 
             // Now force a redraw
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                // Force a redraw of the screen?
-                doc.TransactionManager.EnableGraphicsFlush(true);
-                doc.TransactionManager.QueueForGraphicsFlush();
-                Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
-                trans.Commit();
-            }
+            ModifyAutoCADGraphics.ForceRedraw(db, doc);
         }
 
         /// <summary>

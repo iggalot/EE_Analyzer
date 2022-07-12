@@ -564,5 +564,21 @@ namespace EE_Analyzer.TestingFunctions
         //        tr.Commit();
         //    }
         //}
+
+        //public static async Task OverwriteStringToFileTest()
+        //{
+        //    string[] lines = { "First line", "Second line", "Third line" };
+        //    using (StreamWriter file = new StreamWriter("WriteLines2.txt", false))
+        //    {
+        //        foreach (string line in lines)
+        //        {
+        //            if (!line.Contains("Second"))
+        //            {
+        //                await file.WriteLineAsync(line);
+        //            }
+        //        }
+        //    }
+
+        //}
     }
 }

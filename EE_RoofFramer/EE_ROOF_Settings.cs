@@ -11,10 +11,15 @@ namespace EE_RoofFramer
         public const int DAYS_UNTIL_EXPIRES = 25;
         public static DateTime APP_REGISTRATION_DATE = new DateTime(2022, 7, 6);
 
+        // File information
+        public const string DEFAULT_EE_RAFTER_FILENAME = "rafters._EE";  // filename that stores the rafter information.
+
         // Default layers
         public const string DEFAULT_ROOF_BOUNDINGBOX_LAYER = "_EE_ROOF_BOUNDINGBOX"; // Contains the bounding box 
         public const string DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER = "_EE_ROOF_RAFTERS_TRIMMED"; // For the trimmed roof rafters
         public const string DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER = "_EE_ROOF_RAFTERS_UNTRIMMED"; // For the untrimmed roof rafters
+
+        public const string DEFAULT_SUPPORT_CONNECTION_POINT_LAYER = "_EE_SUPPORT_CONNECTIONS"; // For support connection points
 
         public const string DEFAULT_ROOF_RIDGE_SUPPORT_LAYER = "_EE_ROOF_RIDGE_SUPPORT"; // For ridge supports
         public const string DEFAULT_ROOF_HIPVALLEY_SUPPORT_LAYER = "_EE_ROOF_HIPVALLEY_SUPPORT"; // For the hip valley supports
