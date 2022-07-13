@@ -9,7 +9,7 @@ using System.Windows;
 
 namespace EE_RoofFramer.Utilities
 {
-    public static class FileObjects
+    public class FileObjects
     {
         /// <summary>
         /// Writes a line to file
@@ -21,7 +21,7 @@ namespace EE_RoofFramer.Utilities
         {
             using (StreamWriter file = new StreamWriter(filename, true))
             {
-                await file.WriteLineAsync(line);
+                file.WriteLineAsync(line);
             }
         }
 

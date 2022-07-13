@@ -27,7 +27,7 @@ namespace EE_RoofFramer.Models
 
         private Point3d MidPt { get => MathHelpers.GetMidpoint(StartPt, EndPt);  }
 
-//        public List<LoadModel> LoadModels { get; set; } = new List<LoadModel> { };
+        public List<LoadModel> PtLoadModels { get; set; } = new List<LoadModel> { };
   
         // Contains a list of UniformLoadModels
         public List<LoadModel> UniformLoadModels { get; set; } = new List<LoadModel> { };
@@ -81,74 +81,95 @@ namespace EE_RoofFramer.Models
             string[] split_line = line.Split(',');
             // Check that this line is a "RAFTER" designation "R"
             int index = 0;
-            if (split_line[index].Substring(0,1).Equals("R"))
+
+            if (split_line.Length > 8)
             {
-                Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
-
-                // Read spacing
-                Spacing = Double.Parse(split_line[index + 1]);
-                // 0, 1, 2 -- First three values are the start point coord
-                StartPt = new Point3d(Double.Parse(split_line[index+2]), Double.Parse(split_line[index + 3]), Double.Parse(split_line[index + 4]));
-                // 3, 4, 5 == Next three values are the end point coord
-                EndPt = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
-
-
-                //TODO:: This part of the line parser should be moved to LOAD_MODEL
-                bool should_parse_load = true; ;
-
-                index = index + 8;  // start index of the first L: marker
-
-                while (should_parse_load is true)
+                if (split_line[index].Substring(0, 1).Equals("R"))
                 {
-                    should_parse_load = false;
-                    if (split_line[index].Equals("L:"))
-                    {
-                        should_parse_load = true;
+                    Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
 
-                        double dl = Double.Parse(split_line[index + 1]);  // DL
-                        double ll = Double.Parse(split_line[index + 2]);  // LL
-                        double rll = Double.Parse(split_line[index + 3]); // RLL
-                        UniformLoadModels.Add(new LoadModel(dl, ll, rll));
-                        index = index + 4;
+                    // Read spacing
+                    Spacing = Double.Parse(split_line[index + 1]);
+                    // 0, 1, 2 -- First three values are the start point coord
+                    StartPt = new Point3d(Double.Parse(split_line[index + 2]), Double.Parse(split_line[index + 3]), Double.Parse(split_line[index + 4]));
+                    // 3, 4, 5 == Next three values are the end point coord
+                    EndPt = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
 
-                        if (split_line[index].Equals("$"))
-                            return;
-                    }
+
+                    bool should_parse_uniform_load = true;
+
+                    index = index + 8;  // start index of the first L: marker
+
+                    //while (should_parse_uniform_load is true)
+                    //{
+                    //    should_parse_uniform_load = false;
+                    //    if (split_line[index].Equals("LU"))
+                    //    {
+                    //        should_parse_uniform_load = true;
+
+                    //        double dl = Double.Parse(split_line[index + 1]);  // DL
+                    //        double ll = Double.Parse(split_line[index + 2]);  // LL
+                    //        double rll = Double.Parse(split_line[index + 3]); // RLL
+                    //        UniformLoadModels.Add(new LoadModel(dl, ll, rll));
+                    //        index = index + 4;
+
+                    //        if (split_line[index].Equals("$"))
+                    //            return;
+                    //    }
+                    //}
+
+
+                    //bool should_parse_pt_load = true;
+
+                    //while (should_parse_pt_load is true)
+                    //{
+                    //    if (split_line[index].Equals("LC"))
+                    //    {
+                    //        should_parse_pt_load = true;
+
+                    //        double dl = Double.Parse(split_line[index + 1]);  // DL
+                    //        double ll = Double.Parse(split_line[index + 2]);  // LL
+                    //        double rll = Double.Parse(split_line[index + 3]); // RLL
+                    //        PtLoadModels.Add(new LoadModel(dl, ll, rll));
+                    //        index = index + 4;
+
+                    //        if (split_line[index].Equals("$"))
+                    //            return;
+                    //    }
+                    //}
+
+                    //                // Parse the support connections -- this should probably be in its own file
+                    //                bool should_parse_support_conn = true;
+                    //                while (should_parse_support_conn is true)
+                    //                {
+                    //                    should_parse_support_conn = false;
+                    //                    if (split_line[index].Substring(0,2).Equals("SC"))
+                    //                    {
+                    //                        should_parse_support_conn = true;
+
+                    //                        // Parse the id number af the "S" symbol
+                    //                        Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
+
+                    //                        int supporting = Int32.Parse(split_line[index + 1]); // RLL
+                    //                        int supportedby = Int32.Parse(split_line[index + 2]); // RLL
+
+                    ////                        SupportConnection supp = new SupportConnection(new Point3d(x, y, z), supporting, supportedby);
+                    ////                        supp.Id = Id;  // reassign the support connection id number
+
+                    //                        // Add the support back to our rafter object
+                    //                        AddSupportConnection(supp);
+                    //                        index = index + 6;
+
+                    //                        if (split_line[index].Equals("$"))
+                    //                            return;
+                    //                    }
+                    //                }
+
+                    UpdateCalculations();
+                    return;
                 }
-
-                // Parse the support connections -- this should probably be in its own file
-                bool should_parse_support_conn = true;
-                while (should_parse_support_conn is true)
-                {
-                    should_parse_support_conn = false;
-                    if (split_line[index].Substring(0,2).Equals("SC"))
-                    {
-                        should_parse_load = true;
-                        
-                        // Parse the id number af the "S" symbol
-                        Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-
-                        double x = Double.Parse(split_line[index + 1]);  // DL
-                        double y = Double.Parse(split_line[index + 2]);  // LL
-                        double z = Double.Parse(split_line[index + 3]); // RLL
-                        int supporting = Int32.Parse(split_line[index + 4]); // RLL
-                        int supportedby = Int32.Parse(split_line[index + 5]); // RLL
-
-                        SupportConnection supp = new SupportConnection(new Point3d(x, y, z), supporting, supportedby);
-                        supp.Id = Id;  // reassign the support connection id number
-
-                        // Add the support back to our rafter object
-                        AddSupportConnection(supp);
-                        index = index + 6;
-
-                        if (split_line[index].Equals("$"))
-                            return;
-                    }
-                }
-
-                UpdateCalculations();
-                return;
             }
+           
         }
 
         /// <summary>
@@ -176,10 +197,16 @@ namespace EE_RoofFramer.Models
                     // indicate if the rafters are adequately supported.
                     MarkRafterSupportStatus();
 
-                    // Draw the reaction values at their locations
+                    // Draw the uniform load values
+                    foreach(var item in UniformLoadModels)
+                    {
+                        item.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    }
+
+                    // Draw support connections
                     foreach (var item in lst_SupportConnections)
                     {
-                        DrawMtext(db, doc, item.ConnectionPoint, item.BelowConn.ToString(), 3, layer_name);
+                        item.AddToAutoCADDatabase(db, doc);
                     }
 
                     //// Draw the support reactions
@@ -234,7 +261,7 @@ namespace EE_RoofFramer.Models
             }
 
             //// Concentrated Loads
-            //foreach (var item in ConcentratedLoadModels)
+            //foreach (var item in PtLoadModels)
             //{
             //    data += "LC" + item.Id;
             //}
@@ -242,7 +269,8 @@ namespace EE_RoofFramer.Models
             // add supported by connections
             foreach (var item in lst_SupportConnections)
             {
-                data += item.ToFile();
+                data += "SC" + ",";
+                data += item.Id;
             }
 
             // End of record
@@ -260,7 +288,7 @@ namespace EE_RoofFramer.Models
         public void AddUniformLoads(double dead, double live, double roof_live)
         {
             UniformLoadModels.Add(new LoadModel(dead, live, roof_live));
-            ComputeSupportReactions();
+            UpdateCalculations();
         }
 
         /// <summary>
@@ -270,7 +298,7 @@ namespace EE_RoofFramer.Models
         public void AddUniformLoads(LoadModel load_model)
         {
             UniformLoadModels.Add(load_model);
-            ComputeSupportReactions();
+            UpdateCalculations();
         }
 
         private void ComputeSupportReactions()

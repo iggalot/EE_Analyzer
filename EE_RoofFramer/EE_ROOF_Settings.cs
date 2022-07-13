@@ -16,7 +16,6 @@ namespace EE_RoofFramer
         public const string DEFAULT_EE_CONNECTION_FILENAME = "connections._EE";  // filename that stores the support connection information.
         public const string DEFAULT_EE_LOAD_FILENAME = "loads._EE";  // filename that stores the support connection information.
 
-
         // Default layers
         public const string DEFAULT_ROOF_BOUNDINGBOX_LAYER = "_EE_ROOF_BOUNDINGBOX"; // Contains the bounding box 
         public const string DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER = "_EE_ROOF_RAFTERS_TRIMMED"; // For the trimmed roof rafters
@@ -31,6 +30,8 @@ namespace EE_RoofFramer
         public const string DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER = "_EE_ROOF_STEEL_BEAM_SUPPORT"; // For the beam supports
 
         public const string DEFAULT_ROOF_PURLIN_SUPPORT_LAYER = "_EE_ROOF_PURLIN"; // For purlin supports
+
+        public const string DEFAULT_LOAD_LAYER = "_EE_ROOF_LOADS"; // For roof loads.
 
         public const string DEFAULT_ROOF_TEXTS_LAYER = "_EE_ROOF_TEXT";
         public const string DEFAULT_ROOF_DIMENSIONS_LAYER = "_EE_ROOF_DIMENSIONS";

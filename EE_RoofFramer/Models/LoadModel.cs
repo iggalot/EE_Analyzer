@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -62,34 +64,54 @@ namespace EE_RoofFramer.Models
             int index = 0;
             bool should_parse_load = true;
 
-            while (should_parse_load is true)
+            if(split_line.Length > 5)
             {
-                should_parse_load = false;
-                // Check that this line is a "LOAD" designation "L"
-                if (split_line[index].Substring(0, 2).Equals("LU"))
-                {
-                    should_parse_load = true;
-                    Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
-                    LoadType = Int32.Parse(split_line[index + 1]);
-                    DL = Double.Parse(split_line[index + 2]);  // DL
-                    LL = Double.Parse(split_line[index + 3]);  // LL
-                    RLL = Double.Parse(split_line[index + 4]); // RLL
-                } else if (split_line[index].Substring(0, 2).Equals("LC"))
+                while (should_parse_load is true)
                 {
                     should_parse_load = false;
-                    throw new NotImplementedException("Concentrated loads are not yet handled");
-                }
-                else
-                {
-                    should_parse_load = false;
-                    return;
-                }
+                    // Check that this line is a "LOAD" designation "L"
+                    if (split_line[index].Substring(0, 2).Equals("LU"))
+                    {
+                        should_parse_load = true;
+                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                        LoadType = Int32.Parse(split_line[index + 1]);
+                        DL = Double.Parse(split_line[index + 2]);  // DL
+                        LL = Double.Parse(split_line[index + 3]);  // LL
+                        RLL = Double.Parse(split_line[index + 4]); // RLL
+                    }
+                    else if (split_line[index].Substring(0, 2).Equals("LC"))
+                    {
+                        should_parse_load = false;
+                        throw new NotImplementedException("Concentrated loads are not yet handled");
+                    }
+                    else
+                    {
+                        should_parse_load = false;
+                        return;
+                    }
 
-                if (split_line[index + 5].Equals("$"))
-                    return;
+                    if (split_line[index + 5].Equals("$"))
+                        return;
+                }
             }
 
+
             return;
+        }
+
+        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
+        {
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                try
+                {
+
+                }
+                catch (System.Exception e)
+                {
+                    doc.Editor.WriteMessage("Error drawing Load Model [" + Id.ToString() + "]: " + e.Message);
+                }
+            }
         }
 
         /// <summary>
