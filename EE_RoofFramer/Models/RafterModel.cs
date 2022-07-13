@@ -230,7 +230,7 @@ namespace EE_RoofFramer.Models
             // Uniform Loads
             foreach (var item in UniformLoadModels) 
             {
-                data += "LU" + item.Id;
+                data += "LU" + item.Id + ",";
             }
 
             //// Concentrated Loads
