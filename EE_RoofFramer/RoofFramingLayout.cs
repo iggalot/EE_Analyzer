@@ -146,16 +146,15 @@ namespace EE_RoofFramer
                 // Add a uniform load
                 LoadModel uniform_load_model = new LoadModel(10, 20, 20, LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD);
                 lstLoads.Add(uniform_load_model);
-
-                // Add two supports
-                SupportConnection support1 = new SupportConnection(new_model.StartPt, new_model.Id, -1);
-                SupportConnection support2 = new SupportConnection(new_model.EndPt, new_model.Id, -1);
-                lstConnections.Add(support1);
-                lstConnections.Add(support2);
-
                 new_model.AddUniformLoads(uniform_load_model);
-                new_model.AddSupportConnection(support1);
-                new_model.AddSupportConnection(support2);
+
+                //// Add two supports
+                //SupportConnection support1 = new SupportConnection(new_model.StartPt, new_model.Id, -1);
+                //SupportConnection support2 = new SupportConnection(new_model.EndPt, new_model.Id, -1);
+                //lstConnections.Add(support1);
+                //lstConnections.Add(support2);
+                //new_model.AddSupportConnection(support1);
+                //new_model.AddSupportConnection(support2);
 
                 // finally add the rafter to the list
                 lstRafters_Trimmed.Add(new_model);
