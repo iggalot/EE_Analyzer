@@ -50,7 +50,10 @@ namespace EE_RoofFramer
         public static List<RafterModel> lstRafters_Untrimmed { get; set; } = new List<RafterModel>();
         public static  List<RafterModel> lstRafters_Trimmed { get; set; } = new List<RafterModel>();
         public static  List<SupportConnection> lstConnections { get; set; } = new List<SupportConnection>();
-        public static  List<SupportModel_SS_Beam> lstSupportBeams { get; set; } = new List<SupportModel_SS_Beam>();
+        public static List<LoadModel> lstLoads { get; set; } = new List<LoadModel>();
+        public static List<RafterModel> lstSupportBeams { get; set; } = new List<RafterModel>();
+
+
 
 
 
@@ -112,6 +115,7 @@ namespace EE_RoofFramer
 
             #endregion
 
+            #region Finalize Mode
             // Clear our temporary layer
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
@@ -138,18 +142,33 @@ namespace EE_RoofFramer
                 }
 
                 RafterModel new_model = new RafterModel(lst_intPt[0], lst_intPt[1], rafter_spacing);
-                new_model.AddLoads(10, 20, 20);
+
+                // Add a uniform load
+                LoadModel uniform_load_model = new LoadModel(10, 20, 20, LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD);
+                lstLoads.Add(uniform_load_model);
+
+                // Add two supports
+                SupportConnection support1 = new SupportConnection(new_model.StartPt, new_model.Id, -1);
+                SupportConnection support2 = new SupportConnection(new_model.EndPt, new_model.Id, -1);
+                lstConnections.Add(support1);
+                lstConnections.Add(support2);
+
+                new_model.AddUniformLoads(uniform_load_model);
+                new_model.AddSupportConnection(support1);
+                new_model.AddSupportConnection(support2);
+
+                // finally add the rafter to the list
                 lstRafters_Trimmed.Add(new_model);
             }
+
+            #endregion
 
             //// Clear our temporary layer
             DrawAllRoofFraming(db, doc);
 
-            // Write each rafter info to a file
-            foreach (var item in lstRafters_Trimmed)
-            {
-                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, item.ToFile());
-            }
+            // Store all of the data of the model into a file
+            WriteAllDataToFile();
+
 
             #endregion
 
@@ -205,6 +224,8 @@ namespace EE_RoofFramer
 
             return IsComplete;
         }
+
+
 
         private void DoPreviewMode(Document doc, Database db, Point3d start, Point3d end)
         {
@@ -279,10 +300,10 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
-                model.AddLoads(10, 20, 20);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
 
-                lstRafters_Untrimmed.Add(model);
+                // finally add the rafter to the list
+                lstRafters_Untrimmed.Add(new_model);
             }
 
             // Draw rafters from intersect point to end point -- start at index of 1 so we dont double draw the longest rafter
@@ -291,11 +312,9 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
-                model.AddLoads(10, 20, 20);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
 
-
-                lstRafters_Untrimmed.Add(model);
+                lstRafters_Untrimmed.Add(new_model);
             }
         }
 
@@ -331,10 +350,9 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1,0,0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
-                model.AddLoads(10, 20, 20);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
 
-                lstRafters_Untrimmed.Add(model);
+                lstRafters_Untrimmed.Add(new_model);
             }
 
             // Draw rafters from intersect point to end point -- start at index of 1 so we dont double draw the longest rafter
@@ -343,10 +361,9 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1, 0, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel model = new RafterModel(start_pt, new_pt, rafter_spacing);
-                model.AddLoads(10, 20, 20);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
 
-                lstRafters_Untrimmed.Add(model);
+                lstRafters_Untrimmed.Add(new_model);
             }
 
 
@@ -547,10 +564,10 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list1 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list1 * i * rafter_spacing);
 
-                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
-                model.AddLoads(10, 20, 20);
+                RafterModel new_model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
+
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
-                lstRafters_Untrimmed.Add(model);
+                lstRafters_Untrimmed.Add(new_model);
             }
 
             // Draw rafters from intersect point to start point -- start at index 1 so we dont duplicate the middle rafter
@@ -559,11 +576,10 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list2 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list2 * i * rafter_spacing);
 
-                RafterModel model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
-                model.AddLoads(10, 20, 20);
+                RafterModel new_model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
 
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
-                lstRafters_Untrimmed.Add(model);
+                lstRafters_Untrimmed.Add(new_model);
             }
         }
 
@@ -832,7 +848,7 @@ namespace EE_RoofFramer
             }
 
             // Delete drawing objects on trimmed rafter layer
-            //DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db);
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db);
             // Draw the support connections contents
             foreach (SupportConnection item in lstConnections)
             {
@@ -840,12 +856,14 @@ namespace EE_RoofFramer
             }
 
             // Delete drawing objects on trimmed rafter layer
-            //DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db);
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db);
             // Draw the support beams
-            foreach (SupportModel_SS_Beam item in lstSupportBeams)
+            foreach (RafterModel item in lstSupportBeams)
             {
-                item.AddToAutoCADDatabase(db, doc);
+                item.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
             }
+
+            //TODO::  Draw Loads??
 
             // Now force a redraw
             ModifyAutoCADGraphics.ForceRedraw(db, doc);
@@ -857,13 +875,8 @@ namespace EE_RoofFramer
         {
             FirstLoad = true;
 
-            // rudimentary copy protection based on current time 
-            if (EE_ROOF_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_ROOF_Settings.DAYS_UNTIL_EXPIRES))
-            {
-                // Update the expires 
-                MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
+            if (ValidateUser() is false)
                 return;
-            }
 
             Document doc = AcAp.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -931,13 +944,8 @@ namespace EE_RoofFramer
             Database db = doc.Database;
             Editor edt = doc.Editor;
 
-            // rudimentary copy protection based on current time 
-            if (EE_ROOF_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_ROOF_Settings.DAYS_UNTIL_EXPIRES))
-            {
-                // Update the expires 
-                MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
+            if (ValidateUser() is false)
                 return;
-            }
 
             #region Application Setup
 
@@ -954,49 +962,49 @@ namespace EE_RoofFramer
                 return;
             }
 
-            SupportModel_SS_Beam beam = new SupportModel_SS_Beam(pt[0], pt[1]);
-            lstSupportBeams.Add(beam);
-            //beam.AddToAutoCADDatabase(db, doc);
+            //SupportModel_SS_Beam beam = new SupportModel_SS_Beam(pt[0], pt[1]);
+            //lstSupportBeams.Add(beam);
+            ////beam.AddToAutoCADDatabase(db, doc);
 
-            // read the rafter model information from the file
-            // Read the entire file
-            string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);
+            //// read the rafter model information from the file
+            //// Read the entire file
+            //string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);
 
-            // Parse the individual lines
-            for (int i = 0; i < lines.Length; i++)
-            {
-                string line = lines[i];
-                lstRafters_Trimmed.Add(new RafterModel(line));
-            }
+            //// Parse the individual lines
+            //for (int i = 0; i < lines.Length; i++)
+            //{
+            //    string line = lines[i];
+            //    lstRafters_Trimmed.Add(new RafterModel(line));
+            //}
 
-            // Now check if the support intersects the rafter
-            foreach(RafterModel item in lstRafters_Trimmed)
-            {
-                IntersectPointData intPt = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(beam.Start, beam.End, item.StartPt, item.EndPt);
-                if(intPt is null)
-                {
-                    continue;
-                }
+            //// Now check if the support intersects the rafter
+            //foreach(RafterModel item in lstRafters_Trimmed)
+            //{
+            //    IntersectPointData intPt = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(beam.Start, beam.End, item.StartPt, item.EndPt);
+            //    if(intPt is null)
+            //    {
+            //        continue;
+            //    }
 
-                if(intPt.isWithinSegment is true)
-                {
-                    SupportConnection support_conn = new SupportConnection(intPt.Point, item.Id, beam.Id);
-                    // add the connection to the support member
-                    lstConnections.Add(support_conn);
+            //    if(intPt.isWithinSegment is true)
+            //    {
+            //        SupportConnection support_conn = new SupportConnection(intPt.Point, item.Id, beam.Id);
+            //        // add the connection to the support member
+            //        lstConnections.Add(support_conn);
 
-                    // update the rafter object to indicate the support in it
-                    item.AddSupportConnection(support_conn);
-                }
-            }
+            //        // update the rafter object to indicate the support in it
+            //        item.AddSupportConnection(support_conn);
+            //    }
+            //}
 
-            DrawAllRoofFraming(db, doc);
+            //DrawAllRoofFraming(db, doc);
 
-            // Write each rafter info to the file
-            FileObjects.DeleteFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);
-            foreach (var item in lstRafters_Trimmed)
-            {
-                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, item.ToFile());
-            }
+            //// Write each rafter info to the file
+            //FileObjects.DeleteFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);
+            //foreach (var item in lstRafters_Trimmed)
+            //{
+            //    FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, item.ToFile());
+            //}
         }
 
         /// <summary>
@@ -1009,13 +1017,8 @@ namespace EE_RoofFramer
             Database db = doc.Database;
             Editor edt = doc.Editor;
 
-            // rudimentary copy protection based on current time 
-            if (EE_ROOF_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_ROOF_Settings.DAYS_UNTIL_EXPIRES))
-            {
-                // Update the expires 
-                MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
+            if (ValidateUser() is false)
                 return;
-            }
 
             #region Application Setup
 
@@ -1024,19 +1027,122 @@ namespace EE_RoofFramer
 
             #endregion
 
-            // Read the entire rafter file
-            string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME);           
+            ReadAllDataFiles();
+
+            // Draw the model objects
+            DrawAllRoofFraming(db, doc);
+        }
+
+        private void ReadAllDataFiles()
+        {
+            // read the beams file
+            ReadBeamFile();
+
+            // read the connections file
+            ReadSupportConnectionsFile();
+
+            // read the loads file
+            ReadLoadsFile();
+
+        }
+
+        private void ReadBeamFile()
+        {
+            // Read the entire beams file
+            string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME);
 
             // Parse the individual lines
-            for (int i=0; i< lines.Length; i++)
+            for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i];
                 lstRafters_Trimmed.Add(new RafterModel(line));
             }
+        }
 
-            // Draw the model objects
-            DrawAllRoofFraming(db, doc);
+        private void ReadSupportConnectionsFile()
+        {
+            // Read the support connections file
+            string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME);
 
+            // Parse the individual lines
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                lstConnections.Add(new SupportConnection(line));
+            }
+        }
+
+        /// <summary>
+        /// Write all the data objects to file
+        /// </summary>
+        private void WriteAllDataToFile()
+        {
+            WriteBeamsToFile();
+            WriteConnectionsToFile();
+            WriteLoadsToFile();
+        }
+
+        /// <summary>
+        /// Write all rafters and beams to file
+        /// </summary>
+        private void WriteBeamsToFile()
+        {
+            foreach (RafterModel model in lstSupportBeams)
+            {
+                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME, model.ToFile());
+            }
+
+            foreach (RafterModel model in lstRafters_Trimmed)
+            {
+                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME, model.ToFile());
+            }
+
+        }
+
+        private void WriteConnectionsToFile()
+        {
+            foreach (SupportConnection model in lstConnections)
+            {
+                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME, model.ToFile());
+            }
+        }
+
+        private void WriteLoadsToFile()
+        {
+            foreach(LoadModel model in lstLoads)
+            {
+                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME, model.ToFile());
+            }
+        }
+
+        private void ReadLoadsFile()
+        {
+            // Read the support connections file
+            string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME);
+
+            // Parse the individual lines
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                lstLoads.Add(new LoadModel(line));
+            }
+        }
+
+        /// <summary>
+        /// Rudimentary user lock for the application
+        /// </summary>
+        /// <returns></returns>
+        protected bool ValidateUser()
+        {
+            // rudimentary copy protection based on current time 
+            if (EE_ROOF_Settings.APP_REGISTRATION_DATE < DateTime.Now.AddDays(-1 * EE_ROOF_Settings.DAYS_UNTIL_EXPIRES))
+            {
+                // Update the expires 
+                MessageBox.Show("Time has expired on this application. Contact the developer for a new licensed version.");
+                return false;
+            }
+
+            return true;
         }
 
 

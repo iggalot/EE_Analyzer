@@ -19,6 +19,7 @@ namespace EE_RoofFramer.Models
         private double width = 4;
         private int _id = 0;
         private static int next_id = 0;
+        public int Id { get => _id; set { _id = value; next_id++; } }
 
         public Point3d ConnectionPoint { get; set; }
 
@@ -28,7 +29,8 @@ namespace EE_RoofFramer.Models
         // id number of the object supported above this connection (item being supporteD)
         public int AboveConn { get; set; } = -1;
 
-        public int Id { get => _id; set { _id = value; next_id++; } }
+        public LoadModel Reactions { get; set; } = null;
+
 
         public SupportConnection()
         {
@@ -43,6 +45,47 @@ namespace EE_RoofFramer.Models
 
             Id = next_id;
         }
+
+        public SupportConnection(string line)
+        {
+            string[] split_line = line.Split(',');
+            // Check that this line is a "RAFTER" designation "R"
+            int index = 0;
+            bool should_parse_connections = true;
+            int load_count = 1;
+
+            while (should_parse_connections is true)
+            {
+                should_parse_connections = false;
+                if (split_line[index].Substring(0, 2).Equals("SC"))
+                {
+                    should_parse_connections = true;
+                    Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 1));
+                    BelowConn = Int32.Parse(split_line[index + 1]);  // member id of supporting member
+                    AboveConn = Int32.Parse(split_line[index + 2]);  // member id of member above being supported
+                    
+                    if(split_line[index + 3].Substring(0,2).Equals("LU") && split_line.Length == index + 2 + load_count * 4)
+                    {
+                        Reactions = new LoadModel(Double.Parse(split_line[index + 4]), 
+                            Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), (LoadTypes)Int32.Parse(split_line[index + 7]));
+
+                    }
+                    load_count++;
+                }
+                else
+                {
+                    should_parse_connections = false;
+                }
+
+                if (split_line[index].Equals("$"))
+                    return;
+            }
+
+            return;
+
+        }
+
+
 
         public void AddToAutoCADDatabase(Database db, Document doc)
         {
@@ -77,11 +120,18 @@ namespace EE_RoofFramer.Models
         /// </summary>
         /// <param name="prefix_identifier"></param>
         /// <returns></returns>
-        public string ToFile(string prefix_identifier)
+        public string ToFile()
         {
             string data = "";
-            data += prefix_identifier + Id.ToString() + "," + ConnectionPoint.X + "," + ConnectionPoint.Y + "," + ConnectionPoint.Z + "," + AboveConn + "," + BelowConn + ",";
+            data += "SC" + Id.ToString() + "," + BelowConn.ToString() + "," + AboveConn.ToString() + ",";
             return data;
+        }
+
+
+        public override string ToString()
+        {
+            return "SC" + Id.ToString() + "\nB:" + BelowConn.ToString() + "\nA: " + AboveConn.ToString();
+
         }
     }
 }

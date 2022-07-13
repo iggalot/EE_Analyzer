@@ -27,14 +27,13 @@ namespace EE_RoofFramer.Models
 
         private Point3d MidPt { get => MathHelpers.GetMidpoint(StartPt, EndPt);  }
 
-        public List<LoadModel> LoadModels { get; set; } = new List<LoadModel> { };
+//        public List<LoadModel> LoadModels { get; set; } = new List<LoadModel> { };
+  
+        // Contains a list of UniformLoadModels
+        public List<LoadModel> UniformLoadModels { get; set; } = new List<LoadModel> { };
 
         // Reaction connections for beams supporting this rafter
         public List<SupportConnection> lst_SupportConnections { get; set; } = new List<SupportConnection> { };
-
-        private LoadModel Reaction_StartSupport { get; set; } = new LoadModel(-10000, -10000, -10000);
-        private LoadModel Reaction_EndSupport { get; set; } = new LoadModel(-10000, -10000, -10000);
-
 
         public Line Centerline { get; set; } 
 
@@ -109,7 +108,7 @@ namespace EE_RoofFramer.Models
                         double dl = Double.Parse(split_line[index + 1]);  // DL
                         double ll = Double.Parse(split_line[index + 2]);  // LL
                         double rll = Double.Parse(split_line[index + 3]); // RLL
-                        LoadModels.Add(new LoadModel(dl, ll, rll));
+                        UniformLoadModels.Add(new LoadModel(dl, ll, rll));
                         index = index + 4;
 
                         if (split_line[index].Equals("$"))
@@ -160,7 +159,6 @@ namespace EE_RoofFramer.Models
             vDir = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
             Length = MathHelpers.Magnitude(StartPt.GetVectorTo(EndPt));
             ComputeSupportReactions();
-
         }
 
         public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
@@ -229,16 +227,22 @@ namespace EE_RoofFramer.Models
             data += StartPt.X.ToString() + "," + StartPt.Y.ToString() + "," + StartPt.Z.ToString() + ",";   // Start pt
             data += EndPt.X.ToString() + "," + EndPt.Y.ToString() + "," + EndPt.Z.ToString() + ",";         // End pt
 
-            // Loads
-            foreach (var item in LoadModels) 
+            // Uniform Loads
+            foreach (var item in UniformLoadModels) 
             {
-                data += item.ToFile();
+                data += "LU" + item.Id;
             }
+
+            //// Concentrated Loads
+            //foreach (var item in ConcentratedLoadModels)
+            //{
+            //    data += "LC" + item.Id;
+            //}
 
             // add supported by connections
             foreach (var item in lst_SupportConnections)
             {
-                data += item.ToFile("SC");
+                data += item.ToFile();
             }
 
             // End of record
@@ -253,9 +257,19 @@ namespace EE_RoofFramer.Models
         /// <param name="dead">Dead load in psf</param>
         /// <param name="live">Live load in psf</param>
         /// <param name="roof_live">Roof live load in psf</param>
-        public void AddLoads(double dead, double live, double roof_live)
+        public void AddUniformLoads(double dead, double live, double roof_live)
         {
-            LoadModels.Add(new LoadModel(dead, live, roof_live));
+            UniformLoadModels.Add(new LoadModel(dead, live, roof_live));
+            ComputeSupportReactions();
+        }
+
+        /// <summary>
+        /// Add a load model object
+        /// </summary>
+        /// <param name="load_model"></param>
+        public void AddUniformLoads(LoadModel load_model)
+        {
+            UniformLoadModels.Add(load_model);
             ComputeSupportReactions();
         }
 
@@ -276,7 +290,7 @@ namespace EE_RoofFramer.Models
                 double total_length = a + b + c;
                 double x_bar = 0.5 * total_length - a;
 
-                foreach (var item in LoadModels)
+                foreach (var item in UniformLoadModels)
                 {
                     dl += (0.5 * total_length / 12.0 - x_bar) * item.DL;
                     ll += (0.5 * total_length / 12.0 - x_bar) * item.LL;
@@ -284,8 +298,8 @@ namespace EE_RoofFramer.Models
                 }
             }
 
-            Reaction_StartSupport = new LoadModel(dl, ll, rll);
-            Reaction_EndSupport = new LoadModel(dl, ll, rll);
+ //           Reaction_StartSupport = new LoadModel(dl, ll, rll);
+ //           Reaction_EndSupport = new LoadModel(dl, ll, rll);
 
         }
 

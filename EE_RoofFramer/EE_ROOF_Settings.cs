@@ -12,7 +12,10 @@ namespace EE_RoofFramer
         public static DateTime APP_REGISTRATION_DATE = new DateTime(2022, 7, 6);
 
         // File information
-        public const string DEFAULT_EE_RAFTER_FILENAME = "rafters._EE";  // filename that stores the rafter information.
+        public const string DEFAULT_EE_BEAM_FILENAME = "beams._EE";  // filename that stores the rafter information.
+        public const string DEFAULT_EE_CONNECTION_FILENAME = "connections._EE";  // filename that stores the support connection information.
+        public const string DEFAULT_EE_LOAD_FILENAME = "loads._EE";  // filename that stores the support connection information.
+
 
         // Default layers
         public const string DEFAULT_ROOF_BOUNDINGBOX_LAYER = "_EE_ROOF_BOUNDINGBOX"; // Contains the bounding box 
