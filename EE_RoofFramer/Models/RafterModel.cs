@@ -27,13 +27,13 @@ namespace EE_RoofFramer.Models
 
         private Point3d MidPt { get => MathHelpers.GetMidpoint(StartPt, EndPt);  }
 
-        public List<LoadModel> PtLoadModels { get; set; } = new List<LoadModel> { };
-  
-        // Contains a list of UniformLoadModels
-        public List<LoadModel> UniformLoadModels { get; set; } = new List<LoadModel> { };
-
         // Reaction connections for beams supporting this rafter
-        public List<SupportConnection> lst_SupportConnections { get; set; } = new List<SupportConnection> { };
+        public List<int> lst_SupportConnections { get; set; } = new List<int> { };
+        public List<int> lst_UniformLoadModels { get; set; } = new List<int> { };
+        public List<int> lst_PtLoadModels { get; set; } = new List<int> { };
+
+
+
 
         public Line Centerline { get; set; } 
 
@@ -82,7 +82,7 @@ namespace EE_RoofFramer.Models
             // Check that this line is a "RAFTER" designation "R"
             int index = 0;
 
-            if (split_line.Length > 8)
+            if (split_line.Length >= 8)
             {
                 if (split_line[index].Substring(0, 1).Equals("R"))
                 {
@@ -95,75 +95,41 @@ namespace EE_RoofFramer.Models
                     // 3, 4, 5 == Next three values are the end point coord
                     EndPt = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
 
-
-                    bool should_parse_uniform_load = true;
-
                     index = index + 8;  // start index of the first L: marker
 
-                    //while (should_parse_uniform_load is true)
-                    //{
-                    //    should_parse_uniform_load = false;
-                    //    if (split_line[index].Equals("LU"))
-                    //    {
-                    //        should_parse_uniform_load = true;
+                    bool should_continue = true;
+                    while (should_continue)
+                    {
+                        if (split_line[index].Equals("$"))
+                        {
+                            should_continue = false;
+                            continue;
+                        }
+                        if (split_line[index].Length < 2)
+                        {
+                            should_continue = false;
+                            continue;
+                        }
 
-                    //        double dl = Double.Parse(split_line[index + 1]);  // DL
-                    //        double ll = Double.Parse(split_line[index + 2]);  // LL
-                    //        double rll = Double.Parse(split_line[index + 3]); // RLL
-                    //        UniformLoadModels.Add(new LoadModel(dl, ll, rll));
-                    //        index = index + 4;
-
-                    //        if (split_line[index].Equals("$"))
-                    //            return;
-                    //    }
-                    //}
-
-
-                    //bool should_parse_pt_load = true;
-
-                    //while (should_parse_pt_load is true)
-                    //{
-                    //    if (split_line[index].Equals("LC"))
-                    //    {
-                    //        should_parse_pt_load = true;
-
-                    //        double dl = Double.Parse(split_line[index + 1]);  // DL
-                    //        double ll = Double.Parse(split_line[index + 2]);  // LL
-                    //        double rll = Double.Parse(split_line[index + 3]); // RLL
-                    //        PtLoadModels.Add(new LoadModel(dl, ll, rll));
-                    //        index = index + 4;
-
-                    //        if (split_line[index].Equals("$"))
-                    //            return;
-                    //    }
-                    //}
-
-                    //                // Parse the support connections -- this should probably be in its own file
-                    //                bool should_parse_support_conn = true;
-                    //                while (should_parse_support_conn is true)
-                    //                {
-                    //                    should_parse_support_conn = false;
-                    //                    if (split_line[index].Substring(0,2).Equals("SC"))
-                    //                    {
-                    //                        should_parse_support_conn = true;
-
-                    //                        // Parse the id number af the "S" symbol
-                    //                        Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-
-                    //                        int supporting = Int32.Parse(split_line[index + 1]); // RLL
-                    //                        int supportedby = Int32.Parse(split_line[index + 2]); // RLL
-
-                    ////                        SupportConnection supp = new SupportConnection(new Point3d(x, y, z), supporting, supportedby);
-                    ////                        supp.Id = Id;  // reassign the support connection id number
-
-                    //                        // Add the support back to our rafter object
-                    //                        AddSupportConnection(supp);
-                    //                        index = index + 6;
-
-                    //                        if (split_line[index].Equals("$"))
-                    //                            return;
-                    //                    }
-                    //                }
+                        if (split_line[index].Substring(0, 2).Equals("SC"))
+                        {
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
+                            index++;
+                        }
+                        else if (split_line[index].Substring(0, 2).Equals("LU"))
+                        {
+                            lst_UniformLoadModels.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
+                            index++;
+                        }
+                        else if (split_line[index].Substring(0, 2).Equals("LC"))
+                        {
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
+                            index++;
+                        } else
+                        {
+                            should_continue = false;
+                        }
+                    }
 
                     UpdateCalculations();
                     return;
@@ -182,7 +148,7 @@ namespace EE_RoofFramer.Models
             ComputeSupportReactions();
         }
 
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
+        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int,ConnectionModel> conn_dict, IDictionary<int,LoadModel> load_dict)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -197,16 +163,22 @@ namespace EE_RoofFramer.Models
                     // indicate if the rafters are adequately supported.
                     MarkRafterSupportStatus();
 
-                    // Draw the uniform load values
-                    foreach(var item in UniformLoadModels)
+                    // Draw support connections
+                    foreach (var item in lst_UniformLoadModels)
                     {
-                        item.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                        if (load_dict.ContainsKey(item))
+                        {
+                            load_dict[item].AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                        }
                     }
 
                     // Draw support connections
                     foreach (var item in lst_SupportConnections)
                     {
-                        item.AddToAutoCADDatabase(db, doc);
+                        if (conn_dict.ContainsKey(item))
+                        {
+                            conn_dict[item].AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
+                        }
                     }
 
                     //// Draw the support reactions
@@ -254,23 +226,22 @@ namespace EE_RoofFramer.Models
             data += StartPt.X.ToString() + "," + StartPt.Y.ToString() + "," + StartPt.Z.ToString() + ",";   // Start pt
             data += EndPt.X.ToString() + "," + EndPt.Y.ToString() + "," + EndPt.Z.ToString() + ",";         // End pt
 
-            // Uniform Loads
-            foreach (var item in UniformLoadModels) 
+            // add Uniform Loads
+            foreach (int item in lst_UniformLoadModels) 
             {
-                data += "LU" + item.Id + ",";
+                data += "LU" + item + ",";
             }
 
-            //// Concentrated Loads
-            //foreach (var item in PtLoadModels)
-            //{
-            //    data += "LC" + item.Id;
-            //}
+            // add Concentrated Loads
+            foreach (int item in lst_PtLoadModels)
+            {
+                data += "LC" + item + ",";
+            }
 
             // add supported by connections
-            foreach (var item in lst_SupportConnections)
+            foreach (int item in lst_SupportConnections)
             {
-                data += "SC" + ",";
-                data += item.Id;
+                data += "SC" + item + ",";
             }
 
             // End of record
@@ -280,24 +251,12 @@ namespace EE_RoofFramer.Models
         }
 
         /// <summary>
-        /// Add a Load Model to the rafter
-        /// </summary>
-        /// <param name="dead">Dead load in psf</param>
-        /// <param name="live">Live load in psf</param>
-        /// <param name="roof_live">Roof live load in psf</param>
-        public void AddUniformLoads(double dead, double live, double roof_live)
-        {
-            UniformLoadModels.Add(new LoadModel(dead, live, roof_live));
-            UpdateCalculations();
-        }
-
-        /// <summary>
         /// Add a load model object
         /// </summary>
         /// <param name="load_model"></param>
         public void AddUniformLoads(LoadModel load_model)
         {
-            UniformLoadModels.Add(load_model);
+            lst_UniformLoadModels.Add(load_model.Id);
             UpdateCalculations();
         }
 
@@ -309,21 +268,21 @@ namespace EE_RoofFramer.Models
 
             if(isDeterminate is true)
             {
-                Point3d start = lst_SupportConnections[0].ConnectionPoint;
-                Point3d end = lst_SupportConnections[1].ConnectionPoint;
-                double a = MathHelpers.Magnitude(start.GetVectorTo(end));
-                double b = MathHelpers.Magnitude(StartPt.GetVectorTo(start));
-                double c = MathHelpers.Magnitude(end.GetVectorTo(EndPt));
+                //Point3d start = lst_SupportConnections[0].ConnectionPoint;
+                //Point3d end = lst_SupportConnections[1].ConnectionPoint;
+                //double a = MathHelpers.Magnitude(start.GetVectorTo(end));
+                //double b = MathHelpers.Magnitude(StartPt.GetVectorTo(start));
+                //double c = MathHelpers.Magnitude(end.GetVectorTo(EndPt));
 
-                double total_length = a + b + c;
-                double x_bar = 0.5 * total_length - a;
+                //double total_length = a + b + c;
+                //double x_bar = 0.5 * total_length - a;
 
-                foreach (var item in UniformLoadModels)
-                {
-                    dl += (0.5 * total_length / 12.0 - x_bar) * item.DL;
-                    ll += (0.5 * total_length / 12.0 - x_bar) * item.LL;
-                    rll += (0.5 * total_length / 12.0 - x_bar) * item.RLL;
-                }
+                //foreach (var item in UniformLoadModels)
+                //{
+                //    dl += (0.5 * total_length / 12.0 - x_bar) * item.DL;
+                //    ll += (0.5 * total_length / 12.0 - x_bar) * item.LL;
+                //    rll += (0.5 * total_length / 12.0 - x_bar) * item.RLL;
+                //}
             }
 
  //           Reaction_StartSupport = new LoadModel(dl, ll, rll);
@@ -335,9 +294,9 @@ namespace EE_RoofFramer.Models
         /// Add connection information for beams that are supporting this rafter
         /// </summary>
         /// <param name="conn"></param>
-        public void AddSupportConnection(SupportConnection conn)
+        public void AddConnection(ConnectionModel conn)
         {
-            lst_SupportConnections.Add(conn);
+            lst_SupportConnections.Add(conn.Id);
             UpdateCalculations();
         }
 

@@ -62,37 +62,29 @@ namespace EE_RoofFramer.Models
         {
             string[] split_line = line.Split(',');
             int index = 0;
-            bool should_parse_load = true;
 
             if(split_line.Length > 5)
             {
-                while (should_parse_load is true)
+                // Check that this line is a "LOAD" designation "L"
+                if (split_line[index].Substring(0, 2).Equals("LU"))
                 {
-                    should_parse_load = false;
-                    // Check that this line is a "LOAD" designation "L"
-                    if (split_line[index].Substring(0, 2).Equals("LU"))
-                    {
-                        should_parse_load = true;
-                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
-                        LoadType = Int32.Parse(split_line[index + 1]);
-                        DL = Double.Parse(split_line[index + 2]);  // DL
-                        LL = Double.Parse(split_line[index + 3]);  // LL
-                        RLL = Double.Parse(split_line[index + 4]); // RLL
-                    }
-                    else if (split_line[index].Substring(0, 2).Equals("LC"))
-                    {
-                        should_parse_load = false;
-                        throw new NotImplementedException("Concentrated loads are not yet handled");
-                    }
-                    else
-                    {
-                        should_parse_load = false;
-                        return;
-                    }
-
-                    if (split_line[index + 5].Equals("$"))
-                        return;
+                    Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
+                    LoadType = Int32.Parse(split_line[index + 1]);
+                    DL = Double.Parse(split_line[index + 2]);  // DL
+                    LL = Double.Parse(split_line[index + 3]);  // LL
+                    RLL = Double.Parse(split_line[index + 4]); // RLL
                 }
+                else if (split_line[index].Substring(0, 2).Equals("LC"))
+                {
+                    throw new NotImplementedException("Concentrated loads are not yet handled");
+                }
+                else
+                {
+                    return;
+                }
+
+                if (split_line[index + 5].Equals("$"))
+                    return;
             }
 
 

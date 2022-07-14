@@ -63,7 +63,7 @@
     <Compile Include="EE_ROOF_Settings.cs" />
     <Compile Include="Models\LoadModel.cs" />
     <Compile Include="Models\RafterModel.cs" />
-    <Compile Include="Models\SupportConnection.cs" />
+    <Compile Include="Models\ConnectionModel.cs" />
     <Compile Include="Models\SupportModel_SS_Beam.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RoofFramingLayout.cs" />
