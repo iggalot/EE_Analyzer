@@ -83,12 +83,14 @@ namespace EE_Analyzer.Utilities
             Point2d min2d = new Point2d(min.X, min.Y);
             Point2d max2d = new Point2d(max.X, max.Y);
 
-            ViewTableRecord view = new ViewTableRecord();
+            using (ViewTableRecord view = new ViewTableRecord())
+            {
 
-            view.CenterPoint = min2d + ((max2d - min2d) / 2.0);
-            view.Height = max2d.Y - min2d.Y;
-            view.Width = max2d.X - min2d.X;
-            ed.SetCurrentView(view);
+                view.CenterPoint = min2d + ((max2d - min2d) / 2.0);
+                view.Height = max2d.Y - min2d.Y;
+                view.Width = max2d.X - min2d.X;
+                ed.SetCurrentView(view);
+            }
         }
     }
 }

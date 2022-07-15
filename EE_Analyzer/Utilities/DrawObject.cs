@@ -28,19 +28,21 @@ namespace EE_Analyzer.Utilities
 
                     // Specify the polyline parameters 
                     edt.WriteMessage("\nDrawing a polyline object!");
-                    Polyline pl = new Polyline();
-                    pl.AddVertexAt(0, new Point2d(0, 0), 0, 0, 0);
-                    pl.AddVertexAt(1, new Point2d(10, 10), 0, 0, 0);
-                    pl.AddVertexAt(1, new Point2d(20, 20), 0, 0, 0);
-                    pl.AddVertexAt(1, new Point2d(30, 30), 0, 0, 0);
-                    pl.AddVertexAt(1, new Point2d(40, 40), 0, 0, 0);
-                    pl.AddVertexAt(1, new Point2d(50, 50), 0, 0, 0);
 
+                    using (Polyline pl = new Polyline())
+                    {
+                        pl.AddVertexAt(0, new Point2d(0, 0), 0, 0, 0);
+                        pl.AddVertexAt(1, new Point2d(10, 10), 0, 0, 0);
+                        pl.AddVertexAt(1, new Point2d(20, 20), 0, 0, 0);
+                        pl.AddVertexAt(1, new Point2d(30, 30), 0, 0, 0);
+                        pl.AddVertexAt(1, new Point2d(40, 40), 0, 0, 0);
+                        pl.AddVertexAt(1, new Point2d(50, 50), 0, 0, 0);
 
-                    // Set the default properties
-                    pl.SetDatabaseDefaults();
-                    btr.AppendEntity(pl);
-                    trans.AddNewlyCreatedDBObject(pl, true);
+                        // Set the default properties
+                        pl.SetDatabaseDefaults();
+                        btr.AppendEntity(pl);
+                        trans.AddNewlyCreatedDBObject(pl, true);
+                    }
                     trans.Commit();
                 }
                 catch (System.Exception ex)
@@ -195,14 +197,16 @@ namespace EE_Analyzer.Utilities
 
                     // pt1 = new Point3d(0, 0, 0);
                     //Point3d pt2 = new Point3d(100, 100, 0);
-                    ln = new Line();
-                    ln.StartPoint = pt1;
-                    ln.EndPoint = pt2;
-                    ln.Layer = layer_name;
-                    ln.Linetype = linetype_name;
+                    using (ln = new Line())
+                    {
+                        ln.StartPoint = pt1;
+                        ln.EndPoint = pt2;
+                        ln.Layer = layer_name;
+                        ln.Linetype = linetype_name;
 
-                    btr.AppendEntity(ln);
-                    trans.AddNewlyCreatedDBObject(ln, true);
+                        btr.AppendEntity(ln);
+                        trans.AddNewlyCreatedDBObject(ln, true);
+                    }
                     trans.Commit();
 
                 }

@@ -53,38 +53,6 @@ namespace EE_Analyzer.Utilities
                         // Add each offset object
                         btr.AppendEntity(ent);
                         trans.AddNewlyCreatedDBObject(ent, true);
-
-                        //// This time access the properties directly
-
-                        //doc.Editor.WriteMessage("\nType:        " +
-
-                        //  ent.GetType().ToString());
-
-                        //doc.Editor.WriteMessage("\n  Handle:    " +
-
-                        //  ent.Handle.ToString());
-
-                        //doc.Editor.WriteMessage("\n  Layer:      " +
-
-                        //  ent.Layer.ToString());
-
-                        //doc.Editor.WriteMessage("\n  Linetype:  " +
-
-                        //  ent.Linetype.ToString());
-
-                        //doc.Editor.WriteMessage("\n  Lineweight: " +
-
-                        //  ent.LineWeight.ToString());
-
-                        //doc.Editor.WriteMessage("\n  ColorIndex: " +
-
-                        //  ent.ColorIndex.ToString());
-
-                        //doc.Editor.WriteMessage("\n  Color:      " +
-
-                        //  ent.Color.ToString());
-
-
                     }
 
                     // capture the offset polyline and return
@@ -213,18 +181,18 @@ namespace EE_Analyzer.Utilities
         /// Utility function to reverse the direction of a polyline.
         /// </summary>
         /// <param name="pline"></param>
-        public static Polyline ReversePolylineDirection(Polyline pline)
+        public static void ReversePolylineDirection(Polyline pline)
         {
             var doc = Application.DocumentManager.MdiActiveDocument;
             var ed = doc.Editor;
 
             using (Transaction trans = doc.TransactionManager.StartTransaction())
             {
-                var obj = trans.GetObject(pline.ObjectId, OpenMode.ForRead);
-                var pl = obj as Polyline;
-
                 try
                 {
+                    var obj = trans.GetObject(pline.ObjectId, OpenMode.ForRead);
+                    var pl = obj as Polyline;
+
                     if (pl != null)
                     {
                         // Collect our per-vertex data
@@ -265,10 +233,10 @@ namespace EE_Analyzer.Utilities
                 {
                     doc.Editor.WriteMessage("\nError encountered while reversing polyline winding direction: " + ex.Message);
                     trans.Abort();
-                    return null;
+                    return;
                 }
 
-                return pl;
+                return;
             }
         }
 
@@ -418,6 +386,23 @@ namespace EE_Analyzer.Utilities
             }
 
             return overlap_case;
+        }
+
+
+        public static Polyline GetPolylineByObjectId(Database db, ObjectId oid)
+        {
+            Polyline pline;
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
+
+                pline = trans.GetObject(oid, OpenMode.ForRead) as Polyline;
+
+                trans.Commit();
+            }
+
+            return pline;
         }
     }
 }

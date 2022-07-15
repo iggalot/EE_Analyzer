@@ -9,7 +9,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static EE_Analyzer.Utilities.DrawObject;
+using static EE_Analyzer.Utilities.EE_Helpers;
 using static EE_Analyzer.Utilities.LineObjects;
+using static EE_Analyzer.Utilities.LayerObjects;
 
 namespace EE_RoofFramer.Models
 {
@@ -20,14 +22,18 @@ namespace EE_RoofFramer.Models
     {
         private const double support_radius = 10;
 
-        private int _id = 0;
-        private static int next_id = 0;
+        private Handle _objHandle; // persistant object identifier 
+        private ObjectId _objID;  // non persistant object identifier
+        public Handle Id { get => _objHandle; set { _objHandle = value; } }
 
-        public List<int> lst_SupportConnections { get; set; } = new List<int>();
 
-        public List<int> lst_UniformLoadModels { get; set; } = new List<int> { };
-        public List<int> lst_PtLoadModels { get; set; } = new List<int> { };
+        public List<Handle> lst_SupportConnections { get; set; } = new List<Handle>();
 
+        public List<Handle> lst_UniformLoadModels { get; set; } = new List<Handle> { };
+        public List<Handle> lst_PtLoadModels { get; set; } = new List<Handle> { };
+
+        private IDictionary<Handle, ConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<Handle, ConnectionModel>();
+        private IDictionary<Handle, LoadModel> LoadDictionary { get; set; } = new Dictionary<Handle, LoadModel>();
 
         public Line Centerline { get; set; }
         public Point3d StartPt { get; set; }
@@ -47,8 +53,6 @@ namespace EE_RoofFramer.Models
 
         public Double Length { get; set; }
 
-        public int Id { get => _id; set { _id = value; next_id++; } }
-
         private bool isDeterminate
         {
             get => (lst_SupportConnections.Count < 2) ? false : true;
@@ -56,7 +60,7 @@ namespace EE_RoofFramer.Models
 
         public bool SupportsAreValid { get => ValidateSupports(); }
 
-        public SupportModel_SS_Beam(Point3d start, Point3d end)
+        public SupportModel_SS_Beam(Point3d start, Point3d end, string layer_name=EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER)
         {
             StartPt = start;
             EndPt = end;
@@ -64,23 +68,30 @@ namespace EE_RoofFramer.Models
             SupportA_Loc = StartPt;
             SupportB_Loc = EndPt;
 
-            Id = next_id;
+            // Centerline object will be the ID source
+            Line ln = new Line(StartPt, EndPt);
+            Centerline = OffsetLine(ln, 0) as Line;
+            MoveLineToLayer(Centerline, layer_name);
+
+            // Store the ID's and handles
+            _objID = Centerline.Id;
+            _objHandle = _objID.Handle;
 
             UpdateCalculations();
         }
 
 
-        public SupportModel_SS_Beam(string line)
+        public SupportModel_SS_Beam(string line, string layer_name)
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "BEAM" designation "B"
             int index = 0;
-            int num_items = 0;
             if(split_line.Length >= 8)
             {
                 if (split_line[index].Substring(0, 1).Equals("B"))
                 {
-                    Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                    String str = (split_line[index].Substring(1, split_line[index].Length - 1));
+                    _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
 
                     // Read spacing
                     Spacing = Double.Parse(split_line[index + 1]);
@@ -88,6 +99,14 @@ namespace EE_RoofFramer.Models
                     StartPt = new Point3d(Double.Parse(split_line[index + 2]), Double.Parse(split_line[index + 3]), Double.Parse(split_line[index + 4]));
                     // 3, 4, 5 == Next three values are the end point coord
                     EndPt = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
+
+                    Line ln = new Line(StartPt, EndPt);
+                    Centerline = OffsetLine(ln, 0) as Line;
+                    MoveLineToLayer(Centerline, layer_name);
+
+                    // Store the ID's and handles
+                    _objID = Centerline.Id;
+                    _objHandle = _objID.Handle;
 
                     index = index + 8;
 
@@ -107,17 +126,26 @@ namespace EE_RoofFramer.Models
 
                         if (split_line[index].Substring(0, 2).Equals("SC"))
                         {
-                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
+                            String sc_str = (split_line[index].Substring(2, split_line[index].Length - 2));
+                            Handle sc_objHandle = new Handle(Int64.Parse(sc_str, System.Globalization.NumberStyles.AllowHexSpecifier));
+
+                            lst_SupportConnections.Add(sc_objHandle);
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LU"))
                         {
-                            lst_UniformLoadModels.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
+                            String lu_str = (split_line[index].Substring(2, split_line[index].Length - 2));
+                            Handle lu_objHandle = new Handle(Int64.Parse(lu_str, System.Globalization.NumberStyles.AllowHexSpecifier));
+
+                            lst_SupportConnections.Add(lu_objHandle);
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LC"))
                         {
-                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
+                            String lc_str = (split_line[index].Substring(2, split_line[index].Length - 2));
+                            Handle lc_objHandle = new Handle(Int64.Parse(lc_str, System.Globalization.NumberStyles.AllowHexSpecifier));
+
+                            lst_SupportConnections.Add(lc_objHandle);
                             index++;
                         }
                         else
@@ -165,9 +193,8 @@ namespace EE_RoofFramer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> dict)
+        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<Handle, ConnectionModel> dict)
         {
-
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 try
@@ -177,21 +204,25 @@ namespace EE_RoofFramer.Models
                     DrawCircle(StartPt, support_radius, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);  // outer support diameter
                     DrawCircle(EndPt, support_radius, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);  // outer support diameter
 
-                    // Draw the beam object
-                    Centerline = new Line(StartPt, EndPt);
-                    MoveLineToLayer(OffsetLine(Centerline,0), EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
+                    Line ln = new Line(StartPt, EndPt);
+                    Centerline = OffsetLine(ln, 0) as Line;
+                    MoveLineToLayer(Centerline, layer_name);
+
+                    // Store the ID's and handles
+                    _objID = Centerline.Id;
+                    _objHandle = _objID.Handle;
 
                     // Draw the support beam label
                     DrawMtext(db, doc, MidPt, Id.ToString(), 3, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
 
-                    // Draw support connections
-                    foreach (var item in lst_SupportConnections)
-                    {
-                        if (dict.ContainsKey(item))
-                        {
-                            dict[item].AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
-                        }
-                    }
+                    //// Draw support connections
+                    //foreach (var item in lst_SupportConnections)
+                    //{
+                    //    if (dict.ContainsKey(item))
+                    //    {
+                    //        dict[item].AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
+                    //    }
+                    //}
 
                     trans.Commit();
                 }
@@ -204,14 +235,24 @@ namespace EE_RoofFramer.Models
         }
 
         /// <summary>
-        /// Adds a support connection to this beam
+        /// Add a load model object
         /// </summary>
-        /// <param name="connect"></param>
-        public void AddConnection(ConnectionModel connect)
+        /// <param name="load_model"></param>
+        public void AddUniformLoads(LoadModel load_model, IDictionary<Handle, LoadModel> dict)
         {
-            // Add the connection information to the beam
-            lst_SupportConnections.Add(connect.Id);
+            LoadDictionary = dict;
+            lst_UniformLoadModels.Add(load_model.Id);
+            UpdateCalculations();
+        }
 
+        /// <summary>
+        /// Add connection information for beams that are supporting this rafter
+        /// </summary>
+        /// <param name="conn"></param>
+        public void AddConnection(ConnectionModel conn, IDictionary<Handle, ConnectionModel> dict)
+        {
+            ConnectionDictionary = dict;
+            lst_SupportConnections.Add(conn.Id);
             UpdateCalculations();
         }
 
@@ -221,20 +262,9 @@ namespace EE_RoofFramer.Models
         /// <param name="dead">Dead load in psf</param>
         /// <param name="live">Live load in psf</param>
         /// <param name="roof_live">Roof live load in psf</param>
-        public void AddUniformLoads(LoadModel model)
+        public void AddPtLoads(LoadModel model, IDictionary<Handle,LoadModel> dict)
         {
-            lst_UniformLoadModels.Add(model.Id);
-            UpdateCalculations();
-        }
-
-        /// <summary>
-        /// Add a Load Model to the rafter
-        /// </summary>
-        /// <param name="dead">Dead load in psf</param>
-        /// <param name="live">Live load in psf</param>
-        /// <param name="roof_live">Roof live load in psf</param>
-        public void AddPtLoads(LoadModel model)
-        {
+            LoadDictionary = dict;
             lst_PtLoadModels.Add(model.Id);
             UpdateCalculations();
         }
@@ -250,8 +280,8 @@ namespace EE_RoofFramer.Models
             double ll = -1;
             double rll = -1;
 
-            ReactionA = new LoadModel(dl, ll, rll);
-            ReactionB = new LoadModel(dl, ll, rll);
+            ReactionA = new LoadModel(dl, ll, rll, StartPt, EndPt);
+            ReactionB = new LoadModel(dl, ll, rll, StartPt, EndPt);
         }
 
         /// <summary>
@@ -270,19 +300,19 @@ namespace EE_RoofFramer.Models
 
 
             // add Uniform Loads
-            foreach (int item in lst_UniformLoadModels)
+            foreach (Handle item in lst_UniformLoadModels)
             {
                 data += "LU" + item + ",";
             }
 
             // add Concentrated Loads
-            foreach (int item in lst_PtLoadModels)
+            foreach (Handle item in lst_PtLoadModels)
             {
                 data += "LC" + item + ",";
             }
 
             // add supported by connections
-            foreach (int item in lst_SupportConnections)
+            foreach (Handle item in lst_SupportConnections)
             {
                 data += "SC" + item + ",";
             }

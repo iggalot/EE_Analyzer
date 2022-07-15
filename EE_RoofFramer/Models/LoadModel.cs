@@ -1,10 +1,17 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static EE_Analyzer.Utilities.DrawObject;
+using static EE_Analyzer.Utilities.EE_Helpers;
+using static EE_Analyzer.Utilities.LineObjects;
+using static EE_Analyzer.Utilities.LayerObjects;
+using static EE_Analyzer.Utilities.MathHelpers;
+
 
 namespace EE_RoofFramer.Models
 {
@@ -16,10 +23,11 @@ namespace EE_RoofFramer.Models
 
     public class LoadModel
     {
-        private int _id = 0;
-        private static int next_id = 0;
-        
-        public int Id { get => _id; set { _id = value; next_id++; } }
+        private Handle _objHandle; // persistant object identifier 
+        private ObjectId _objID;  // non persistant object identifier
+
+        public Handle Id { get => _objHandle; set { _objHandle = value; } }
+
 
         // Dead load
         public double DL { get; set; }
@@ -29,6 +37,9 @@ namespace EE_RoofFramer.Models
         public double RLL { get; set; }
 
         public int LoadType { get; set; } = (int)LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD;
+
+        public Point3d LoadStartPoint { get; set; }
+        public Point3d LoadEndPoint { get; set; }
 
         /// <summary>
         /// Empty constructor
@@ -44,14 +55,15 @@ namespace EE_RoofFramer.Models
         /// <param name="dead">dead loads</param>
         /// <param name="live">live loads</param>
         /// <param name="roof_live">roof live loads</param>
-        public LoadModel(double dead, double live, double roof_live, LoadTypes load_type = LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD)
+        public LoadModel(double dead, double live, double roof_live, Point3d start, Point3d end, LoadTypes load_type = LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD)
         {
             DL = dead;
             LL = live;
             RLL = roof_live;
             LoadType = (int)load_type;
 
-            Id = next_id;
+            LoadStartPoint = start;
+            LoadEndPoint = end;
         }
 
         /// <summary>
@@ -63,28 +75,47 @@ namespace EE_RoofFramer.Models
             string[] split_line = line.Split(',');
             int index = 0;
 
-            if(split_line.Length > 5)
+            try
             {
-                // Check that this line is a "LOAD" designation "L"
-                if (split_line[index].Substring(0, 2).Equals("LU"))
-                {
-                    Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-                    LoadType = Int32.Parse(split_line[index + 1]);
-                    DL = Double.Parse(split_line[index + 2]);  // DL
-                    LL = Double.Parse(split_line[index + 3]);  // LL
-                    RLL = Double.Parse(split_line[index + 4]); // RLL
-                }
-                else if (split_line[index].Substring(0, 2).Equals("LC"))
-                {
-                    throw new NotImplementedException("Concentrated loads are not yet handled");
-                }
-                else
-                {
-                    return;
-                }
 
-                if (split_line[index + 5].Equals("$"))
-                    return;
+                if (split_line.Length > 5)
+                {
+                    // Check that this line is a "LOAD" designation "L"
+                    if (split_line[index].Substring(0, 2).Equals("LU"))
+                    {
+                        String str = (split_line[index].Substring(2, split_line[index].Length - 2));
+                        _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
+
+                        LoadType = Int32.Parse(split_line[index + 1]);
+                        DL = Double.Parse(split_line[index + 2]);  // DL
+                        LL = Double.Parse(split_line[index + 3]);  // LL
+                        RLL = Double.Parse(split_line[index + 4]); // RLL
+                        LoadStartPoint = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
+                        LoadEndPoint = new Point3d(Double.Parse(split_line[index + 8]), Double.Parse(split_line[index + 9]), Double.Parse(split_line[index + 10]));
+                    }
+                    else if (split_line[index].Substring(0, 2).Equals("LC"))
+                    {
+                        String str = (split_line[index].Substring(2, split_line[index].Length - 2));
+                        _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
+
+                        LoadType = Int32.Parse(split_line[index + 1]);
+                        DL = Double.Parse(split_line[index + 2]);  // DL
+                        LL = Double.Parse(split_line[index + 3]);  // LL
+                        RLL = Double.Parse(split_line[index + 4]); // RLL
+                        LoadStartPoint = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
+                        LoadEndPoint = LoadStartPoint;
+                    }
+                    else
+                    {
+                        return;
+                    }
+
+                    if (split_line[index + 5].Equals("$"))
+                        return;
+                }
+            } catch (System.Exception ex)
+            {
+                throw new SystemException("In load model parsing:" + ex.Message);
             }
 
 
@@ -97,31 +128,37 @@ namespace EE_RoofFramer.Models
             {
                 try
                 {
-
+                    switch (LoadType)
+                    {
+                        case (int)LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD:
+                            {
+                                DrawLine(
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(-4, 4, 0)),
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(4, -4, 0)), layer_name);
+                                DrawLine(
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(-4, -4, 0)),
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(4, 4, 0)), layer_name);
+                                break;
+                            }
+                        case (int)LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD:
+                            {
+                                DrawLine(
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(-4, 4, 0)),
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(4, -4, 0)), layer_name);
+                                DrawLine(
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(-4, -4, 0)),
+                                    Point3dFromVectorOffset(LoadStartPoint, new Vector3d(4, 4, 0)), layer_name);
+                                DrawCircle(LoadStartPoint, 8, layer_name);
+                                break;
+                            }
+                        default:
+                            break;
+                    }
                 }
                 catch (System.Exception e)
                 {
                     doc.Editor.WriteMessage("Error drawing Load Model [" + Id.ToString() + "]: " + e.Message);
                 }
-            }
-        }
-
-        /// <summary>
-        /// Constructor that takes four string values for each of the components.
-        /// </summary>
-        /// <param name="str1">the prefix and id of this load model -- in form of LXXXXX</param>
-        /// <param name="str2">the dead load string</param>
-        /// <param name="str3">the live load string</param>
-        /// <param name="str4">the roof live load string</param>
-        public LoadModel(string str1, string str2, string str3, string str4, string str5)
-        {
-            if (str1.Substring(0, 1).Equals("L"))
-            {
-                Id = Int32.Parse(str1.Substring(1, str1.Length - 1)); // first letter of this string is an "L"
-                LoadType = Int32.Parse(str2);
-                DL = Double.Parse(str3);  // DL
-                LL = Double.Parse(str4);  // LL
-                RLL = Double.Parse(str5); // RLL
             }
         }
 
@@ -137,11 +174,17 @@ namespace EE_RoofFramer.Models
             if (LoadType == (int)LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD)
             {
                 data_prefix += "LU";
+                data += data_prefix + Id.ToString() + "," + LoadType.ToString() + "," + DL + "," + LL + "," + RLL + ",";
+                data += LoadStartPoint.X.ToString() + "," + LoadStartPoint.Y.ToString() + "," + LoadStartPoint.Z.ToString() + ",";
+                data += LoadEndPoint.X.ToString() + "," + LoadEndPoint.Y.ToString() + "," + LoadEndPoint.Z.ToString() + ",";
+
             } else  if (LoadType == (int)LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD)
             {
                 data_prefix += "LC";
+                data += data_prefix + Id.ToString() + "," + LoadType.ToString() + "," + DL + "," + LL + "," + RLL + ",";
+                data += LoadStartPoint.X.ToString() + "," + LoadStartPoint.Y.ToString() + "," + LoadStartPoint.Z.ToString() + ",";
+
             }
-            data += data_prefix + Id.ToString() + "," + LoadType.ToString() + "," + DL + "," + LL + "," + RLL + ",";
             return data;
         }
 

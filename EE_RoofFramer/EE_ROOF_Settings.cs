@@ -48,6 +48,9 @@ namespace EE_RoofFramer
         public const double DEFAULT_ROOF_TEXT_SIZE = 5;  // the size of the text in the bill of materials.
 
         public const double DEFAULT_MAX_PURLIN_SPACING = 144;  // measured in inches -- typical max is 12ft
-      
+
+        public const string RAFTER_DETERMINATE_PASS_COLOR = "By Layer"; // color to draw the rafters if they are statically determinate
+        public const string RAFTER_DETERMINATE_FAIL_COLOR = "RED"; // color to draw the rafters if they are statically determinate
+
     }
 }

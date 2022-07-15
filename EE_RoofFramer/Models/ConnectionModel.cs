@@ -16,56 +16,71 @@ namespace EE_RoofFramer.Models
 {
     public class ConnectionModel
     {
-        private int _id = 0;
-        private static int next_id = 0;
-        public int Id { get => _id; set { _id = value; next_id++; } }
+        private Handle _objHandle; // persistant object identifier 
+        private ObjectId _objID;  // non persistant object identifier
+
+        public Handle Id { get => _objHandle; set { _objHandle = value; } }
 
         public Point3d ConnectionPoint { get; set; }
 
+        public Line Centerline { get; set; }
+
         // id number of the object supported below this connection (the supporting item)
-        public int BelowConn { get; set; } = -1;
+        public Handle BelowConn { get; set; }
 
         // id number of the object supported above this connection (item being supporteD)
-        public int AboveConn { get; set; } = -1;
+        public Handle AboveConn { get; set; }
 
         public LoadModel Reactions { get; set; } = null;
 
-        public ConnectionModel(Point3d pt, int supporting, int supported_by)
+        public ConnectionModel(Point3d pt, Handle supporting, Handle supported_by, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER)
         {
             ConnectionPoint = pt;
             BelowConn = supported_by;
             AboveConn = supporting;
 
-            Id = next_id;
+
+            // Object for the handle -- in this case an lineobject to make the ID
+            Line ln = new Line(MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-3,3,0)),
+                MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(3, -3, 0)));
+
+            Centerline = OffsetLine(ln, 0) as Line;
+            MoveLineToLayer(Centerline, layer_name);
+
+            // Store the ID's and handles
+            _objID = Centerline.Id;
+            _objHandle = _objID.Handle;
         }
 
-        public ConnectionModel(string line)
+        public ConnectionModel(string line, string layer_name)
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "RAFTER" designation "R"
             int index = 0;
-            int load_count = 1;
 
             if (split_line.Length >= 6)
             {
                 if (split_line[index].Substring(0, 2).Equals("SC"))
                 {
-                    Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-                    BelowConn = Int32.Parse(split_line[index + 1]);  // member id of supporting member
-                    AboveConn = Int32.Parse(split_line[index + 2]);  // member id of member above being supported
+                    string str = split_line[index].Substring(2, split_line[index].Length - 2);
+                    _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
+
+                    string below_str = split_line[index + 1].Substring(2, split_line[index + 1].Length - 2);
+                    string above_str = split_line[index + 2].Substring(2, split_line[index + 2].Length - 2);
+                    BelowConn = new Handle(Int64.Parse(below_str, System.Globalization.NumberStyles.AllowHexSpecifier));  // member id of supporting member
+                    AboveConn = new Handle(Int64.Parse(above_str, System.Globalization.NumberStyles.AllowHexSpecifier));// member id of member above being supported
                     double x = Double.Parse(split_line[index + 3]);
                     double y = Double.Parse(split_line[index + 4]);
                     double z = Double.Parse(split_line[index + 5]);
 
                     ConnectionPoint = new Point3d(x, y, z);  // Point in space of the connection
 
-                    //if(split_line[index + 3].Substring(0,2).Equals("LU") && split_line.Length == index + 2 + load_count * 4)
-                    //{
-                    //    Reactions = new LoadModel(Double.Parse(split_line[index + 4]), 
-                    //        Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), (LoadTypes)Int32.Parse(split_line[index + 7]));
+                    // Object for the handle -- in this case an lineobject to make the ID
+                    Line ln = new Line(MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-3, 3, 0)),
+                        MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(3, -3, 0)));
 
-                    //}
-                    load_count++;
+                    Centerline = OffsetLine(ln, 0) as Line;
+                    MoveLineToLayer(Centerline, layer_name);
                 }
                 else
                 {
@@ -79,6 +94,17 @@ namespace EE_RoofFramer.Models
 
         public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
+            // Object for the handle -- in this case an lineobject to make the ID
+            Line ln = new Line(MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-3, 3, 0)),
+                MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(3, -3, 0)));
+
+            Centerline = OffsetLine(ln, 0) as Line;
+            MoveLineToLayer(Centerline, layer_name);
+
+            // Store the ID's and handles
+            _objID = Centerline.Id;
+            _objHandle = _objID.Handle;
+
             // Draw a box shape for a support connection
             Point3d pt1 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-5, -5, 0));
             Point3d pt2 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-5, 5, 0));

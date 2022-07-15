@@ -42,32 +42,28 @@ namespace EE_RoofFramer
         public bool ShouldClose = false;
         public bool IsComplete = false;
 
+        // Holds the perimeter polyline object
+        public Polyline ROOF_PERIMETER_POLYLINE { get; set; }
 
-        public Polyline ROOF_PERIMETER_POLYLINE { get; set; } = null;
-        public Polyline ROOF_BOUNDARY_BOX { get; set; } = new Polyline();
+        //Holds the perimeter polyline object
+        public Polyline ROOF_BOUNDARY_BOX { get; set; }
 
         // Holds the basis point for the grade beam grid
-        public Point3d ROOF_FRAMING_BASIS_POINT { get; set; } = new Point3d();
+        public Point3d ROOF_FRAMING_BASIS_POINT { get; set; }
+
+        // Get our AutoCAD API objects
+        public static Document doc { get; } = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+        public static Database db { get; } = doc.Database;
 
 
         /// <summary>
-        /// Dictionaries to hold our model data.  Indexed by the ID number of the element
+        /// Dictionaries to hold our model database.  Indexed by the ID number of the element
         /// </summary>
-
-        IDictionary<int, RafterModel> dctRafters_Untrimmed { get; set; } = new Dictionary<int, RafterModel>();
-
-        IDictionary<int, RafterModel> dctRafters_Trimmed { get; set; } = new Dictionary<int, RafterModel>();
-        IDictionary<int, SupportModel_SS_Beam> dctSupportBeams { get; set; } = new Dictionary<int, SupportModel_SS_Beam>();
-        IDictionary<int, LoadModel> dctLoads { get; set; } = new Dictionary<int, LoadModel>();
-        IDictionary<int, ConnectionModel> dctConnections { get; set; } = new Dictionary<int, ConnectionModel>();
-
-        public List<RafterModel> lstRafters_Trimmed { get; set; } = new List<RafterModel>();
-        public List<ConnectionModel> lstConnections { get; set; } = new List<ConnectionModel>();
-        public List<LoadModel> lstLoads { get; set; } = new List<LoadModel>();
-        public List<SupportModel_SS_Beam> lstSupportBeams { get; set; } = new List<SupportModel_SS_Beam>();
-
-
-
+        IDictionary<Handle, RafterModel> dctRafters_Untrimmed { get; set; } = new Dictionary<Handle, RafterModel>();
+        IDictionary<Handle, RafterModel> dctRafters_Trimmed { get; set; } = new Dictionary<Handle, RafterModel>();
+        IDictionary<Handle, SupportModel_SS_Beam> dctSupportBeams { get; set; } = new Dictionary<Handle, SupportModel_SS_Beam>();
+        IDictionary<Handle, LoadModel> dctLoads { get; set; } = new Dictionary<Handle, LoadModel>();
+        IDictionary<Handle, ConnectionModel> dctConnections { get; set; } = new Dictionary<Handle, ConnectionModel>();
 
 
         public RoofFramingLayout()
@@ -75,6 +71,13 @@ namespace EE_RoofFramer
 
         }
 
+        /// <summary>
+        /// Draws the roof framing, including a preview mode with temporary objects
+        /// </summary>
+        /// <param name="preview_mode"></param>
+        /// <param name="should_close"></param>
+        /// <param name="mode_number"></param>
+        /// <returns></returns>
         public bool DrawRoofFramingDetails(bool preview_mode, bool should_close, int mode_number)
         {
             if (mode_number >= ROOF_PERIMETER_POLYLINE.NumberOfVertices)
@@ -97,11 +100,6 @@ namespace EE_RoofFramer
                 return IsComplete;
             }
 
-            // Get our AutoCAD API objects
-            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor edt = doc.Editor;
-
             Point3d start = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(0);
             Point3d end = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(1);
 
@@ -112,13 +110,14 @@ namespace EE_RoofFramer
             {
                 // If we are in preview mode we will just draw centerlines as a marker.
                 // Clear our temporary layer prior to drawing temporary items
-                DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
+                DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, doc, db);
 
-                DoPreviewMode(doc, db, start, end);
+                DoPreviewMode(start, end);
 
-                foreach (KeyValuePair<int,RafterModel> kvp in dctRafters_Untrimmed)
+                foreach (KeyValuePair<Handle,RafterModel> kvp in dctRafters_Untrimmed)
                 {
-                    kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, dctConnections, dctLoads);
+                    kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, dctConnections, dctLoads);
+
                 }
 
                 ModifyAutoCADGraphics.ForceRedraw(db, doc);
@@ -127,50 +126,52 @@ namespace EE_RoofFramer
                 return IsComplete;
             }
             // Clear our temporary layer now that preview mode is over
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, doc, db);
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
             #endregion
 
             #region Finalize Mode -- Trim Rafters
-            foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Untrimmed)
+            try
             {
-                List<Point3d> lst_intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(kvp.Value.StartPt, kvp.Value.EndPt), ROOF_PERIMETER_POLYLINE);
 
-                // is it a valid list of intersection points
-                if (lst_intPt == null)
+                foreach (KeyValuePair<Handle, RafterModel> kvp in dctRafters_Untrimmed)
                 {
-                    continue;
+                    List<Point3d> lst_intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(kvp.Value.StartPt, kvp.Value.EndPt), ROOF_PERIMETER_POLYLINE);
+
+                    // is it a valid list of intersection points
+                    if (lst_intPt == null)
+                    {
+                        continue;
+                    }
+
+                    // need two points to make a rafter
+                    if (lst_intPt.Count < 2)
+                    {
+                        continue;
+                    }
+
+                    foreach (Point3d pt in lst_intPt)
+                    {
+                        DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
+                    }
+
+                    RafterModel new_model = new RafterModel(lst_intPt[0], lst_intPt[1], rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
+
+                    //// Add a uniform load
+                    //LoadModel uniform_load_model = new LoadModel(10, 20, 20, new_model.StartPt, new_model.EndPt, LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD);
+                    //AddLoadToLayout(uniform_load_model);
+                    //new_model.AddUniformLoads(uniform_load_model, dctLoads);
+
+                    // finally add the rafter to the list
+                    AddTrimmedRafterToLayout(new_model);
                 }
-
-                // need two points to make a rafter
-                if (lst_intPt.Count < 2)
-                {
-                    continue;
-                }
-
-                foreach (Point3d pt in lst_intPt)
-                {
-                    DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
-                }
-
-                RafterModel new_model = new RafterModel(lst_intPt[0], lst_intPt[1], rafter_spacing);
-
-                // Add a uniform load
-//                LoadModel uniform_load_model = new LoadModel(10, 20, 20, LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD);
-//                lstLoads.Add(uniform_load_model);
-//                new_model.AddUniformLoads(uniform_load_model);
-
-                //// Add two supports
-                //SupportConnection support1 = new SupportConnection(new_model.StartPt, new_model.Id, -1);
-                //SupportConnection support2 = new SupportConnection(new_model.EndPt, new_model.Id, -1);
-                //lstConnections.Add(support1);
-                //lstConnections.Add(support2);
-                //new_model.AddSupportConnection(support1);
-                //new_model.AddSupportConnection(support2);
-
-                // finally add the rafter to the list
-                AddTrimmedRafterToLayout(new_model);
+            } catch (System.Exception ex)
+            {
+                doc.Editor.WriteMessage("Error finalizing trimmed rafters: " + ex.Message);
             }
+
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db);
 
             #endregion
 
@@ -201,31 +202,13 @@ namespace EE_RoofFramer
 
 
 
-
-
-
-
-            // Do other stuff here to finalize drawing
-
-
-
-
-
-
-
-
-
-
-
-
-
             ModifyAutoCADGraphics.ForceRedraw(db, doc);
             // Indicate that the dialog should close.
             ShouldClose = true;
             IsComplete = true;
 
             // Draw all the framing
-            DrawAllRoofFraming(db, doc);
+            DrawAllRoofFraming();
 
             // Write the data models to their respective files
             WriteAllDataToFiles();
@@ -241,7 +224,7 @@ namespace EE_RoofFramer
         /// <param name="db"></param>
         /// <param name="start"></param>
         /// <param name="end"></param>
-        private void DoPreviewMode(Document doc, Database db, Point3d start, Point3d end)
+        private void DoPreviewMode(Point3d start, Point3d end)
         {
             dctRafters_Untrimmed.Clear();
 
@@ -249,19 +232,19 @@ namespace EE_RoofFramer
             {
                 case -2:
                     {
-                        CreateHorizontalRafters(db, doc, start, end);
+                        CreateHorizontalRafters(start, end);
                         break;
                     }
 
                 case -1:
                     {
-                        CreateVerticalRafters(db, doc, start, end);
+                        CreateVerticalRafters(start, end);
                         break;
                     }
 
                 default:
                     {
-                        CreatePerpendicularRafters(db, doc, CurrentDirectionMode);
+                        CreatePerpendicularRafters(CurrentDirectionMode);
                         break;
                     }
             }
@@ -273,7 +256,7 @@ namespace EE_RoofFramer
         /// </summary>
         /// <param name="start"></param>
         /// <param name="end"></param>
-        private void CreateVerticalRafters(Database db, Document doc, Point3d start, Point3d end)
+        private void CreateVerticalRafters(Point3d start, Point3d end)
         {
             Vector3d dir_unit_vec = new Vector3d(0, 1, 0);
             // get unit vect perpendicular to selected edge
@@ -302,10 +285,10 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
 
                 // finally add the rafter to the list
-                dctRafters_Untrimmed.Add(new_model.Id, new_model);
+                AddUntrimmedRafterToLayout(new_model);
             }
 
             // Draw rafters from intersect point to end point -- start at index of 1 so we dont double draw the longest rafter
@@ -314,10 +297,10 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
 
                 // finally add the rafter to the list
-                dctRafters_Untrimmed.Add(new_model.Id, new_model);
+                AddUntrimmedRafterToLayout(new_model);
             }
         }
 
@@ -327,7 +310,7 @@ namespace EE_RoofFramer
         /// </summary>
         /// <param name="start"></param>
         /// <param name="end"></param>
-        private void CreateHorizontalRafters(Database db, Document doc, Point3d start, Point3d end)
+        private void CreateHorizontalRafters(Point3d start, Point3d end)
         {
             Vector3d dir_unit_vec = new Vector3d(1, 0, 0);
             // get unit vect perpendicular to selected edge
@@ -353,10 +336,10 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1, 0, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
 
                 // finally add the rafter to the list
-                dctRafters_Untrimmed.Add(new_model.Id, new_model);
+                AddUntrimmedRafterToLayout(new_model);
             }
 
             // Draw rafters from intersect point to end point -- start at index of 1 so we dont double draw the longest rafter
@@ -365,10 +348,10 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1, 0, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing);
+                RafterModel new_model = new RafterModel(start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
 
                 // finally add the rafter to the list
-                dctRafters_Untrimmed.Add(new_model.Id, new_model);
+                AddUntrimmedRafterToLayout(new_model);
             }
 
 
@@ -380,7 +363,7 @@ namespace EE_RoofFramer
         /// </summary>
         /// <param name="start"></param>
         /// <param name="end"></param>
-        private void CreatePerpendicularRafters(Database db, Document doc, int start_node_index)
+        private void CreatePerpendicularRafters(int start_node_index)
         {
             Point3d start = ROOF_PERIMETER_POLYLINE.GetPoint3dAt(start_node_index);
             Point3d end = ROOF_PERIMETER_POLYLINE.GetPoint3dAt((start_node_index + 1) % ROOF_PERIMETER_POLYLINE.NumberOfVertices);
@@ -444,9 +427,10 @@ namespace EE_RoofFramer
             Point3d end_pt = MathHelpers.Point3dFromVectorOffset(longest_vertex, perp_unit_vec * min_dist);
             double length_of_untrimmed = MathHelpers.Magnitude(start_pt.GetVectorTo(end_pt));
 
+            //// MArkers for the longest lines
             //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
             //DrawCircle(end_pt, 20, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
-            DrawLine(start_pt, end_pt, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, "HIDDEN2");
+            //DrawLine(start_pt, end_pt, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, "HIDDEN2");
 
             // Create a line from each corner of bounding box to arbitrary point along the dir_unit_vec for the side
             Point3d bb0_a = ROOF_BOUNDARY_BOX.GetPoint3dAt(0);
@@ -571,11 +555,12 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list1 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list1 * i * rafter_spacing);
 
-                RafterModel new_model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
+                RafterModel new_model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
 
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 // finally add the rafter to the list
-                dctRafters_Untrimmed.Add(new_model.Id, new_model);
+                AddUntrimmedRafterToLayout(new_model);
+
             }
 
             // Draw rafters from intersect point to start point -- start at index 1 so we dont duplicate the middle rafter
@@ -584,15 +569,19 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list2 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list2 * i * rafter_spacing);
 
-                RafterModel new_model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing);
+                RafterModel new_model = new RafterModel(start_temp_pt, end_temp_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
 
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 // finally add the rafter to the list
-                dctRafters_Untrimmed.Add(new_model.Id, new_model);
+                AddUntrimmedRafterToLayout(new_model);
             }
         }
 
-        public void OnRoofFramingLayoutCreate()
+        /// <summary>
+        /// Fired when the roof framing layout is initially created, to establish basic common parameters. 
+        /// </summary>
+        /// <exception cref="System.Exception"></exception>
+        public bool OnRoofFramingLayoutCreate()
         {
             // Get our AutoCAD API objects
             Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
@@ -608,8 +597,7 @@ namespace EE_RoofFramer
 
             // Select the polyline for the foundation
             var result = edt.GetEntity(options);
-
-            ROOF_PERIMETER_POLYLINE = ProcessFoundationPerimeter(db, edt, result);
+            ROOF_PERIMETER_POLYLINE = ProcessRoofLayoutPerimeter(result);
 
             if (ROOF_PERIMETER_POLYLINE is null)
             {
@@ -624,12 +612,19 @@ namespace EE_RoofFramer
             #region Create and Draw Bounding Box
             var lstVertices = GetVertices(ROOF_PERIMETER_POLYLINE);
             doc.Editor.WriteMessage("\n--Roof perimeter has " + lstVertices.Count + " vertices.");
-            ROOF_BOUNDARY_BOX = CreateRoofBoundingBox(db, edt, lstVertices);
+
+            // Create the roof bounding box
             doc.Editor.WriteMessage("\n-- Creating roof bounding box.");
-            if (ROOF_BOUNDARY_BOX is null)
+            ObjectId oid = CreateRoofBoundingBox(lstVertices);
+            if(oid == ObjectId.Null)
             {
-                throw new System.Exception("Invalid roof boundary box created.");
+                doc.Editor.WriteMessage("Invalid roof boundary box created.");
+                return false;
+            } else
+            {
+                ROOF_BOUNDARY_BOX = GetPolylineByObjectId(db, oid);
             }
+
             #endregion
 
             #region Zoom Control to improve Autocad View
@@ -641,7 +636,7 @@ namespace EE_RoofFramer
             ZoomWindow(db, doc, zp1, zp2);
             #endregion
 
-            #region Find the Insert (Basis) Point the GradeBeams
+            #region Find the Insert (Basis) Point for the Layout
             // For the detailed spacings, use the lower left corner, otherwise use our algorithm for the optimized location
             doc.Editor.WriteMessage("\nGet roof framing insert point");
 
@@ -663,14 +658,17 @@ namespace EE_RoofFramer
 
             doc.Editor.WriteMessage("\nRoof basis insert point computed succssfully");
             #endregion
+
+            return true;
         }
+
 
         /// <summary>
         /// Sets up the AutoCAD linetypes and the layers for the application
         /// </summary>
         /// <param name="doc"></param>
         /// <param name="db"></param>
-        private void EE_ApplicationSetup(Document doc, Database db)
+        private void EE_ApplicationSetup()
         {
             // Load our linetype
             LoadLineTypes("CENTER", doc, db);
@@ -702,15 +700,20 @@ namespace EE_RoofFramer
 
             CreateLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db, 140);  // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db, 140);  // yellow
-
-
-
+                        
             //Create the EE dimension style
             CreateEE_DimensionStyle(EE_ROOF_Settings.DEFAULT_EE_DIMSTYLE_NAME);
         }
 
-
-        private Polyline CreateRoofBoundingBox(Database db, Editor edt, List<Point2d> lstVertices)
+        /// <summary>
+        /// Creates the bounding box for the roof region
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="edt"></param>
+        /// <param name="lstVertices"></param>
+        /// <returns></returns>
+        /// <exception cref="System.Exception"></exception>
+        private ObjectId CreateRoofBoundingBox(List<Point2d> lstVertices)
         {
             if (lstVertices is null)
             {
@@ -725,7 +728,6 @@ namespace EE_RoofFramer
             var ty = lstVertices[0].Y;
             var bx = lstVertices[0].X;
             var by = lstVertices[0].Y;
-
 
             // Finds the extreme limits of the foundation
             foreach (var vert in lstVertices)
@@ -749,7 +751,7 @@ namespace EE_RoofFramer
             Point2d boundP3 = new Point2d(rx, ty);  // upper right
             Point2d boundP4 = new Point2d(rx, by);  // bottom right
 
-            Polyline pl = new Polyline();
+            ObjectId oid;
 
             // at this point we know an entity has been selected and it is a Polyline
             using (Transaction trans = db.TransactionManager.StartTransaction())
@@ -760,36 +762,47 @@ namespace EE_RoofFramer
                 try
                 {
                     // Specify the polyline parameters 
-                    pl.AddVertexAt(0, boundP1, 0, 0, 0);
-                    pl.AddVertexAt(1, boundP2, 0, 0, 0);
-                    pl.AddVertexAt(2, boundP3, 0, 0, 0);
-                    pl.AddVertexAt(3, boundP4, 0, 0, 0);
-                    pl.Closed = true;
-                    pl.ColorIndex = 140; // cyan color
+                    using (Polyline pl = new Polyline())
+                    {
+                        pl.AddVertexAt(0, boundP1, 0, 0, 0);
+                        pl.AddVertexAt(1, boundP2, 0, 0, 0);
+                        pl.AddVertexAt(2, boundP3, 0, 0, 0);
+                        pl.AddVertexAt(3, boundP4, 0, 0, 0);
+                        pl.Closed = true;
+                        pl.ColorIndex = 140; // cyan color
+                        pl.Layer = EE_ROOF_Settings.DEFAULT_ROOF_BOUNDINGBOX_LAYER;
 
-                    // Set the default properties
-                    pl.SetDatabaseDefaults();
-                    btr.AppendEntity(pl);
-                    trans.AddNewlyCreatedDBObject(pl, true);
+                        // Set the default properties
+                        pl.SetDatabaseDefaults();
+                        oid = btr.AppendEntity(pl);
+                        trans.AddNewlyCreatedDBObject(pl, true);
 
-                    trans.Commit();
+                        trans.Commit();
 
-                    MovePolylineToLayer(pl, EE_ROOF_Settings.DEFAULT_ROOF_BOUNDINGBOX_LAYER, bt, btr);
-
-                    return pl;
+                        return oid;
+                    }
                 }
                 catch (System.Exception ex)
                 {
-                    edt.WriteMessage("\nError encountered drawing roof boundary box line: " + ex.Message);
+                    doc.Editor.WriteMessage("\nError encountered drawing roof boundary box line: " + ex.Message);
                     trans.Abort();
-                    return null;
+                    return ObjectId.Null;
                 }
             }
+
         }
 
-        private Polyline ProcessFoundationPerimeter(Database db, Editor edt, PromptEntityResult result)
+        /// <summary>
+        /// Processes the selected roof polyline, making adjustments and correcting the winding order if necessary.
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="edt"></param>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        /// <exception cref="System.Exception"></exception>
+        private Polyline ProcessRoofLayoutPerimeter(PromptEntityResult result)
         {
-            Polyline roofPerimeterPolyline = new Polyline();
+            Polyline roofPerimeterPolyline;
             if (result.Status == PromptStatus.OK)
             {
                 // at this point we know an entity has been selected and it is a Polyline
@@ -810,7 +823,7 @@ namespace EE_RoofFramer
 
                         if (lstVertices.Count < 3)
                         {
-                            edt.WriteMessage("\nPolyline must have at least three sides.  The selected polygon only has " + lstVertices.Count);
+                            doc.Editor.WriteMessage("\nPolyline must have at least three sides.  The selected polygon only has " + lstVertices.Count);
                             trans.Abort();
                             return null;
                         }
@@ -820,7 +833,7 @@ namespace EE_RoofFramer
                             // -- necessary for the offset functions later to work correctly.
                             if (!PolylineIsWoundClockwise(roofPerimeterPolyline))
                             {
-                                edt.WriteMessage("\nReversing polyline direction to make it Clockwise");
+                                doc.Editor.WriteMessage("\nReversing polyline direction to make it Clockwise");
                                 ReversePolylineDirection(roofPerimeterPolyline);
                             }
                             else
@@ -834,7 +847,7 @@ namespace EE_RoofFramer
                     }
                     catch (System.Exception ex)
                     {
-                        edt.WriteMessage("\nError encountered processing roof polyline winding direction: " + ex.Message);
+                        doc.Editor.WriteMessage("\nError encountered processing roof polyline winding direction: " + ex.Message);
                         trans.Abort();
                         return null;
                     }
@@ -848,12 +861,12 @@ namespace EE_RoofFramer
             }
         }
 
-        public void DrawAllRoofFraming(Database db, Document doc)
+        public void DrawAllRoofFraming()
         {
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, doc, db);
 
             // Now draw the current rafter file contents
-            foreach (KeyValuePair<int, RafterModel> kvp in this.dctRafters_Trimmed)
+            foreach (KeyValuePair<Handle, RafterModel> kvp in this.dctRafters_Trimmed)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, dctConnections, dctLoads);
             }
@@ -861,7 +874,7 @@ namespace EE_RoofFramer
             // Now draw the support beam file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db);
 
-            foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in this.dctSupportBeams)
+            foreach (KeyValuePair<Handle, SupportModel_SS_Beam> kvp in this.dctSupportBeams)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, dctConnections);
             }
@@ -869,7 +882,7 @@ namespace EE_RoofFramer
             // Now draw the connections file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db);
 
-            foreach (KeyValuePair<int, ConnectionModel> kvp in this.dctConnections)
+            foreach (KeyValuePair<Handle, ConnectionModel> kvp in this.dctConnections)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
             }
@@ -877,7 +890,7 @@ namespace EE_RoofFramer
             // Now draw the loads file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db);
 
-            foreach (KeyValuePair<int, LoadModel> kvp in this.dctLoads)
+            foreach (KeyValuePair<Handle, LoadModel> kvp in this.dctLoads)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
             }
@@ -904,7 +917,7 @@ namespace EE_RoofFramer
 
             if(dctRafters_Trimmed is null)
             {
-                dctRafters_Trimmed = new Dictionary<int, RafterModel>();
+                dctRafters_Trimmed = new Dictionary<Handle, RafterModel>();
             }
 
             if(model == null)
@@ -915,11 +928,27 @@ namespace EE_RoofFramer
             dctRafters_Trimmed.Add(model.Id, model);
         }
 
+        private void AddUntrimmedRafterToLayout(RafterModel model)
+        {
+
+            if (dctRafters_Untrimmed is null)
+            {
+                dctRafters_Untrimmed = new Dictionary<Handle, RafterModel>();
+            }
+
+            if (model == null)
+            {
+                return;
+            }
+
+            dctRafters_Untrimmed.Add(model.Id, model);
+        }
+
         private void AddBeamToLayout(SupportModel_SS_Beam model)
         {
             if (dctSupportBeams is null)
             {
-                dctSupportBeams = new Dictionary<int, SupportModel_SS_Beam>();
+                dctSupportBeams = new Dictionary<Handle, SupportModel_SS_Beam>();
             }
 
             if (model == null)
@@ -934,7 +963,7 @@ namespace EE_RoofFramer
         {
             if (dctLoads is null)
             {
-                dctLoads = new Dictionary<int, LoadModel>();
+                dctLoads = new Dictionary<Handle, LoadModel>();
             }
 
             if (model == null)
@@ -949,7 +978,7 @@ namespace EE_RoofFramer
         {
             if (dctConnections is null)
             {
-                dctConnections = new Dictionary<int,ConnectionModel>();
+                dctConnections = new Dictionary<Handle, ConnectionModel>();
             }
 
             if (model == null)
@@ -975,9 +1004,9 @@ namespace EE_RoofFramer
             ReadLoadsFile();
         }
 
-        private IDictionary<int,RafterModel> ReadRaftersFile()
+        private IDictionary<Handle, RafterModel> ReadRaftersFile()
         {
-            Dictionary<int, RafterModel> new_dict = new Dictionary<int, RafterModel>();
+            Dictionary<Handle, RafterModel> new_dict = new Dictionary<Handle, RafterModel>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME))
@@ -994,7 +1023,7 @@ namespace EE_RoofFramer
                         break;
                     else
                     {
-                        RafterModel model = new RafterModel(line);
+                        RafterModel model = new RafterModel(line, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
                         this.AddTrimmedRafterToLayout(model);
 
                         new_dict.Add(model.Id, model);
@@ -1004,9 +1033,9 @@ namespace EE_RoofFramer
             return new_dict;
         }
 
-        private IDictionary<int, SupportModel_SS_Beam> ReadBeamsFile()
+        private IDictionary<Handle, SupportModel_SS_Beam> ReadBeamsFile()
         {
-            Dictionary<int, SupportModel_SS_Beam> new_dict = new Dictionary<int, SupportModel_SS_Beam>();
+            Dictionary<Handle, SupportModel_SS_Beam> new_dict = new Dictionary<Handle, SupportModel_SS_Beam>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME))
@@ -1023,7 +1052,7 @@ namespace EE_RoofFramer
                         break;
                     else
                     {
-                        SupportModel_SS_Beam model = new SupportModel_SS_Beam(line);
+                        SupportModel_SS_Beam model = new SupportModel_SS_Beam(line, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
                         this.AddBeamToLayout(model);
 
                         new_dict.Add(model.Id, model);
@@ -1032,9 +1061,9 @@ namespace EE_RoofFramer
             }
             return new_dict;
         }
-        private IDictionary<int, ConnectionModel> ReadSupportConnectionsFile()
+        private IDictionary<Handle, ConnectionModel> ReadSupportConnectionsFile()
         {
-            Dictionary<int, ConnectionModel> new_dict = new Dictionary<int, ConnectionModel>();
+            Dictionary<Handle, ConnectionModel> new_dict = new Dictionary<Handle, ConnectionModel>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME))
@@ -1051,7 +1080,7 @@ namespace EE_RoofFramer
                         break;
                     else
                     {
-                        ConnectionModel model = new ConnectionModel(line);
+                        ConnectionModel model = new ConnectionModel(line, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
                         this.AddConnectionToLayout(model);
 
                         new_dict.Add(model.Id, model);
@@ -1061,9 +1090,9 @@ namespace EE_RoofFramer
             return new_dict;
         }
 
-        private IDictionary<int, LoadModel> ReadLoadsFile()
+        private IDictionary<Handle, LoadModel> ReadLoadsFile()
         {
-            Dictionary<int, LoadModel> new_dict = new Dictionary<int, LoadModel>();
+            Dictionary<Handle, LoadModel> new_dict = new Dictionary<Handle, LoadModel>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME))
@@ -1111,7 +1140,7 @@ namespace EE_RoofFramer
 
             if (dctRafters_Trimmed.Count > 0)
             {
-                foreach (KeyValuePair<int,RafterModel> kvp in dctRafters_Trimmed)
+                foreach (KeyValuePair<Handle, RafterModel> kvp in dctRafters_Trimmed)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, kvp.Value.ToFile());
                 }
@@ -1129,7 +1158,7 @@ namespace EE_RoofFramer
 
             if (dctSupportBeams.Count > 0)
             {
-                foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in dctSupportBeams)
+                foreach (KeyValuePair<Handle, SupportModel_SS_Beam> kvp in dctSupportBeams)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME, kvp.Value.ToFile());
                 }
@@ -1147,7 +1176,7 @@ namespace EE_RoofFramer
 
             if (dctConnections.Count > 0)
             {
-                foreach (KeyValuePair<int, ConnectionModel> kvp in dctConnections)
+                foreach (KeyValuePair<Handle, ConnectionModel> kvp in dctConnections)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME, kvp.Value.ToFile());
                 }
@@ -1166,7 +1195,7 @@ namespace EE_RoofFramer
 
             if (dctLoads.Count > 0)
             {
-                foreach (KeyValuePair<int, LoadModel> kvp in dctLoads)
+                foreach (KeyValuePair<Handle, LoadModel> kvp in dctLoads)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME, kvp.Value.ToFile());
                 }
@@ -1197,28 +1226,156 @@ namespace EE_RoofFramer
         }
 
 
+        /// <summary>
+        /// Compute the support reactions for the rafters
+        /// </summary>
+        private void ComputeRafterSupportReactions()
+        {
+            
+            //foreach (KeyValuePair<int, RafterModel> item in dctRafters_Trimmed)
+            //{
+            //    // For support A reactions
+            //    double RA_DL = 0;
+            //    double RA_LL = 0;
+            //    double RA_RLL = 0;
+
+            //    // For support B reactions
+            //    double RB_DL = 0;
+            //    double RB_LL = 0;
+            //    double RB_RLL = 0;
+
+            //    LoadModel lm1 = new LoadModel(1000, 1000, 1000, item.Value.StartPt, item.Value.StartPt, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
+            //    LoadModel lm2 = new LoadModel(1000, 1000, 1000, item.Value.EndPt, item.Value.EndPt, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
+
+            //    AddLoadToLayout(lm1);
+            //    AddLoadToLayout(lm2);
+
+            //}
+
+            //foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Trimmed)
+            //{
+            //    // For support A reactions
+            //    double RA_DL = 0;
+            //    double RA_LL = 0;
+            //    double RA_RLL = 0;
+
+            //    // For support B reactions
+            //    double RB_DL = 0;
+            //    double RB_LL = 0;
+            //    double RB_RLL = 0;
+
+            //    // Then are we determinate?
+            //    if (kvp.Value.lst_SupportedBy.Count > 2)
+            //    {
+            //        // Grab the second connection model in the list
+            //        Point3d first_support, second_support;
+            //        SupportModel_SS_Beam start_model, end_model;
+
+            //        // If we have two supports
+            //        if (kvp.Value.lst_SupportedBy.Count == 2)
+            //        {
+            //            ConnectionModel conn_start = dctConnections[kvp.Value.lst_SupportedBy[0]];
+            //            start_model = dctSupportBeams[conn_start.BelowConn];
+
+            //            ConnectionModel conn_end = dctConnections[kvp.Value.lst_SupportedBy[1]];
+            //            end_model = dctSupportBeams[conn_end.BelowConn];
+
+            //            double L = MathHelpers.Magnitude((conn_start.ConnectionPoint).GetVectorTo(conn_end.ConnectionPoint)); // main span length
+            //            double a = MathHelpers.Magnitude(kvp.Value.StartPt.GetVectorTo(conn_start.ConnectionPoint));  // left cantilever
+            //            double b = MathHelpers.Magnitude((conn_end.ConnectionPoint).GetVectorTo(kvp.Value.EndPt));   // right cantilever
+
+            //            foreach (var item in kvp.Value.lst_UniformLoadModels)
+            //            {
+            //                if (dctLoads.ContainsKey(kvp.Value.lst_UniformLoadModels[item]))
+            //                {
+            //                    LoadModel uni_load = dctLoads[kvp.Value.lst_UniformLoadModels[item]];
+
+            //                    double w_dl = uni_load.DL;
+            //                    double w_ll = uni_load.LL;
+            //                    double w_rll = uni_load.RLL;
+
+            //                    // compute the loads on the cantilevers
+            //                    double Ma_DL = 0.5 * w_dl * a * a;
+            //                    double Mb_DL = 0.5 * w_dl * b * b;
+
+            //                    double Ma_LL = 0.5 * w_ll * a * a;
+            //                    double Mb_LL = 0.5 * w_ll * b * b;
+
+            //                    double Ma_RLL = 0.5 * w_rll * a * a;
+            //                    double Mb_RLL = 0.5 * w_rll * b * b;
+
+            //                    // if Ma > Mb then RA = wL/2 + 0.5*(Ma - Mb) / L
+            //                    //                 RB = wL/2 - 0.5*(Ma - Mb) / L
+            //                    if (Ma_DL > Mb_DL)
+            //                    {
+            //                        RA_DL += 0.5 * w_dl * L + 0.5 * (Ma_DL - Mb_DL) / L;
+            //                        RA_LL += 0.5 * w_ll * L + 0.5 * (Ma_LL - Mb_LL) / L;
+            //                        RA_RLL += 0.5 * w_rll * L + 0.5 * (Ma_RLL - Mb_RLL) / L;
+
+            //                        RB_DL += 0.5 * w_dl * L - 0.5 * (Ma_DL - Mb_DL) / L;
+            //                        RB_LL += 0.5 * w_ll * L - 0.5 * (Ma_LL - Mb_LL) / L;
+            //                        RB_RLL += 0.5 * w_rll * L - 0.5 * (Ma_RLL - Mb_RLL) / L;
+            //                    }
+            //                    // otherwise
+            //                    // if Ma > Mb then RA = wL/2 - 0.5*(Ma - Mb) / L
+            //                    //                 RB = wL/2 + 0.5*(Ma - Mb) / L
+            //                    else
+            //                    {
+            //                        RA_DL += 0.5 * w_dl * L - 0.5 * (Mb_DL - Ma_DL) / L;
+            //                        RA_LL += 0.5 * w_ll * L - 0.5 * (Mb_LL - Ma_LL) / L;
+            //                        RA_RLL += 0.5 * w_rll * L - 0.5 * (Mb_RLL - Ma_RLL) / L;
+
+            //                        RB_DL += 0.5 * w_dl * L + 0.5 * (Mb_DL - Ma_DL) / L;
+            //                        RB_LL += 0.5 * w_ll * L + 0.5 * (Mb_LL - Ma_LL) / L;
+            //                        RB_RLL += 0.5 * w_rll * L + 0.5 * (Mb_RLL - Ma_RLL) / L;
+            //                    }
+            //                }
+
+            //                kvp.Value.ReactionsCalculatedCorrectly = true;
+            //                LoadModel lm1 = new LoadModel(RA_DL, RA_LL, RA_RLL, conn_start.ConnectionPoint, conn_start.ConnectionPoint, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
+            //                LoadModel lm2 = new LoadModel(RB_DL, RB_LL, RB_RLL, conn_end.ConnectionPoint, conn_end.ConnectionPoint, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
+
+            //                // Add the reaction to the rafter
+            //                kvp.Value.Reaction_SupportA = lm1;
+            //                kvp.Value.Reaction_SupportB = lm2;
+
+            //                // Add the loads to the drawing layout
+            //                this.AddLoadToLayout(lm1);
+            //                this.AddLoadToLayout(lm2);
+            //            }
+            //        }
+            //        else
+            //        {
+
+            //        }
+            //    }
+            //    else
+            //    {
+
+            //    }
+
+
+            //}
+        }
+
+
+
+
         [CommandMethod("EER")]
         public void ShowModalWpfDialogCmd()
         {
             if (ValidateUser() is false)
                 return;
 
-            Document doc = AcAp.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor edt = doc.Editor;
-
-            #region Application Setup
-            // Set up layers and linetypes and AutoCAD drawings items
-            EE_ApplicationSetup(doc, db);
-            #endregion
-
             RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
+            
+            CurrentFoundationLayout.EE_ApplicationSetup();      // Set up layers and linetypes and AutoCAD drawings items
+            CurrentFoundationLayout.ReadAllDataFromFiles();     // read existing data from the text files            
 
-            // read existing data from the text files
-            CurrentFoundationLayout.ReadAllDataFromFiles();
+            // Set up our initial work.  If false, end the program.
+            if (CurrentFoundationLayout.OnRoofFramingLayoutCreate() is false)
+                return;
 
-
-            CurrentFoundationLayout.OnRoofFramingLayoutCreate();
             CurrentFoundationLayout.FirstLoad = true;
 
             // Keep reloading the dialog box if we are in preview mode
@@ -1250,7 +1407,7 @@ namespace EE_RoofFramer
                     var result = AcAp.ShowModalWindow(dialog);
                     if (result.Value)
                     {
-                        edt.WriteMessage("\nDialog displayed and successfully entered");
+                        doc.Editor.WriteMessage("\nDialog displayed and successfully entered");
                     }
                 }
 
@@ -1261,7 +1418,14 @@ namespace EE_RoofFramer
 
                 CurrentFoundationLayout.CurrentDirectionMode = dialog.current_preview_mode_number;
             }
-        }
+
+            CurrentFoundationLayout.ComputeRafterSupportReactions(); // compute the support reactions
+
+            // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
+            Thread.Sleep(1000);
+            CurrentFoundationLayout.DrawAllRoofFraming(); // draw the image
+//            CurrentFoundationLayout.WriteAllDataToFiles(); // now save all the data
+        }   
 
 
         /// <summary>
@@ -1282,7 +1446,7 @@ namespace EE_RoofFramer
             #region Application Setup
 
             // Set up layers and linetypes and AutoCAD drawings items
-            EE_ApplicationSetup(doc, db);
+            CurrentFoundationLayout.EE_ApplicationSetup();
 
             #endregion
 
@@ -1302,7 +1466,7 @@ namespace EE_RoofFramer
             SupportModel_SS_Beam beam = new SupportModel_SS_Beam(pt[0], pt[1]);
 
             // Now check if the support intersects the rafter
-            foreach (KeyValuePair<int, RafterModel> kvp in CurrentFoundationLayout.dctRafters_Trimmed)
+            foreach (KeyValuePair<Handle, RafterModel> kvp in CurrentFoundationLayout.dctRafters_Trimmed)
             {
                 IntersectPointData intPt = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(beam.StartPt, beam.EndPt, kvp.Value.StartPt, kvp.Value.EndPt);
                 if (intPt is null)
@@ -1316,10 +1480,10 @@ namespace EE_RoofFramer
                     ConnectionModel support_conn = new ConnectionModel(intPt.Point, kvp.Key, beam.Id);
 
                     // Update the beam object to indicate the support connection
-                    beam.AddConnection(support_conn);
+                    beam.AddConnection(support_conn, dctConnections);
 
                     // update the rafter object to indicate the support in it
-                    kvp.Value.AddConnection(support_conn);
+                    kvp.Value.AddConnection(support_conn, dctConnections);
 
                     // add the connection to our list
                     CurrentFoundationLayout.AddConnectionToLayout(support_conn);
@@ -1329,9 +1493,13 @@ namespace EE_RoofFramer
             // Add the beam to the support beams list
             CurrentFoundationLayout.AddBeamToLayout(beam);
 
-            CurrentFoundationLayout.DrawAllRoofFraming(db, doc);
+            // Finalize computations
+            CurrentFoundationLayout.ComputeRafterSupportReactions();
 
-            CurrentFoundationLayout.WriteAllDataToFiles();
+            // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
+            Thread.Sleep(1000);
+            CurrentFoundationLayout.DrawAllRoofFraming();
+            CurrentFoundationLayout.WriteAllDataToFiles();  // save the work
         }
 
         /// <summary>
@@ -1347,23 +1515,19 @@ namespace EE_RoofFramer
             if (ValidateUser() is false)
                 return;
 
-            #region Application Setup
+            RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
 
             // Set up layers and linetypes and AutoCAD drawings items
-            EE_ApplicationSetup(doc, db);
-
-            #endregion
-
-            RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
-            
+            CurrentFoundationLayout.EE_ApplicationSetup();
             // read the data from the text files
             CurrentFoundationLayout.ReadAllDataFromFiles();
 
+            // Compute the rafter reaction values
+            CurrentFoundationLayout.ComputeRafterSupportReactions();
+
             // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
             Thread.Sleep(1000);
-
-            // Draw the model objects
-            CurrentFoundationLayout.DrawAllRoofFraming(db, doc);
+            CurrentFoundationLayout.DrawAllRoofFraming();
         }
 
     }

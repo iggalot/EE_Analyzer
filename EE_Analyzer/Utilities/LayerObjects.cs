@@ -28,19 +28,20 @@ namespace EE_Analyzer.Utilities
                     }
                     else
                     {
-                        LayerTableRecord ltr = new LayerTableRecord();
-                        // Create the layer
-                        ltr.Color = Color.FromColorIndex(ColorMethod.ByAci, color_index);
-                        ltr.Name = name;
+                        using (LayerTableRecord ltr = new LayerTableRecord())
+                        {
+                            // Create the layer
+                            ltr.Color = Color.FromColorIndex(ColorMethod.ByAci, color_index);
+                            ltr.Name = name;
 
-                        // Upgrade the layer table for write
-                        layTable.UpgradeOpen();
-                        // Append the new layer to the layer table and the transaction
-                        layTable.Add(ltr);
-                        trans.AddNewlyCreatedDBObject(ltr, true);
+                            // Upgrade the layer table for write
+                            layTable.UpgradeOpen();
+                            // Append the new layer to the layer table and the transaction
+                            layTable.Add(ltr);
+                            trans.AddNewlyCreatedDBObject(ltr, true);
 
-                        doc.Editor.WriteMessage("\nLayer [" + name + "] successfully created.");
-
+                            doc.Editor.WriteMessage("\nLayer [" + name + "] successfully created.");
+                        }
                         trans.Commit();
                     }
 
