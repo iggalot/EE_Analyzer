@@ -70,7 +70,7 @@ namespace EE_RoofFramer.Models
                     if (split_line[index].Substring(0, 2).Equals("LU"))
                     {
                         // read the previous information that was stored in the file
-                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                        Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
                         _next_id = Id + 1;
 
                         LoadType = Int32.Parse(split_line[index + 1]);
@@ -83,7 +83,7 @@ namespace EE_RoofFramer.Models
                     else if (split_line[index].Substring(0, 2).Equals("LC"))
                     {
                         // read the previous information that was stored in the file
-                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                        Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
 
                         LoadType = Int32.Parse(split_line[index + 1]);
                         DL = Double.Parse(split_line[index + 2]);  // DL

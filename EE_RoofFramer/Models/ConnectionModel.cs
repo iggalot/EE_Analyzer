@@ -48,13 +48,11 @@ namespace EE_RoofFramer.Models
                     if (split_line[index].Substring(0, 2).Equals("SC"))
                     {
                         // read the previous information that was stored in the file
-                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                        Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
                         _next_id = Id + 1;
-
-                        string below_str = split_line[index + 1].Substring(2, split_line[index + 1].Length - 2);
-                        string above_str = split_line[index + 2].Substring(2, split_line[index + 2].Length - 2);
-                        BelowConn = Int32.Parse(below_str, System.Globalization.NumberStyles.AllowHexSpecifier);  // member id of supporting member
-                        AboveConn = Int32.Parse(above_str, System.Globalization.NumberStyles.AllowHexSpecifier);// member id of member above being supported
+                      
+                        BelowConn = Int32.Parse(split_line[index + 1]);  // member id of supporting member
+                        AboveConn = Int32.Parse(split_line[index + 2]);  // member id of member above being supported
                         double x = Double.Parse(split_line[index + 3]);
                         double y = Double.Parse(split_line[index + 4]);
                         double z = Double.Parse(split_line[index + 5]);

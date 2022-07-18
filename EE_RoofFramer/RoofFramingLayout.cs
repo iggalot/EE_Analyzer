@@ -1715,8 +1715,8 @@ namespace EE_RoofFramer
                         double RB_RLL = 0;
 
                         // Test with the first uniform load value
-                        if (dctLoads.ContainsKey(rafter.lst_UniformLoadModels[0]))
-                        {
+ //                      if (dctLoads.ContainsKey(rafter.lst_UniformLoadModels[0]))
+ //                       {
                             LoadModel uni_load = dctLoads[rafter.lst_UniformLoadModels[0]];
 
                             double w_dl = uni_load.DL;
@@ -1764,13 +1764,14 @@ namespace EE_RoofFramer
 
                             DrawMtext(db, doc, first_support_point, lmA.ToString(), 4, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
                             DrawMtext(db, doc, first_support_point, lmB.ToString(), 4, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
-                        }
+ //                       }
                     }
                 }
             }
             // draw reaction values on the drawing
             CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
             CurrentFoundationLayout.WriteAllDataToFiles();      // save the work
+
         }
 
     }
