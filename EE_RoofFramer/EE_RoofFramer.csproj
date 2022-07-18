@@ -61,6 +61,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EE_ROOF_Settings.cs" />
+    <Compile Include="Models\IStructuralObject.cs" />
     <Compile Include="Models\LoadModel.cs" />
     <Compile Include="Models\RafterModel.cs" />
     <Compile Include="Models\ConnectionModel.cs" />

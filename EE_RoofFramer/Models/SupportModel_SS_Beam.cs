@@ -18,23 +18,9 @@ namespace EE_RoofFramer.Models
     /// <summary>
     /// Class to define simply supported supports for joists and rafters
     /// </summary>
-    public class SupportModel_SS_Beam
+    public class SupportModel_SS_Beam : acStructuralObject
     {
         private const double support_radius = 10;
-
-        private Handle _objHandle; // persistant object identifier 
-        private ObjectId _objID;  // non persistant object identifier
-        public Handle Id { get => _objHandle; set { _objHandle = value; } }
-
-
-        public List<Handle> lst_SupportConnections { get; set; } = new List<Handle>();
-
-        public List<Handle> lst_UniformLoadModels { get; set; } = new List<Handle> { };
-        public List<Handle> lst_PtLoadModels { get; set; } = new List<Handle> { };
-
-        private IDictionary<Handle, ConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<Handle, ConnectionModel>();
-        private IDictionary<Handle, LoadModel> LoadDictionary { get; set; } = new Dictionary<Handle, LoadModel>();
-
         public Line Centerline { get; set; }
         public Point3d StartPt { get; set; }
         public Point3d EndPt { get; set; }        
@@ -60,24 +46,20 @@ namespace EE_RoofFramer.Models
 
         public bool SupportsAreValid { get => ValidateSupports(); }
 
-        public SupportModel_SS_Beam(Point3d start, Point3d end, string layer_name=EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER)
+
+
+        public SupportModel_SS_Beam(Point3d start, Point3d end, string layer_name) : base()
         {
             StartPt = start;
             EndPt = end;
 
-            SupportA_Loc = StartPt;
-            SupportB_Loc = EndPt;
-
-            // Centerline object will be the ID source
+            // Centerline object
             Line ln = new Line(StartPt, EndPt);
             Centerline = OffsetLine(ln, 0) as Line;
             MoveLineToLayer(Centerline, layer_name);
 
-            // Store the ID's and handles
-            _objID = Centerline.Id;
-            _objHandle = _objID.Handle;
-
             UpdateCalculations();
+            MarkSupportStatus();
         }
 
 
@@ -90,8 +72,8 @@ namespace EE_RoofFramer.Models
             {
                 if (split_line[index].Substring(0, 1).Equals("B"))
                 {
-                    String str = (split_line[index].Substring(1, split_line[index].Length - 1));
-                    _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
+                    Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                    _next_id = Id + 1;
 
                     // Read spacing
                     Spacing = Double.Parse(split_line[index + 1]);
@@ -103,10 +85,6 @@ namespace EE_RoofFramer.Models
                     Line ln = new Line(StartPt, EndPt);
                     Centerline = OffsetLine(ln, 0) as Line;
                     MoveLineToLayer(Centerline, layer_name);
-
-                    // Store the ID's and handles
-                    _objID = Centerline.Id;
-                    _objHandle = _objID.Handle;
 
                     index = index + 8;
 
@@ -126,24 +104,21 @@ namespace EE_RoofFramer.Models
 
                         if (split_line[index].Substring(0, 2).Equals("SC"))
                         {
-                            String sc_str = (split_line[index].Substring(2, split_line[index].Length - 2));
-                            Handle sc_objHandle = new Handle(Int64.Parse(sc_str, System.Globalization.NumberStyles.AllowHexSpecifier));
+                            int sc_objHandle = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
 
                             lst_SupportConnections.Add(sc_objHandle);
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LU"))
                         {
-                            String lu_str = (split_line[index].Substring(2, split_line[index].Length - 2));
-                            Handle lu_objHandle = new Handle(Int64.Parse(lu_str, System.Globalization.NumberStyles.AllowHexSpecifier));
+                            int lu_objHandle = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
 
                             lst_SupportConnections.Add(lu_objHandle);
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LC"))
                         {
-                            String lc_str = (split_line[index].Substring(2, split_line[index].Length - 2));
-                            Handle lc_objHandle = new Handle(Int64.Parse(lc_str, System.Globalization.NumberStyles.AllowHexSpecifier));
+                            int lc_objHandle = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
 
                             lst_SupportConnections.Add(lc_objHandle);
                             index++;
@@ -155,13 +130,14 @@ namespace EE_RoofFramer.Models
                     }
 
                     UpdateCalculations();
+                    MarkSupportStatus();
                 }
             }
         }
 
 
 
-        private bool ValidateSupports()
+        public override bool ValidateSupports()
         {
             bool is_valid = false;
 
@@ -179,7 +155,7 @@ namespace EE_RoofFramer.Models
         /// <summary>
         /// Updates calculations for the rafter model
         /// </summary>
-        private void UpdateCalculations()
+        protected override void UpdateCalculations()
         {
             vDir = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
             Length = MathHelpers.Magnitude(StartPt.GetVectorTo(EndPt));
@@ -193,7 +169,7 @@ namespace EE_RoofFramer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<Handle, ConnectionModel> dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, LoadModel> load_dict)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -208,21 +184,12 @@ namespace EE_RoofFramer.Models
                     Centerline = OffsetLine(ln, 0) as Line;
                     MoveLineToLayer(Centerline, layer_name);
 
-                    // Store the ID's and handles
-                    _objID = Centerline.Id;
-                    _objHandle = _objID.Handle;
+                    // indicate if the rafters are adequately supported.
+                    UpdateCalculations();
+                    MarkSupportStatus();
 
                     // Draw the support beam label
                     DrawMtext(db, doc, MidPt, Id.ToString(), 3, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
-
-                    //// Draw support connections
-                    //foreach (var item in lst_SupportConnections)
-                    //{
-                    //    if (dict.ContainsKey(item))
-                    //    {
-                    //        dict[item].AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
-                    //    }
-                    //}
 
                     trans.Commit();
                 }
@@ -238,7 +205,7 @@ namespace EE_RoofFramer.Models
         /// Add a load model object
         /// </summary>
         /// <param name="load_model"></param>
-        public void AddUniformLoads(LoadModel load_model, IDictionary<Handle, LoadModel> dict)
+        public override void AddUniformLoads(LoadModel load_model, IDictionary<int, LoadModel> dict)
         {
             LoadDictionary = dict;
             lst_UniformLoadModels.Add(load_model.Id);
@@ -249,7 +216,7 @@ namespace EE_RoofFramer.Models
         /// Add connection information for beams that are supporting this rafter
         /// </summary>
         /// <param name="conn"></param>
-        public void AddConnection(ConnectionModel conn, IDictionary<Handle, ConnectionModel> dict)
+        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict)
         {
             ConnectionDictionary = dict;
             lst_SupportConnections.Add(conn.Id);
@@ -262,7 +229,7 @@ namespace EE_RoofFramer.Models
         /// <param name="dead">Dead load in psf</param>
         /// <param name="live">Live load in psf</param>
         /// <param name="roof_live">Roof live load in psf</param>
-        public void AddPtLoads(LoadModel model, IDictionary<Handle,LoadModel> dict)
+        public override void AddConcentratedLoads(LoadModel model, IDictionary<int,LoadModel> dict)
         {
             LoadDictionary = dict;
             lst_PtLoadModels.Add(model.Id);
@@ -288,7 +255,7 @@ namespace EE_RoofFramer.Models
         /// Contains the information format to record this object in a text file
         /// </summary>
         /// <returns></returns>
-        public string ToFile()
+        public override string ToFile()
         {
             string data = "";
             //RT prefix indicates its a trimmed rafter
@@ -300,19 +267,19 @@ namespace EE_RoofFramer.Models
 
 
             // add Uniform Loads
-            foreach (Handle item in lst_UniformLoadModels)
+            foreach (int item in lst_UniformLoadModels)
             {
                 data += "LU" + item + ",";
             }
 
             // add Concentrated Loads
-            foreach (Handle item in lst_PtLoadModels)
+            foreach (int item in lst_PtLoadModels)
             {
                 data += "LC" + item + ",";
             }
 
             // add supported by connections
-            foreach (Handle item in lst_SupportConnections)
+            foreach (int item in lst_SupportConnections)
             {
                 data += "SC" + item + ",";
             }
@@ -321,6 +288,16 @@ namespace EE_RoofFramer.Models
             data += "$";
 
             return data;
+        }
+
+        protected override void UpdateSupportedBy()
+        {
+            
+        }
+
+        public override void MarkSupportStatus()
+        {
+            
         }
     }
 }

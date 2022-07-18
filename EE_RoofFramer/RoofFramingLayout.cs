@@ -59,11 +59,11 @@ namespace EE_RoofFramer
         /// <summary>
         /// Dictionaries to hold our model database.  Indexed by the ID number of the element
         /// </summary>
-        IDictionary<Handle, RafterModel> dctRafters_Untrimmed { get; set; } = new Dictionary<Handle, RafterModel>();
-        IDictionary<Handle, RafterModel> dctRafters_Trimmed { get; set; } = new Dictionary<Handle, RafterModel>();
-        IDictionary<Handle, SupportModel_SS_Beam> dctSupportBeams { get; set; } = new Dictionary<Handle, SupportModel_SS_Beam>();
-        IDictionary<Handle, LoadModel> dctLoads { get; set; } = new Dictionary<Handle, LoadModel>();
-        IDictionary<Handle, ConnectionModel> dctConnections { get; set; } = new Dictionary<Handle, ConnectionModel>();
+        IDictionary<int, RafterModel> dctRafters_Untrimmed { get; set; } = new Dictionary<int, RafterModel>();
+        IDictionary<int, RafterModel> dctRafters_Trimmed { get; set; } = new Dictionary<int, RafterModel>();
+        IDictionary<int, SupportModel_SS_Beam> dctSupportBeams { get; set; } = new Dictionary<int, SupportModel_SS_Beam>();
+        IDictionary<int, LoadModel> dctLoads { get; set; } = new Dictionary<int, LoadModel>();
+        IDictionary<int, ConnectionModel> dctConnections { get; set; } = new Dictionary<int, ConnectionModel>();
 
 
         public RoofFramingLayout()
@@ -114,7 +114,7 @@ namespace EE_RoofFramer
 
                 DoPreviewMode(start, end);
 
-                foreach (KeyValuePair<Handle,RafterModel> kvp in dctRafters_Untrimmed)
+                foreach (KeyValuePair<int,RafterModel> kvp in dctRafters_Untrimmed)
                 {
                     kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, dctConnections, dctLoads);
 
@@ -135,7 +135,7 @@ namespace EE_RoofFramer
             try
             {
 
-                foreach (KeyValuePair<Handle, RafterModel> kvp in dctRafters_Untrimmed)
+                foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Untrimmed)
                 {
                     List<Point3d> lst_intPt = EE_Helpers.FindPolylineIntersectionPoints(new Line(kvp.Value.StartPt, kvp.Value.EndPt), ROOF_PERIMETER_POLYLINE);
 
@@ -692,6 +692,9 @@ namespace EE_RoofFramer
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db, 1); // red
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER, doc, db, 2); // yellow
 
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER, doc, db, 140); // blue
+
+
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_PURLIN_SUPPORT_LAYER, doc, db, 140); // blue
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_DIMENSIONS_LAYER, doc, db, 2); // yellow
@@ -866,7 +869,7 @@ namespace EE_RoofFramer
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, doc, db);
 
             // Now draw the current rafter file contents
-            foreach (KeyValuePair<Handle, RafterModel> kvp in this.dctRafters_Trimmed)
+            foreach (KeyValuePair<int, RafterModel> kvp in this.dctRafters_Trimmed)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, dctConnections, dctLoads);
             }
@@ -874,25 +877,25 @@ namespace EE_RoofFramer
             // Now draw the support beam file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db);
 
-            foreach (KeyValuePair<Handle, SupportModel_SS_Beam> kvp in this.dctSupportBeams)
+            foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in this.dctSupportBeams)
             {
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, dctConnections);
+                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, dctConnections, dctLoads);
             }
 
             // Now draw the connections file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db);
 
-            foreach (KeyValuePair<Handle, ConnectionModel> kvp in this.dctConnections)
+            foreach (KeyValuePair<int, ConnectionModel> kvp in this.dctConnections)
             {
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
+                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, dctConnections, dctLoads);
             }
 
             // Now draw the loads file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db);
 
-            foreach (KeyValuePair<Handle, LoadModel> kvp in this.dctLoads)
+            foreach (KeyValuePair<int, LoadModel> kvp in this.dctLoads)
             {
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
             }
 
 
@@ -917,7 +920,7 @@ namespace EE_RoofFramer
 
             if(dctRafters_Trimmed is null)
             {
-                dctRafters_Trimmed = new Dictionary<Handle, RafterModel>();
+                dctRafters_Trimmed = new Dictionary<int, RafterModel>();
             }
 
             if(model == null)
@@ -933,7 +936,7 @@ namespace EE_RoofFramer
 
             if (dctRafters_Untrimmed is null)
             {
-                dctRafters_Untrimmed = new Dictionary<Handle, RafterModel>();
+                dctRafters_Untrimmed = new Dictionary<int, RafterModel>();
             }
 
             if (model == null)
@@ -948,7 +951,7 @@ namespace EE_RoofFramer
         {
             if (dctSupportBeams is null)
             {
-                dctSupportBeams = new Dictionary<Handle, SupportModel_SS_Beam>();
+                dctSupportBeams = new Dictionary<int, SupportModel_SS_Beam>();
             }
 
             if (model == null)
@@ -963,7 +966,7 @@ namespace EE_RoofFramer
         {
             if (dctLoads is null)
             {
-                dctLoads = new Dictionary<Handle, LoadModel>();
+                dctLoads = new Dictionary<int, LoadModel>();
             }
 
             if (model == null)
@@ -978,7 +981,7 @@ namespace EE_RoofFramer
         {
             if (dctConnections is null)
             {
-                dctConnections = new Dictionary<Handle, ConnectionModel>();
+                dctConnections = new Dictionary<int, ConnectionModel>();
             }
 
             if (model == null)
@@ -1004,9 +1007,9 @@ namespace EE_RoofFramer
             ReadLoadsFile();
         }
 
-        private IDictionary<Handle, RafterModel> ReadRaftersFile()
+        private IDictionary<int, RafterModel> ReadRaftersFile()
         {
-            Dictionary<Handle, RafterModel> new_dict = new Dictionary<Handle, RafterModel>();
+            Dictionary<int, RafterModel> new_dict = new Dictionary<int, RafterModel>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME))
@@ -1033,9 +1036,9 @@ namespace EE_RoofFramer
             return new_dict;
         }
 
-        private IDictionary<Handle, SupportModel_SS_Beam> ReadBeamsFile()
+        private IDictionary<int, SupportModel_SS_Beam> ReadBeamsFile()
         {
-            Dictionary<Handle, SupportModel_SS_Beam> new_dict = new Dictionary<Handle, SupportModel_SS_Beam>();
+            Dictionary<int, SupportModel_SS_Beam> new_dict = new Dictionary<int, SupportModel_SS_Beam>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME))
@@ -1061,9 +1064,9 @@ namespace EE_RoofFramer
             }
             return new_dict;
         }
-        private IDictionary<Handle, ConnectionModel> ReadSupportConnectionsFile()
+        private IDictionary<int, ConnectionModel> ReadSupportConnectionsFile()
         {
-            Dictionary<Handle, ConnectionModel> new_dict = new Dictionary<Handle, ConnectionModel>();
+            Dictionary<int, ConnectionModel> new_dict = new Dictionary<int, ConnectionModel>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME))
@@ -1090,9 +1093,9 @@ namespace EE_RoofFramer
             return new_dict;
         }
 
-        private IDictionary<Handle, LoadModel> ReadLoadsFile()
+        private IDictionary<int, LoadModel> ReadLoadsFile()
         {
-            Dictionary<Handle, LoadModel> new_dict = new Dictionary<Handle, LoadModel>();
+            Dictionary<int, LoadModel> new_dict = new Dictionary<int, LoadModel>();
 
             // Read the support connections file
             if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME))
@@ -1140,7 +1143,7 @@ namespace EE_RoofFramer
 
             if (dctRafters_Trimmed.Count > 0)
             {
-                foreach (KeyValuePair<Handle, RafterModel> kvp in dctRafters_Trimmed)
+                foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Trimmed)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, kvp.Value.ToFile());
                 }
@@ -1158,7 +1161,7 @@ namespace EE_RoofFramer
 
             if (dctSupportBeams.Count > 0)
             {
-                foreach (KeyValuePair<Handle, SupportModel_SS_Beam> kvp in dctSupportBeams)
+                foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in dctSupportBeams)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME, kvp.Value.ToFile());
                 }
@@ -1176,7 +1179,7 @@ namespace EE_RoofFramer
 
             if (dctConnections.Count > 0)
             {
-                foreach (KeyValuePair<Handle, ConnectionModel> kvp in dctConnections)
+                foreach (KeyValuePair<int, ConnectionModel> kvp in dctConnections)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME, kvp.Value.ToFile());
                 }
@@ -1195,7 +1198,7 @@ namespace EE_RoofFramer
 
             if (dctLoads.Count > 0)
             {
-                foreach (KeyValuePair<Handle, LoadModel> kvp in dctLoads)
+                foreach (KeyValuePair<int, LoadModel> kvp in dctLoads)
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME, kvp.Value.ToFile());
                 }
@@ -1370,7 +1373,10 @@ namespace EE_RoofFramer
             RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
             
             CurrentFoundationLayout.EE_ApplicationSetup();      // Set up layers and linetypes and AutoCAD drawings items
-            CurrentFoundationLayout.ReadAllDataFromFiles();     // read existing data from the text files            
+            CurrentFoundationLayout.ReadAllDataFromFiles();     // read existing data from the text files
+            Thread.Sleep(1000);
+            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+
 
             // Set up our initial work.  If false, end the program.
             if (CurrentFoundationLayout.OnRoofFramingLayoutCreate() is false)
@@ -1423,8 +1429,8 @@ namespace EE_RoofFramer
 
             // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
             Thread.Sleep(1000);
-            CurrentFoundationLayout.DrawAllRoofFraming(); // draw the image
-//            CurrentFoundationLayout.WriteAllDataToFiles(); // now save all the data
+            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentFoundationLayout.WriteAllDataToFiles();
         }   
 
 
@@ -1434,10 +1440,6 @@ namespace EE_RoofFramer
         [CommandMethod("ENB")]
         public void CreateNewSupportBeam()
         {
-            Document doc = AcAp.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor edt = doc.Editor;
-
             if (ValidateUser() is false)
                 return;
 
@@ -1453,6 +1455,7 @@ namespace EE_RoofFramer
             // Recreate our data models from file storage and puase slightly
             CurrentFoundationLayout.ReadAllDataFromFiles();
             Thread.Sleep(1000);
+            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
 
             Point3d[] pt = PromptUserforLineEndPoints(db, doc);
 
@@ -1463,10 +1466,10 @@ namespace EE_RoofFramer
             }
 
             // Create the new beam
-            SupportModel_SS_Beam beam = new SupportModel_SS_Beam(pt[0], pt[1]);
+            SupportModel_SS_Beam beam = new SupportModel_SS_Beam(pt[0], pt[1], EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
 
             // Now check if the support intersects the rafter
-            foreach (KeyValuePair<Handle, RafterModel> kvp in CurrentFoundationLayout.dctRafters_Trimmed)
+            foreach (KeyValuePair<int, RafterModel> kvp in CurrentFoundationLayout.dctRafters_Trimmed)
             {
                 IntersectPointData intPt = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(beam.StartPt, beam.EndPt, kvp.Value.StartPt, kvp.Value.EndPt);
                 if (intPt is null)
@@ -1477,16 +1480,17 @@ namespace EE_RoofFramer
                 // if its a valid intersection, make a new connection, add it to the support and the rafter,
                 if (intPt.isWithinSegment is true)
                 {
-                    ConnectionModel support_conn = new ConnectionModel(intPt.Point, kvp.Key, beam.Id);
-
-                    // Update the beam object to indicate the support connection
-                    beam.AddConnection(support_conn, dctConnections);
-
-                    // update the rafter object to indicate the support in it
-                    kvp.Value.AddConnection(support_conn, dctConnections);
-
+                    ConnectionModel support_conn = new ConnectionModel(intPt.Point, kvp.Value.Id, beam.Id);
                     // add the connection to our list
                     CurrentFoundationLayout.AddConnectionToLayout(support_conn);
+
+                    // Update the beam object to indicate the support connection
+                    beam.AddConnection(support_conn, CurrentFoundationLayout.dctConnections);
+
+                    // update the rafter object to indicate the support in it
+                    kvp.Value.AddConnection(support_conn, CurrentFoundationLayout.dctConnections);
+
+
                 }
             }
 
@@ -1498,7 +1502,9 @@ namespace EE_RoofFramer
 
             // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
             Thread.Sleep(1000);
-            CurrentFoundationLayout.DrawAllRoofFraming();
+
+            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentFoundationLayout.UpdateCurrentHandles();     // then update the handles in the tables
             CurrentFoundationLayout.WriteAllDataToFiles();  // save the work
         }
 
@@ -1508,10 +1514,6 @@ namespace EE_RoofFramer
         [CommandMethod("ERD")]
         public void ReloadDrawingFromFile()
         {
-            Document doc = AcAp.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor edt = doc.Editor;
-
             if (ValidateUser() is false)
                 return;
 
@@ -1519,15 +1521,256 @@ namespace EE_RoofFramer
 
             // Set up layers and linetypes and AutoCAD drawings items
             CurrentFoundationLayout.EE_ApplicationSetup();
-            // read the data from the text files
+
+            // Recreate our data models from file storage and puase slightly
             CurrentFoundationLayout.ReadAllDataFromFiles();
-
-            // Compute the rafter reaction values
-            CurrentFoundationLayout.ComputeRafterSupportReactions();
-
-            // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
             Thread.Sleep(1000);
-            CurrentFoundationLayout.DrawAllRoofFraming();
+            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentFoundationLayout.WriteAllDataToFiles();  // save the work
+
+        }
+
+        /// <summary>
+        /// Updates all of the handles in the table objects since they change with a drawing is reloaded.  Need to search all of the dictionaries for references 
+        /// </summary>
+        private void UpdateCurrentHandles()
+        {
+        //    // Check all records for our Handle references
+
+        //    // first do rafters
+        //    if (dctRafters_Trimmed != null)
+        //    {
+        //        foreach (KeyValuePair<int, RafterModel> item in dctRafters_Trimmed)
+        //        {
+        //            // get the current handle and the old handle
+        //            Handle old_handle = item.Value.OldHandle;
+        //            Handle current_handle = item.Value.CurrentHandle;
+
+        //            // search connections, and loads for references to the old handle
+        //            foreach (KeyValuePair<Handle, ConnectionModel> conn in dctConnections)
+        //            {
+        //                // check the above handle for the connection
+        //                if (conn.Value.AboveConn == old_handle)
+        //                {
+        //                    dctConnections[conn.Key].AboveConn = current_handle;
+        //                }
+        //                // check the below handle for the connection
+        //                if (conn.Value.BelowConn == old_handle)
+        //                {
+        //                    dctConnections[conn.Key].BelowConn = current_handle;
+        //                }
+        //            }
+
+        //            // then set the old handle on the rafter itself
+        //            dctRafters_Trimmed[item.Key].OldHandle = current_handle;
+        //        }
+        //    }
+            
+
+        //    // second do beams
+        //    if(dctSupportBeams != null)
+        //    {
+        //        foreach (KeyValuePair<Handle, SupportModel_SS_Beam> item in dctSupportBeams)
+        //        {
+        //            // get the current handle and the old handle
+        //            Handle old_handle = item.Value.OldHandle;
+        //            Handle current_handle = item.Value.CurrentHandle;
+
+        //            // search connections, and loads for references to the old handle
+        //            foreach (KeyValuePair<Handle, ConnectionModel> conn in dctConnections)
+        //            {
+        //                // check the above handle for the connection
+        //                if (conn.Value.AboveConn == old_handle)
+        //                {
+        //                    dctConnections[conn.Key].AboveConn = current_handle;
+        //                }
+        //                // check the below handle for the connection
+        //                if (conn.Value.BelowConn == old_handle)
+        //                {
+        //                    dctConnections[conn.Key].BelowConn = current_handle;
+        //                }
+        //            }
+        //            dctSupportBeams[item.Key].OldHandle = current_handle;
+        //        }
+
+        //    }
+
+
+        //    // third do connections
+        //    if (dctConnections != null)
+        //    {
+        //        foreach (KeyValuePair<Handle, ConnectionModel> item in dctConnections)
+        //        {
+        //            // get the current handle and the old handle
+        //            Handle old_handle = item.Value.OldHandle;
+        //            Handle current_handle = item.Value.CurrentHandle;
+
+        //            // search rafters and beams for references to the old handle
+        //            foreach (KeyValuePair<Handle, RafterModel> rafter in dctRafters_Trimmed)
+        //            {
+        //                if (rafter.Value.lst_SupportConnections == null)
+        //                    continue;
+
+        //                for (int i = 0; i < rafter.Value.lst_SupportConnections.Count; i++)
+        //                {
+        //                    if (rafter.Value.lst_SupportConnections[i] == old_handle)
+        //                    {
+        //                        dctRafters_Trimmed[rafter.Key].lst_SupportConnections[i] = current_handle;
+        //                    }
+        //                }
+        //            }
+
+        //            // search rafters and beams for references to the old handle
+        //            foreach (KeyValuePair<Handle, SupportModel_SS_Beam> beam in dctSupportBeams)
+        //            {
+        //                if (beam.Value.lst_SupportConnections == null)
+        //                    continue;
+
+        //                for (int i = 0; i < beam.Value.lst_SupportConnections.Count; i++)
+        //                {
+        //                    if (beam.Value.lst_SupportConnections[i] == old_handle)
+        //                    {
+        //                        dctSupportBeams[beam.Key].lst_SupportConnections[i] = current_handle;
+        //                    }
+        //                }
+        //            }
+        //            dctConnections[item.Key].OldHandle = current_handle;
+        //        }
+        //    }
+        }
+
+
+        [CommandMethod("EEC")]
+        public void PerformRafterReactionCalculations()
+        {
+            if (ValidateUser() is false)
+                return;
+
+            RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
+
+            #region Application Setup
+
+            // Set up layers and linetypes and AutoCAD drawings items
+            CurrentFoundationLayout.EE_ApplicationSetup();
+
+            #endregion
+
+            // Recreate our data models from file storage and puase slightly
+            CurrentFoundationLayout.ReadAllDataFromFiles();
+            Thread.Sleep(1000);
+            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+
+            // Do our calculations
+            foreach (KeyValuePair<int,RafterModel> item in CurrentFoundationLayout.dctRafters_Trimmed)
+            {
+                // Get a rafter
+                RafterModel rafter = item.Value;
+
+                // check if the rafter is determinant
+                if (rafter.IsDeterminate)
+                {
+                    // compute the reaction values
+                    if(rafter.lst_SupportedBy.Count == 2)
+                    {
+                        ConnectionModel first_conn = CurrentFoundationLayout.dctConnections[rafter.lst_SupportedBy[0]];
+                        ConnectionModel second_conn = CurrentFoundationLayout.dctConnections[rafter.lst_SupportedBy[0]];
+
+                        Point3d first_support_point = first_conn.ConnectionPoint;
+                        Point3d second_support_point = second_conn.ConnectionPoint;
+
+                        Point3d start_beam_point = rafter.StartPt;
+                        Point3d end_beam_point = rafter.EndPt;
+
+                        // Sort the points baed on distance from StartPt
+                        double dist1 = MathHelpers.Magnitude(start_beam_point.GetVectorTo(first_support_point)); // dist from start of beam to first support connection
+                        double dist2 = MathHelpers.Magnitude(start_beam_point.GetVectorTo(second_support_point)); // dist from start of beam to second support connection
+
+                        Point3d temp_point;
+                        ConnectionModel temp_conn;
+                        if(dist1 > dist2)
+                        {
+                            // Swap the points
+                            temp_point = first_support_point;
+                            first_support_point = second_support_point;
+                            second_support_point = temp_point;
+
+                            // Swap the connections
+                            temp_conn = first_conn;
+                            first_conn = second_conn;
+                            second_conn = temp_conn;
+                        }
+
+                        double L = MathHelpers.Magnitude(first_support_point.GetVectorTo(second_support_point)); // main span length
+                        double a = MathHelpers.Magnitude(start_beam_point.GetVectorTo(first_support_point));  // left cantilever
+                        double b = MathHelpers.Magnitude(second_support_point.GetVectorTo(end_beam_point));   // right cantilever
+
+                        // For support A reactions
+                        double RA_DL = 0;
+                        double RA_LL = 0;
+                        double RA_RLL = 0;
+
+                        // For support B reactions
+                        double RB_DL = 0;
+                        double RB_LL = 0;
+                        double RB_RLL = 0;
+
+                        // Test with the first uniform load value
+                        if (dctLoads.ContainsKey(rafter.lst_UniformLoadModels[0]))
+                        {
+                            LoadModel uni_load = dctLoads[rafter.lst_UniformLoadModels[0]];
+
+                            double w_dl = uni_load.DL;
+                            double w_ll = uni_load.LL;
+                            double w_rll = uni_load.RLL;
+
+                            // compute the loads on the cantilevers
+                            double Ma_DL = 0.5 * w_dl * a * a;
+                            double Mb_DL = 0.5 * w_dl * b * b;
+
+                            double Ma_LL = 0.5 * w_ll * a * a;
+                            double Mb_LL = 0.5 * w_ll * b * b;
+
+                            double Ma_RLL = 0.5 * w_rll * a * a;
+                            double Mb_RLL = 0.5 * w_rll * b * b;
+
+                            // if Ma > Mb then RA = wL/2 + 0.5*(Ma - Mb) / L
+                            //                 RB = wL/2 - 0.5*(Ma - Mb) / L
+                            if (Ma_DL > Mb_DL)
+                            {
+                                RA_DL += 0.5 * w_dl * L + 0.5 * (Ma_DL - Mb_DL) / L;
+                                RA_LL += 0.5 * w_ll * L + 0.5 * (Ma_LL - Mb_LL) / L;
+                                RA_RLL += 0.5 * w_rll * L + 0.5 * (Ma_RLL - Mb_RLL) / L;
+
+                                RB_DL += 0.5 * w_dl * L - 0.5 * (Ma_DL - Mb_DL) / L;
+                                RB_LL += 0.5 * w_ll * L - 0.5 * (Ma_LL - Mb_LL) / L;
+                                RB_RLL += 0.5 * w_rll * L - 0.5 * (Ma_RLL - Mb_RLL) / L;
+                            }
+                            // otherwise
+                            // if Ma > Mb then RA = wL/2 - 0.5*(Ma - Mb) / L
+                            //                 RB = wL/2 + 0.5*(Ma - Mb) / L
+                            else
+                            {
+                                RA_DL += 0.5 * w_dl * L - 0.5 * (Mb_DL - Ma_DL) / L;
+                                RA_LL += 0.5 * w_ll * L - 0.5 * (Mb_LL - Ma_LL) / L;
+                                RA_RLL += 0.5 * w_rll * L - 0.5 * (Mb_RLL - Ma_RLL) / L;
+
+                                RB_DL += 0.5 * w_dl * L + 0.5 * (Mb_DL - Ma_DL) / L;
+                                RB_LL += 0.5 * w_ll * L + 0.5 * (Mb_LL - Ma_LL) / L;
+                                RB_RLL += 0.5 * w_rll * L + 0.5 * (Mb_RLL - Ma_RLL) / L;
+                            }
+
+                            LoadModel lmA = new LoadModel(RA_DL, RA_LL, RA_RLL, first_support_point, first_support_point, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
+                            LoadModel lmB = new LoadModel(RB_DL, RB_LL, RB_RLL, second_support_point, second_support_point, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
+
+                            DrawMtext(db, doc, first_support_point, lmA.ToString(), 4, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
+                            DrawMtext(db, doc, first_support_point, lmB.ToString(), 4, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
+                        }
+                    }
+                }
+            }
+            // draw reaction values on the drawing
+            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentFoundationLayout.WriteAllDataToFiles();      // save the work
         }
 
     }

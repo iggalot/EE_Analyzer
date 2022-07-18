@@ -21,6 +21,7 @@ namespace EE_RoofFramer
         public const string DEFAULT_ROOF_BOUNDINGBOX_LAYER = "_EE_ROOF_BOUNDINGBOX"; // Contains the bounding box 
         public const string DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER = "_EE_ROOF_RAFTERS_TRIMMED"; // For the trimmed roof rafters
         public const string DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER = "_EE_ROOF_RAFTERS_UNTRIMMED"; // For the untrimmed roof rafters
+        public const string DEFAULT_ROOF_CALCULATIONS_LAYER = "_EE_ROOF_REACTION"; // layer for structural calculations
 
         public const string DEFAULT_SUPPORT_CONNECTION_POINT_LAYER = "_EE_SUPPORT_CONNECTIONS"; // For support connection points
 

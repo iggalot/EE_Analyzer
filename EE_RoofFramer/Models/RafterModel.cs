@@ -15,13 +15,8 @@ using static EE_Analyzer.Utilities.LayerObjects;
 
 namespace EE_RoofFramer.Models
 {
-    public class RafterModel
-    {
-        private Handle _objHandle; // persistant object identifier 
-        private ObjectId _objID;  // non persistant object identifier
-        public Handle Id { get => _objHandle; set { _objHandle = value; } }
-
-
+    public class RafterModel : acStructuralObject
+    {        
         private double Spacing = 24; // tributary width (or rafter spacing)
 
         public Point3d StartPt { get; set; }
@@ -29,18 +24,6 @@ namespace EE_RoofFramer.Models
 
         private Point3d MidPt { get => MathHelpers.GetMidpoint(StartPt, EndPt); }
 
-        // Reaction connections for beams supporting this rafter
-        public List<Handle> lst_SupportConnections { get; set; } = new List<Handle>();
-        public List<Handle> lst_UniformLoadModels { get; set; } = new List<Handle>();
-        public List<Handle> lst_PtLoadModels { get; set; } = new List<Handle>();
-
-        public List<Handle> lst_SupportedBy { get; set; } = new List<Handle>(); // Support connection numbers for connections that are supporting this rafter
-
-
-        public bool IsDeterminate { get; set; } = false;
-
-        private IDictionary<Handle, ConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<Handle, ConnectionModel>();
-        private IDictionary<Handle, LoadModel> LoadDictionary { get; set; } = new Dictionary<Handle, LoadModel>();
 
         public LoadModel Reaction_SupportA{ get; set; }
         public LoadModel Reaction_SupportB { get; set; }
@@ -57,46 +40,33 @@ namespace EE_RoofFramer.Models
 
         public bool ReactionsCalculatedCorrectly = false;
 
-        public RafterModel()
-        {
-            UpdateCalculations();
-
-            UpdateCalculations();
-            MarkRafterSupportStatus();
-        }
-
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="start">start point</param>
         /// <param name="end">end point</param>
         /// <param name="spacing">tributary width or rafter spacing</param>
-        public RafterModel(Point3d start, Point3d end, double spacing, string layer_name)
+        public RafterModel(Point3d start, Point3d end, double spacing, string layer_name) : base()
         {
             StartPt = start;
             EndPt = end;
 
             Spacing = spacing;  // spacing between adjacent rafters
 
-            //            Id = next_id;
-
+            // Centerline object
             Line ln = new Line(StartPt, EndPt);
             Centerline = OffsetLine(ln, 0) as Line;
             MoveLineToLayer(Centerline, layer_name);
 
-            // Store the ID's and handles
-            _objID = Centerline.Id;
-            _objHandle = _objID.Handle;
-
             UpdateCalculations();
-            MarkRafterSupportStatus();
+            MarkSupportStatus();
         }
 
         /// <summary>
         /// constructor to create our object from a line of text -- used when parsing the string file
         /// </summary>
         /// <param name="line"></param>
-        public RafterModel(string line, string layer_name)
+        public RafterModel(string line, string layer_name) : base()
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "RAFTER" designation "R"
@@ -106,10 +76,9 @@ namespace EE_RoofFramer.Models
             {
                 if (split_line[index].Substring(0, 1).Equals("R"))
                 {
-                    String str = (split_line[index].Substring(1, split_line[index].Length - 1));
-                    _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
-                    
-                  //  Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                    // read the previous information that was stored in the file
+                    Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                    _next_id = Id + 1;
 
                     // Read spacing
                     Spacing = Double.Parse(split_line[index + 1]);
@@ -118,7 +87,7 @@ namespace EE_RoofFramer.Models
                     // 3, 4, 5 == Next three values are the end point coord
                     EndPt = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
 
-                    // Object for the handle -- in this case the centerline
+                    // Centerline object
                     Line ln = new Line(StartPt, EndPt);
                     Centerline = OffsetLine(ln, 0) as Line;
                     MoveLineToLayer(Centerline, layer_name);
@@ -141,17 +110,17 @@ namespace EE_RoofFramer.Models
 
                         if (split_line[index].Substring(0, 2).Equals("SC"))
                         {
-                            lst_SupportConnections.Add(new Handle(Int64.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier)));
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier));
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LU"))
                         {
-                            lst_UniformLoadModels.Add(new Handle(Int64.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier)));
+                            lst_UniformLoadModels.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier));
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LC"))
                         {
-                            lst_SupportConnections.Add(new Handle(Int64.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier)));
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier));
                             index++;
                         } else
                         {
@@ -160,17 +129,16 @@ namespace EE_RoofFramer.Models
                     }
 
                     UpdateCalculations();
-                    MarkRafterSupportStatus();
+                    MarkSupportStatus();
                     return;
                 }
             }
-           
         }
 
         /// <summary>
         /// Updates calculations for the rafter model
         /// </summary>
-        private void UpdateCalculations()
+        protected override void UpdateCalculations()
         {
             vDir = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
             Length = MathHelpers.Magnitude(StartPt.GetVectorTo(EndPt));
@@ -179,12 +147,12 @@ namespace EE_RoofFramer.Models
         }
 
         // Updates the list of supported by members
-        private void UpdateSupportedBy()
+        protected override void UpdateSupportedBy()
         {
             lst_SupportedBy.Clear();
 
             // First find the supports that have this member as an "ABOVE" connection
-            foreach (Handle item in lst_SupportConnections)
+            foreach (int item in lst_SupportConnections)
             {
                 if (ConnectionDictionary != null)
                 {
@@ -199,7 +167,7 @@ namespace EE_RoofFramer.Models
             }
         }
 
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<Handle,ConnectionModel> conn_dict, IDictionary<Handle, LoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, LoadModel> load_dict)
         {
             ConnectionDictionary = conn_dict;
             LoadDictionary = load_dict;
@@ -215,14 +183,9 @@ namespace EE_RoofFramer.Models
                     Centerline = OffsetLine(ln, 0) as Line;
                     MoveLineToLayer(Centerline, layer_name);
 
-                    // Store the ID's and handles
-                    _objID = Centerline.Id;
-                    _objHandle = _objID.Handle;
-
                     // indicate if the rafters are adequately supported.
                     UpdateCalculations();
-                    MarkRafterSupportStatus();
-
+                    MarkSupportStatus();
 
                     DrawCircle(StartPt, 2, layer_name);
                     DrawCircle(EndPt, 2, layer_name);
@@ -234,7 +197,7 @@ namespace EE_RoofFramer.Models
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError adding rafter [" + Id.ToString() + "] information to RafterModel entities to AutoCAD DB: " + ex.Message);
+                    doc.Editor.WriteMessage("\nError adding rafter [" + CurrentHandle.ToString() + "] information to RafterModel entities to AutoCAD DB: " + ex.Message);
                     trans.Abort();
                 }    
             }
@@ -244,29 +207,29 @@ namespace EE_RoofFramer.Models
         /// Contains the information format to record this object in a text file
         /// </summary>
         /// <returns></returns>
-        public string ToFile()
+        public override string ToFile()
         {
             string data = "";
             //RT prefix indicates its a trimmed rafter
-            data += "R" + _objHandle;                // Rafter ID
+            data += "R" + Id.ToString();                // Rafter ID
             data += ","+ Spacing.ToString() + ",";      // Trib width
             data += StartPt.X.ToString() + "," + StartPt.Y.ToString() + "," + StartPt.Z.ToString() + ",";   // Start pt
             data += EndPt.X.ToString() + "," + EndPt.Y.ToString() + "," + EndPt.Z.ToString() + ",";         // End pt
 
             // add Uniform Loads
-            foreach (Handle item in lst_UniformLoadModels) 
+            foreach (int item in lst_UniformLoadModels) 
             {
                 data += "LU" + item + ",";
             }
 
             // add Concentrated Loads
-            foreach (Handle item in lst_PtLoadModels)
+            foreach (int item in lst_PtLoadModels)
             {
                 data += "LC" + item + ",";
             }
 
             // add supported by connections
-            foreach (Handle item in lst_SupportConnections)
+            foreach (int item in lst_SupportConnections)
             {
                 data += "SC" + item + ",";
             }
@@ -281,7 +244,14 @@ namespace EE_RoofFramer.Models
         /// Add a load model object
         /// </summary>
         /// <param name="load_model"></param>
-        public void AddUniformLoads(LoadModel load_model, IDictionary<Handle, LoadModel> dict)
+        public override void AddUniformLoads(LoadModel load_model, IDictionary<int, LoadModel> dict)
+        {
+            LoadDictionary = dict;
+            lst_UniformLoadModels.Add(load_model.Id);
+            UpdateCalculations();
+        }
+
+        public override void AddConcentratedLoads(LoadModel load_model, IDictionary<int, LoadModel> dict)
         {
             LoadDictionary = dict;
             lst_UniformLoadModels.Add(load_model.Id);
@@ -292,7 +262,7 @@ namespace EE_RoofFramer.Models
         /// Add connection information for beams that are supporting this rafter
         /// </summary>
         /// <param name="conn"></param>
-        public void AddConnection(ConnectionModel conn, IDictionary<Handle,ConnectionModel> dict)
+        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict)
         {
             ConnectionDictionary = dict;
             lst_SupportConnections.Add(conn.Id);
@@ -303,7 +273,7 @@ namespace EE_RoofFramer.Models
         /// <summary>
         /// Change the color of the rafter line based on its support status
         /// </summary>
-        public void MarkRafterSupportStatus()
+        public override void MarkSupportStatus()
         {
             if (CheckDeterminance() == true)
             {
@@ -325,6 +295,18 @@ namespace EE_RoofFramer.Models
 
             IsDeterminate = is_determinate;
             return is_determinate;
+        }
+
+        public override bool ValidateSupports()
+        {
+            bool is_valid = false;
+
+            if (lst_SupportConnections.Count > 2)
+            {
+                is_valid = true;
+            }
+
+            return is_valid;
         }
     }
 }

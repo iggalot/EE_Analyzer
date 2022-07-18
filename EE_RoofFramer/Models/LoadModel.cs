@@ -21,14 +21,8 @@ namespace EE_RoofFramer.Models
         LOAD_TYPE_CONCENTRATED_LOAD = 1
     }
 
-    public class LoadModel
+    public class LoadModel : acStructuralObject
     {
-        private Handle _objHandle; // persistant object identifier 
-        private ObjectId _objID;  // non persistant object identifier
-
-        public Handle Id { get => _objHandle; set { _objHandle = value; } }
-
-
         // Dead load
         public double DL { get; set; }
         // Live load
@@ -42,20 +36,12 @@ namespace EE_RoofFramer.Models
         public Point3d LoadEndPoint { get; set; }
 
         /// <summary>
-        /// Empty constructor
-        /// </summary>
-        public LoadModel()
-        {
-
-        }
-
-        /// <summary>
         /// Default constructor
         /// </summary>
         /// <param name="dead">dead loads</param>
         /// <param name="live">live loads</param>
         /// <param name="roof_live">roof live loads</param>
-        public LoadModel(double dead, double live, double roof_live, Point3d start, Point3d end, LoadTypes load_type = LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD)
+        public LoadModel(double dead, double live, double roof_live, Point3d start, Point3d end, LoadTypes load_type = LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD) : base()
         {
             DL = dead;
             LL = live;
@@ -70,7 +56,7 @@ namespace EE_RoofFramer.Models
         /// constructor to create our object from a line of text -- used when parsing the string file
         /// </summary>
         /// <param name="line"></param>
-        public LoadModel(string line)
+        public LoadModel(string line) : base()
         {
             string[] split_line = line.Split(',');
             int index = 0;
@@ -83,8 +69,9 @@ namespace EE_RoofFramer.Models
                     // Check that this line is a "LOAD" designation "L"
                     if (split_line[index].Substring(0, 2).Equals("LU"))
                     {
-                        String str = (split_line[index].Substring(2, split_line[index].Length - 2));
-                        _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
+                        // read the previous information that was stored in the file
+                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
+                        _next_id = Id + 1;
 
                         LoadType = Int32.Parse(split_line[index + 1]);
                         DL = Double.Parse(split_line[index + 2]);  // DL
@@ -95,8 +82,8 @@ namespace EE_RoofFramer.Models
                     }
                     else if (split_line[index].Substring(0, 2).Equals("LC"))
                     {
-                        String str = (split_line[index].Substring(2, split_line[index].Length - 2));
-                        _objHandle = new Handle(Int64.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
+                        // read the previous information that was stored in the file
+                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
 
                         LoadType = Int32.Parse(split_line[index + 1]);
                         DL = Double.Parse(split_line[index + 2]);  // DL
@@ -122,8 +109,11 @@ namespace EE_RoofFramer.Models
             return;
         }
 
-        public void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, LoadModel> load_dict)
         {
+            ConnectionDictionary = conn_dict;
+            LoadDictionary = load_dict;
+
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 try
@@ -167,7 +157,7 @@ namespace EE_RoofFramer.Models
             return "DL: " + Math.Ceiling(DL) + "\nLL: " + Math.Ceiling(LL) + "\nRLL: " + Math.Ceiling(RLL) + " (lbs)";
         }
 
-        public string ToFile()
+        public override string ToFile()
         {
             string data = "";
             string data_prefix = "";
@@ -188,6 +178,14 @@ namespace EE_RoofFramer.Models
             return data;
         }
 
-        
+        protected override void UpdateCalculations() { }
+        public override bool ValidateSupports() { return false; }
+        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict) { }
+        public override void AddUniformLoads(LoadModel load_model, IDictionary<int, LoadModel> dict) { }
+        public override void AddConcentratedLoads(LoadModel load_model, IDictionary<int, LoadModel> dict) { }
+        public override void MarkSupportStatus() { }
+
+        protected override void UpdateSupportedBy() { }
+
     }
 }
