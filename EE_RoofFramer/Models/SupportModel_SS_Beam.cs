@@ -104,23 +104,17 @@ namespace EE_RoofFramer.Models
 
                         if (split_line[index].Substring(0, 2).Equals("SC"))
                         {
-                            int sc_objHandle = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-
-                            lst_SupportConnections.Add(sc_objHandle);
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LU"))
                         {
-                            int lu_objHandle = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-
-                            lst_SupportConnections.Add(lu_objHandle);
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LC"))
                         {
-                            int lc_objHandle = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-
-                            lst_SupportConnections.Add(lc_objHandle);
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
                             index++;
                         }
                         else

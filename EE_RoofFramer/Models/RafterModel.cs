@@ -110,17 +110,17 @@ namespace EE_RoofFramer.Models
 
                         if (split_line[index].Substring(0, 2).Equals("SC"))
                         {
-                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier));
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LU"))
                         {
-                            lst_UniformLoadModels.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier));
+                            lst_UniformLoadModels.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
                             index++;
                         }
                         else if (split_line[index].Substring(0, 2).Equals("LC"))
                         {
-                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2), System.Globalization.NumberStyles.AllowHexSpecifier));
+                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
                             index++;
                         } else
                         {

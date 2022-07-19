@@ -703,7 +703,8 @@ namespace EE_RoofFramer
 
             CreateLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db, 140);  // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db, 140);  // yellow
-                        
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER, doc, db, 52); // gold color 
+
             //Create the EE dimension style
             CreateEE_DimensionStyle(EE_ROOF_Settings.DEFAULT_EE_DIMSTYLE_NAME);
         }
@@ -1128,10 +1129,10 @@ namespace EE_RoofFramer
         /// </summary>
         private async Task WriteAllDataToFiles()
         {
-            await Task.Run(() => WriteRaftersToFile());
-            await Task.Run(() => WriteBeamsToFile());
-            await Task.Run(() => WriteConnectionsToFile());
-            await Task.Run(() => WriteLoadsToFile());
+            Task.Run(() => WriteRaftersToFile());
+            Task.Run(() => WriteBeamsToFile());
+            Task.Run(() => WriteConnectionsToFile());
+            Task.Run(() => WriteLoadsToFile());
         }
 
         /// <summary>
@@ -1672,99 +1673,68 @@ namespace EE_RoofFramer
                     // compute the reaction values
                     if(rafter.lst_SupportedBy.Count == 2)
                     {
-                        ConnectionModel first_conn = CurrentFoundationLayout.dctConnections[rafter.lst_SupportedBy[0]];
-                        ConnectionModel second_conn = CurrentFoundationLayout.dctConnections[rafter.lst_SupportedBy[0]];
+                        List<ConnectionModel> connection_models_above = new List<ConnectionModel>();
 
-                        Point3d first_support_point = first_conn.ConnectionPoint;
-                        Point3d second_support_point = second_conn.ConnectionPoint;
-
-                        Point3d start_beam_point = rafter.StartPt;
-                        Point3d end_beam_point = rafter.EndPt;
-
-                        // Sort the points baed on distance from StartPt
-                        double dist1 = MathHelpers.Magnitude(start_beam_point.GetVectorTo(first_support_point)); // dist from start of beam to first support connection
-                        double dist2 = MathHelpers.Magnitude(start_beam_point.GetVectorTo(second_support_point)); // dist from start of beam to second support connection
-
-                        Point3d temp_point;
-                        ConnectionModel temp_conn;
-                        if(dist1 > dist2)
+                        foreach (int conn_id in rafter.lst_SupportConnections)
                         {
-                            // Swap the points
-                            temp_point = first_support_point;
-                            first_support_point = second_support_point;
-                            second_support_point = temp_point;
-
-                            // Swap the connections
-                            temp_conn = first_conn;
-                            first_conn = second_conn;
-                            second_conn = temp_conn;
+                            if (CurrentFoundationLayout.dctConnections.ContainsKey(conn_id))
+                            {
+                                if (CurrentFoundationLayout.dctConnections[conn_id].AboveConn == rafter.Id)
+                                {
+                                    // Add our connection model to the list to be investigated
+                                    connection_models_above.Add(CurrentFoundationLayout.dctConnections[conn_id]);
+                                }
+                            }
                         }
 
-                        double L = MathHelpers.Magnitude(first_support_point.GetVectorTo(second_support_point)); // main span length
-                        double a = MathHelpers.Magnitude(start_beam_point.GetVectorTo(first_support_point));  // left cantilever
-                        double b = MathHelpers.Magnitude(second_support_point.GetVectorTo(end_beam_point));   // right cantilever
+                        ConnectionModel first_conn = connection_models_above[0];
+                        ConnectionModel second_conn = connection_models_above[1];
 
-                        // For support A reactions
-                        double RA_DL = 0;
-                        double RA_LL = 0;
-                        double RA_RLL = 0;
+                        // coordinate data of supports and limits of beam as measured from origin
+                        Point3d pA = first_conn.ConnectionPoint;        // (in.) Support A location
+                        Point3d pB = second_conn.ConnectionPoint;       // (in.) Support B location
+                        Point3d pStart = rafter.StartPt;                // (in.) Start point of beam
+                        Point3d pEnd = rafter.EndPt;                    // (in.) End point of beam
+                        Point3d pW = pStart + 0.5 * (pEnd - pStart);    // (in.) vector from start to center of distributed load
 
-                        // For support B reactions
-                        double RB_DL = 0;
-                        double RB_LL = 0;
-                        double RB_RLL = 0;
+                        // vectors on structure
+                        Vector3d vSA = pA - pStart;    // (in.) vector from start to 1st support
+                        Vector3d vSB = pB - pStart;;   // (in.) vector from start to 2nd support
+                        Vector3d vSE = pEnd - pStart;  // (in.) vector from start to end of beam
 
-                        // Test with the first uniform load value
- //                      if (dctLoads.ContainsKey(rafter.lst_UniformLoadModels[0]))
- //                       {
-                            LoadModel uni_load = dctLoads[rafter.lst_UniformLoadModels[0]];
+                        // load vector
+                        // (lb)                           psf *     ft                       * ft
+                        Vector3d vW_DL = new Vector3d(0, 0, -10 * (24.0 / 12.0) * MathHelpers.Magnitude(vSE) / 12.0);
+                        Vector3d vW_LL = new Vector3d(0, 0, -20 * (24.0 / 12.0) * MathHelpers.Magnitude(vSE) / 12.0);
+                        Vector3d vW_RLL = new Vector3d(0, 0, -20 * (24.0 / 12.0) * MathHelpers.Magnitude(vSE) / 12.0);
 
-                            double w_dl = uni_load.DL;
-                            double w_ll = uni_load.LL;
-                            double w_rll = uni_load.RLL;
+                        // position vectors
+                        // (ft)    =     (in.)  / 12.0            --> (ft.)
+                        Vector3d r_AB = pA.GetVectorTo(pB) / 12.0;
+                        Vector3d r_AW = pA.GetVectorTo(pW) / 12.0;
 
-                            // compute the loads on the cantilevers
-                            double Ma_DL = 0.5 * w_dl * a * a;
-                            double Mb_DL = 0.5 * w_dl * b * b;
+                        // Moment vectors
+                        Vector3d MA_DL = MathHelpers.CrossProduct(r_AW, vW_DL);   // (lb ft)
+                        Vector3d MA_LL = MathHelpers.CrossProduct(r_AW, vW_LL);   // (lb ft) 
+                        Vector3d MA_RLL = MathHelpers.CrossProduct(r_AW, vW_RLL); // (lb ft)
 
-                            double Ma_LL = 0.5 * w_ll * a * a;
-                            double Mb_LL = 0.5 * w_ll * b * b;
+                        // Reactions for support B
+                        //        lb   =     lb-ft  / ft
+                        double RB_Z_DL = (MA_DL.Y / (r_AB.X));     // (lb)
+                        double RB_Z_LL = (MA_LL.Y / (r_AB.X));     // (lb)
+                        double RB_Z_RLL = (MA_RLL.Y / (r_AB.X));   // (lb)
 
-                            double Ma_RLL = 0.5 * w_rll * a * a;
-                            double Mb_RLL = 0.5 * w_rll * b * b;
+                        // Reactions for support A = RA = VW + RB === as vector equations
+                        //        lb   =     lb-ft  / ft
+                        double RA_Z_DL = -vW_DL.Z - RB_Z_DL;      // (lb)
+                        double RA_Z_LL = -vW_LL.Z - RB_Z_LL;      // (lb)
+                        double RA_Z_RLL = -vW_RLL.Z - RB_Z_RLL;   // (lb)
 
-                            // if Ma > Mb then RA = wL/2 + 0.5*(Ma - Mb) / L
-                            //                 RB = wL/2 - 0.5*(Ma - Mb) / L
-                            if (Ma_DL > Mb_DL)
-                            {
-                                RA_DL += 0.5 * w_dl * L + 0.5 * (Ma_DL - Mb_DL) / L;
-                                RA_LL += 0.5 * w_ll * L + 0.5 * (Ma_LL - Mb_LL) / L;
-                                RA_RLL += 0.5 * w_rll * L + 0.5 * (Ma_RLL - Mb_RLL) / L;
+                        LoadModel lmA = new LoadModel(RA_Z_DL, RA_Z_LL, RA_Z_RLL, pA, pA, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
+                        LoadModel lmB = new LoadModel(RB_Z_DL, RB_Z_LL, RB_Z_RLL, pB, pB, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
 
-                                RB_DL += 0.5 * w_dl * L - 0.5 * (Ma_DL - Mb_DL) / L;
-                                RB_LL += 0.5 * w_ll * L - 0.5 * (Ma_LL - Mb_LL) / L;
-                                RB_RLL += 0.5 * w_rll * L - 0.5 * (Ma_RLL - Mb_RLL) / L;
-                            }
-                            // otherwise
-                            // if Ma > Mb then RA = wL/2 - 0.5*(Ma - Mb) / L
-                            //                 RB = wL/2 + 0.5*(Ma - Mb) / L
-                            else
-                            {
-                                RA_DL += 0.5 * w_dl * L - 0.5 * (Mb_DL - Ma_DL) / L;
-                                RA_LL += 0.5 * w_ll * L - 0.5 * (Mb_LL - Ma_LL) / L;
-                                RA_RLL += 0.5 * w_rll * L - 0.5 * (Mb_RLL - Ma_RLL) / L;
-
-                                RB_DL += 0.5 * w_dl * L + 0.5 * (Mb_DL - Ma_DL) / L;
-                                RB_LL += 0.5 * w_ll * L + 0.5 * (Mb_LL - Ma_LL) / L;
-                                RB_RLL += 0.5 * w_rll * L + 0.5 * (Mb_RLL - Ma_RLL) / L;
-                            }
-
-                            LoadModel lmA = new LoadModel(RA_DL, RA_LL, RA_RLL, first_support_point, first_support_point, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
-                            LoadModel lmB = new LoadModel(RB_DL, RB_LL, RB_RLL, second_support_point, second_support_point, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD);
-
-                            DrawMtext(db, doc, first_support_point, lmA.ToString(), 4, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
-                            DrawMtext(db, doc, first_support_point, lmB.ToString(), 4, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
- //                       }
+                        DrawMtext(db, doc, pA, lmA.ToString(), 2, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
+                        DrawMtext(db, doc, pB, lmB.ToString(), 2, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
                     }
                 }
             }
