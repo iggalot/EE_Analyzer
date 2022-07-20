@@ -24,9 +24,7 @@ namespace EE_RoofFramer.Models
 
         private Point3d MidPt { get => MathHelpers.GetMidpoint(StartPt, EndPt); }
 
-
-        public LoadModel Reaction_SupportA{ get; set; }
-        public LoadModel Reaction_SupportB { get; set; }
+        public List<BaseLoadModel> Reactions { get; set; } = new List<BaseLoadModel>();
 
         public Line Centerline { get; set; } 
 
@@ -46,7 +44,7 @@ namespace EE_RoofFramer.Models
         /// <param name="start">start point</param>
         /// <param name="end">end point</param>
         /// <param name="spacing">tributary width or rafter spacing</param>
-        public RafterModel(Point3d start, Point3d end, double spacing, string layer_name) : base()
+        public RafterModel(int id, Point3d start, Point3d end, double spacing, string layer_name) : base(id)
         {
             StartPt = start;
             EndPt = end;
@@ -59,7 +57,7 @@ namespace EE_RoofFramer.Models
             MoveLineToLayer(Centerline, layer_name);
 
             UpdateCalculations();
-            MarkSupportStatus();
+            HighlightStatus();
         }
 
         /// <summary>
@@ -78,7 +76,6 @@ namespace EE_RoofFramer.Models
                 {
                     // read the previous information that was stored in the file
                     Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
-                    _next_id = Id + 1;
 
                     // Read spacing
                     Spacing = Double.Parse(split_line[index + 1]);
@@ -113,23 +110,14 @@ namespace EE_RoofFramer.Models
                             lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
                             index++;
                         }
-                        else if (split_line[index].Substring(0, 2).Equals("LU"))
-                        {
-                            lst_UniformLoadModels.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
-                            index++;
-                        }
-                        else if (split_line[index].Substring(0, 2).Equals("LC"))
-                        {
-                            lst_SupportConnections.Add(Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2)));
-                            index++;
-                        } else
+                        else
                         {
                             should_continue = false;
                         }
                     }
 
                     UpdateCalculations();
-                    MarkSupportStatus();
+                    HighlightStatus();
                     return;
                 }
             }
@@ -167,7 +155,7 @@ namespace EE_RoofFramer.Models
             }
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, LoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             ConnectionDictionary = conn_dict;
             LoadDictionary = load_dict;
@@ -185,7 +173,7 @@ namespace EE_RoofFramer.Models
 
                     // indicate if the rafters are adequately supported.
                     UpdateCalculations();
-                    MarkSupportStatus();
+                    HighlightStatus();
 
                     DrawCircle(StartPt, 2, layer_name);
                     DrawCircle(EndPt, 2, layer_name);
@@ -216,18 +204,6 @@ namespace EE_RoofFramer.Models
             data += StartPt.X.ToString() + "," + StartPt.Y.ToString() + "," + StartPt.Z.ToString() + ",";   // Start pt
             data += EndPt.X.ToString() + "," + EndPt.Y.ToString() + "," + EndPt.Z.ToString() + ",";         // End pt
 
-            // add Uniform Loads
-            foreach (int item in lst_UniformLoadModels) 
-            {
-                data += "LU" + item + ",";
-            }
-
-            // add Concentrated Loads
-            foreach (int item in lst_PtLoadModels)
-            {
-                data += "LC" + item + ",";
-            }
-
             // add supported by connections
             foreach (int item in lst_SupportConnections)
             {
@@ -244,18 +220,14 @@ namespace EE_RoofFramer.Models
         /// Add a load model object
         /// </summary>
         /// <param name="load_model"></param>
-        public override void AddUniformLoads(LoadModel load_model, IDictionary<int, LoadModel> dict)
+        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
         {
-            LoadDictionary = dict;
-            lst_UniformLoadModels.Add(load_model.Id);
-            UpdateCalculations();
+
         }
 
-        public override void AddConcentratedLoads(LoadModel load_model, IDictionary<int, LoadModel> dict)
+        public override void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
         {
-            LoadDictionary = dict;
-            lst_UniformLoadModels.Add(load_model.Id);
-            UpdateCalculations();
+
         }
 
         /// <summary>
@@ -273,7 +245,7 @@ namespace EE_RoofFramer.Models
         /// <summary>
         /// Change the color of the rafter line based on its support status
         /// </summary>
-        public override void MarkSupportStatus()
+        public override void HighlightStatus()
         {
             if (CheckDeterminance() == true)
             {
@@ -307,6 +279,84 @@ namespace EE_RoofFramer.Models
             }
 
             return is_valid;
+        }
+
+        public override void CalculateReactions(RoofFramingLayout layout)
+        {
+            IDictionary<int, ConnectionModel> conn_dict = layout.dctConnections;
+            IDictionary<int, BaseLoadModel> load_dict = layout.dctLoads;
+            IDictionary<int, int> applied_loads_dict = layout.dctAppliedLoads;
+
+            // check if the rafter is determinant
+            if (this.IsDeterminate)
+            {
+                // compute the reaction values
+                if (this.lst_SupportedBy.Count == 2)
+                {
+                    List<ConnectionModel> connection_models_above = new List<ConnectionModel>();
+
+                    foreach (int conn_id in this.lst_SupportConnections)
+                    {
+                        if (conn_dict.ContainsKey(conn_id))
+                        {
+                            if (conn_dict[conn_id].AboveConn == this.Id)
+                            {
+                                // Add our connection model to the list to be investigated
+                                connection_models_above.Add(conn_dict[conn_id]);
+                            }
+                        }
+                    }
+
+                    ConnectionModel first_conn = connection_models_above[0];
+                    ConnectionModel second_conn = connection_models_above[1];
+
+                    // coordinate data of supports and limits of beam as measured from origin
+                    Point3d pA = first_conn.ConnectionPoint;        // (in.) Support A location
+                    Point3d pB = second_conn.ConnectionPoint;       // (in.) Support B location
+                    Point3d pStart = this.StartPt;                // (in.) Start point of beam
+                    Point3d pEnd = this.EndPt;                    // (in.) End point of beam
+                    Point3d pW = pStart + 0.5 * (pEnd - pStart);    // (in.) vector from start to center of distributed load
+
+                    // vectors on structure
+                    Vector3d vSA = pA - pStart;    // (in.) vector from start to 1st support
+                    Vector3d vSB = pB - pStart; ;   // (in.) vector from start to 2nd support
+                    Vector3d vSE = pEnd - pStart;  // (in.) vector from start to end of beam
+
+                    // load vector
+                    // (lb)                           psf *     ft                       * ft
+                    Vector3d vW_DL = new Vector3d(0, 0, -10 * (24.0 / 12.0) * MathHelpers.Magnitude(vSE) / 12.0);
+                    Vector3d vW_LL = new Vector3d(0, 0, -20 * (24.0 / 12.0) * MathHelpers.Magnitude(vSE) / 12.0);
+                    Vector3d vW_RLL = new Vector3d(0, 0, -20 * (24.0 / 12.0) * MathHelpers.Magnitude(vSE) / 12.0);
+
+                    // position vectors
+                    // (ft)    =     (in.)  / 12.0            --> (ft.)
+                    Vector3d r_AB = pA.GetVectorTo(pB) / 12.0;
+                    Vector3d r_AW = pA.GetVectorTo(pW) / 12.0;
+
+                    // Moment vectors
+                    Vector3d MA_DL = MathHelpers.CrossProduct(r_AW, vW_DL);   // (lb ft)
+                    Vector3d MA_LL = MathHelpers.CrossProduct(r_AW, vW_LL);   // (lb ft) 
+                    Vector3d MA_RLL = MathHelpers.CrossProduct(r_AW, vW_RLL); // (lb ft)
+
+                    // Reactions for support B
+                    //        lb   =     lb-ft  / ft
+                    double RB_Z_DL = (MA_DL.Y / (r_AB.X));     // (lb)
+                    double RB_Z_LL = (MA_LL.Y / (r_AB.X));     // (lb)
+                    double RB_Z_RLL = (MA_RLL.Y / (r_AB.X));   // (lb)
+
+                    // Reactions for support A = RA = VW + RB === as vector equations
+                    //        lb   =     lb-ft  / ft
+                    double RA_Z_DL = -vW_DL.Z - RB_Z_DL;      // (lb)
+                    double RA_Z_LL = -vW_LL.Z - RB_Z_LL;      // (lb)
+                    double RA_Z_RLL = -vW_RLL.Z - RB_Z_RLL;   // (lb)
+
+                    BaseLoadModel lmA = new ConcentratedLoadModel(layout.GetNewId(), pA, RA_Z_DL, RA_Z_LL, RA_Z_RLL);
+                    BaseLoadModel lmB = new ConcentratedLoadModel(layout.GetNewId(), pB, RB_Z_DL, RB_Z_LL, RB_Z_RLL);
+
+                    Reactions.Add(lmA);     // save the A reaction
+                    Reactions.Add(lmB);     // save the B reaction
+                }
+            }
         }
     }
 }

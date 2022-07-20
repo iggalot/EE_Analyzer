@@ -18,17 +18,20 @@ namespace EE_RoofFramer.Models
     {
         public Point3d ConnectionPoint { get; set; }
 
-        public Line Centerline { get; set; }
-
         // id number of the object supported below this connection (the supporting item)
         public int BelowConn { get; set; }
 
         // id number of the object supported above this connection (item being supporteD)
         public int AboveConn { get; set; }
 
-        public LoadModel Reactions { get; set; } = null;
+        public BaseLoadModel Reactions { get; set; } = null;
 
-        public ConnectionModel(Point3d pt, int supporting, int supported_by, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) : base()
+        public ConnectionModel() : base()
+        {
+
+        }
+
+        public ConnectionModel(int id, Point3d pt, int supporting, int supported_by, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) : base(id)
         {
             ConnectionPoint = pt;
             BelowConn = supported_by;
@@ -49,8 +52,7 @@ namespace EE_RoofFramer.Models
                     {
                         // read the previous information that was stored in the file
                         Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-                        _next_id = Id + 1;
-                      
+
                         BelowConn = Int32.Parse(split_line[index + 1]);  // member id of supporting member
                         AboveConn = Int32.Parse(split_line[index + 2]);  // member id of member above being supported
                         double x = Double.Parse(split_line[index + 3]);
@@ -75,7 +77,7 @@ namespace EE_RoofFramer.Models
             return;
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, LoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             ConnectionDictionary = conn_dict;
             LoadDictionary = load_dict;
@@ -102,7 +104,7 @@ namespace EE_RoofFramer.Models
                     Line ln4 = OffsetLine(new Line(pt4, pt1), 0) as Line;
                     MoveLineToLayer(ln4, layer_name);
 
-                    string support_str = "A: " + AboveConn.ToString() + "\n" + "B: " + BelowConn.ToString();
+                    string support_str = "ID: " + Id.ToString() + "\n" + "A: " + AboveConn.ToString() + "\n" + "B: " + BelowConn.ToString();
                     DrawMtext(db, doc, ConnectionPoint, support_str, 3, layer_name);
 
                     trans.Commit();
@@ -133,18 +135,22 @@ namespace EE_RoofFramer.Models
 
         public override string ToString()
         {
-            return "SC" + CurrentHandle.ToString() + "\nB:" + BelowConn.ToString() + "\nA: " + AboveConn.ToString();
+            return "SC" + Id.ToString() + "\nB:" + BelowConn.ToString() + "\nA: " + AboveConn.ToString();
 
         }
 
         protected override void UpdateCalculations() { }
         public override bool ValidateSupports() { return false; }
         public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict) { }
-        public override void AddUniformLoads(LoadModel load_model, IDictionary<int, LoadModel> dict) { }
-        public override void AddConcentratedLoads(LoadModel load_model, IDictionary<int, LoadModel> dict) { }
-        public override void MarkSupportStatus() { }
+        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
+        public override void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
+        public override void HighlightStatus() { }
 
         protected override void UpdateSupportedBy() { }
 
+        public override void CalculateReactions(RoofFramingLayout layout)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -31,8 +31,8 @@ namespace EE_RoofFramer.Models
         public Point3d SupportA_Loc { get; set; }
         public Point3d SupportB_Loc { get; set; }
 
-        public LoadModel ReactionA { get; set; }
-        public LoadModel ReactionB { get; set; }
+        public BaseLoadModel ReactionA { get; set; }
+        public BaseLoadModel ReactionB { get; set; }
 
         // unit vector for direction of the rafter
         public Vector3d vDir { get; set; }
@@ -48,10 +48,11 @@ namespace EE_RoofFramer.Models
 
 
 
-        public SupportModel_SS_Beam(Point3d start, Point3d end, string layer_name) : base()
+        public SupportModel_SS_Beam(int id, Point3d start, Point3d end, string layer_name) : base(id)
         {
             StartPt = start;
             EndPt = end;
+            Id = id;
 
             // Centerline object
             Line ln = new Line(StartPt, EndPt);
@@ -59,11 +60,11 @@ namespace EE_RoofFramer.Models
             MoveLineToLayer(Centerline, layer_name);
 
             UpdateCalculations();
-            MarkSupportStatus();
+            HighlightStatus();
         }
 
 
-        public SupportModel_SS_Beam(string line, string layer_name)
+        public SupportModel_SS_Beam(string line, string layer_name) : base()
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "BEAM" designation "B"
@@ -73,7 +74,6 @@ namespace EE_RoofFramer.Models
                 if (split_line[index].Substring(0, 1).Equals("B"))
                 {
                     Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
-                    _next_id = Id + 1;
 
                     // Read spacing
                     Spacing = Double.Parse(split_line[index + 1]);
@@ -124,12 +124,10 @@ namespace EE_RoofFramer.Models
                     }
 
                     UpdateCalculations();
-                    MarkSupportStatus();
+                    HighlightStatus();
                 }
             }
         }
-
-
 
         public override bool ValidateSupports()
         {
@@ -163,7 +161,7 @@ namespace EE_RoofFramer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, LoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -180,7 +178,7 @@ namespace EE_RoofFramer.Models
 
                     // indicate if the rafters are adequately supported.
                     UpdateCalculations();
-                    MarkSupportStatus();
+                    HighlightStatus();
 
                     // Draw the support beam label
                     DrawMtext(db, doc, MidPt, Id.ToString(), 3, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
@@ -199,11 +197,9 @@ namespace EE_RoofFramer.Models
         /// Add a load model object
         /// </summary>
         /// <param name="load_model"></param>
-        public override void AddUniformLoads(LoadModel load_model, IDictionary<int, LoadModel> dict)
+        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
         {
-            LoadDictionary = dict;
-            lst_UniformLoadModels.Add(load_model.Id);
-            UpdateCalculations();
+
         }
 
         /// <summary>
@@ -223,11 +219,9 @@ namespace EE_RoofFramer.Models
         /// <param name="dead">Dead load in psf</param>
         /// <param name="live">Live load in psf</param>
         /// <param name="roof_live">Roof live load in psf</param>
-        public override void AddConcentratedLoads(LoadModel model, IDictionary<int,LoadModel> dict)
+        public override void AddConcentratedLoads(BaseLoadModel model, IDictionary<int,BaseLoadModel> dict)
         {
-            LoadDictionary = dict;
-            lst_PtLoadModels.Add(model.Id);
-            UpdateCalculations();
+
         }
 
 
@@ -237,12 +231,7 @@ namespace EE_RoofFramer.Models
         /// </summary>
         private void ComputeSupportReactions()
         {
-            double dl = -1;
-            double ll = -1;
-            double rll = -1;
-
-            ReactionA = new LoadModel(dl, ll, rll, StartPt, EndPt);
-            ReactionB = new LoadModel(dl, ll, rll, StartPt, EndPt);
+            // TODO: FINISH THESE SUPPORT CALCULATIONS
         }
 
         /// <summary>
@@ -258,19 +247,6 @@ namespace EE_RoofFramer.Models
 
             data += StartPt.X.ToString() + "," + StartPt.Y.ToString() + "," + StartPt.Z.ToString() + ",";
             data += EndPt.X.ToString() + "," + EndPt.Y.ToString() + "," + EndPt.Z.ToString() + ",";
-
-
-            // add Uniform Loads
-            foreach (int item in lst_UniformLoadModels)
-            {
-                data += "LU" + item + ",";
-            }
-
-            // add Concentrated Loads
-            foreach (int item in lst_PtLoadModels)
-            {
-                data += "LC" + item + ",";
-            }
 
             // add supported by connections
             foreach (int item in lst_SupportConnections)
@@ -289,9 +265,14 @@ namespace EE_RoofFramer.Models
             
         }
 
-        public override void MarkSupportStatus()
+        public override void HighlightStatus()
         {
             
+        }
+
+        public override void CalculateReactions(RoofFramingLayout layout)
+        {
+            throw new NotImplementedException();
         }
     }
 }

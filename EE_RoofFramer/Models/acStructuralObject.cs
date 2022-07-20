@@ -11,9 +11,8 @@ namespace EE_RoofFramer.Models
     public abstract class acStructuralObject
     {
         private int _id = 0;
-        public static int _next_id = 0;
 
-        // inteiger identifier
+        // integer identifier
         public int Id
         {
             get
@@ -23,7 +22,6 @@ namespace EE_RoofFramer.Models
             set
             {
                 _id = value;
-                _next_id++;
             }
         }
 
@@ -37,11 +35,9 @@ namespace EE_RoofFramer.Models
         public bool IsDeterminate { get; set; } = false;
 
         public IDictionary<int, ConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<int, ConnectionModel>();
-        public IDictionary<int, LoadModel> LoadDictionary { get; set; } = new Dictionary<int, LoadModel>();
+        public IDictionary<int, BaseLoadModel> LoadDictionary { get; set; } = new Dictionary<int, BaseLoadModel>();
 
         public List<int> lst_SupportConnections { get; set; } = new List<int>();
-        public List<int> lst_UniformLoadModels { get; set; } = new List<int> { };
-        public List<int> lst_PtLoadModels { get; set; } = new List<int> { };
         public List<int> lst_SupportedBy { get; set; } = new List<int>(); // Support connection numbers for connections that are supporting this rafter
 
 
@@ -50,21 +46,31 @@ namespace EE_RoofFramer.Models
         protected abstract void UpdateCalculations();
         protected abstract void UpdateSupportedBy();
 
-        public abstract void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, LoadModel> load_dict);
+        public abstract void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict);
         public abstract string ToFile();
 
         public abstract void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict);
-        public abstract void AddUniformLoads(LoadModel load_model, IDictionary<int, LoadModel> dict);
-        public abstract void AddConcentratedLoads(LoadModel load_model, IDictionary<int, LoadModel> dict);
+        public abstract void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict);
+        public abstract void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict);
 
         // For drawing the status of the member -- color changes for indeterminancy etc.
-        public abstract void MarkSupportStatus();
+        public abstract void HighlightStatus();
 
         public abstract bool ValidateSupports();
 
+        public abstract void CalculateReactions(RoofFramingLayout layout);
+
+        public acStructuralObject(int id)
+        {
+            Id = id;
+        }
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
         public acStructuralObject()
         {
-            Id = _next_id;
+
         }
     }
 }
