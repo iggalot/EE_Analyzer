@@ -14,6 +14,8 @@ using static EE_Analyzer.Utilities.ModifyAutoCADGraphics;
 using static EE_Analyzer.Utilities.PolylineObjects;
 using static EE_Analyzer.Utilities.DimensionObjects;
 using static EE_RoofFramer.Utilities.FileObjects;
+using static EE_Analyzer.Utilities.XData;
+
 
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
@@ -200,7 +202,7 @@ namespace EE_RoofFramer
                         DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
                     }
 
-                    // create the new rafter model
+                    // create the new rafter model and set the XDATA tag for the model id
                     RafterModel new_model = new RafterModel(GetNewId(), lst_intPt[0], lst_intPt[1], rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
 
                     // Add a uniform load to each rafter
@@ -929,6 +931,8 @@ namespace EE_RoofFramer
             foreach (KeyValuePair<int, RafterModel> kvp in this.dctRafters_Trimmed)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, dctConnections, dctLoads);
+                SetXData(EE_ROOF_Settings.APP_REGISTRATION_NAME, kvp.Value.Id.ToString(), kvp.Value.Centerline.Id);
+
             }
 
             // Now draw the support beam file contents
@@ -937,6 +941,7 @@ namespace EE_RoofFramer
             foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in this.dctSupportBeams)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, dctConnections, dctLoads);
+                SetXData(EE_ROOF_Settings.APP_REGISTRATION_NAME, kvp.Value.Id.ToString(), kvp.Value.Centerline.Id);
             }
 
             // Now draw the connections file contents
@@ -1139,6 +1144,7 @@ namespace EE_RoofFramer
                     else
                     {
                         RafterModel model = new RafterModel(line, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
+
                         UpdateNextId(model.Id);
 
                         this.AddTrimmedRafterToLayout(model);
@@ -1556,7 +1562,7 @@ namespace EE_RoofFramer
                 return;
             }
 
-            // Create the new beam
+            // Create the new beam and set the XDAta object number reference
             SupportModel_SS_Beam beam = new SupportModel_SS_Beam(CurrentFoundationLayout.GetNewId(), pt[0], pt[1], EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
 
             // Now check if the support intersects the rafter
@@ -1665,7 +1671,6 @@ namespace EE_RoofFramer
             // draw reaction values on the drawing
             CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
             CurrentFoundationLayout.WriteAllDataToFiles();      // save the work to file
-
         }
     }
 }

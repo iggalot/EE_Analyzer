@@ -10,8 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using static EE_Analyzer.Utilities.BlockObjects;
 using static EE_Analyzer.Utilities.DrawObject;
-using static EE_Analyzer.Utilities.DrawObject;
 using static EE_Analyzer.Utilities.EE_Helpers;
+using static EE_Analyzer.Utilities.XData;
+
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace EE_Analyzer.TestingFunctions
@@ -580,5 +581,52 @@ namespace EE_Analyzer.TestingFunctions
         //    }
 
         //}
+
+        [CommandMethod("GXD")]
+        static public void GetXDataTest()
+        {
+            Document doc =
+              Application.DocumentManager.MdiActiveDocument;
+            Editor ed = doc.Editor;
+
+            // Ask the user to select an entity
+            // for which to retrieve XData
+
+            PromptEntityOptions opt =
+              new PromptEntityOptions(
+                "\nSelect entity: "
+              );
+
+            PromptEntityResult res =
+              ed.GetEntity(opt);
+
+            if (res.Status == PromptStatus.OK)
+            {
+                GetXData(res.ObjectId);
+            }
+        }
+
+        [CommandMethod("SXD")]
+        static public void SetXDataTest()
+        {
+            Document doc =
+              Application.DocumentManager.MdiActiveDocument;
+            Editor ed = doc.Editor;
+
+            // Ask the user to select an entity
+            // for which to set XData
+            PromptEntityOptions opt =
+              new PromptEntityOptions(
+                "\nSelect entity: "
+              );
+
+            PromptEntityResult res =
+              ed.GetEntity(opt);
+
+            if (res.Status == PromptStatus.OK)
+            {
+                SetXData("Bob", "55555", res.ObjectId);
+            }
+        }
     }
 }

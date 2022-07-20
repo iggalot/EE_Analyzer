@@ -10,6 +10,7 @@ namespace EE_RoofFramer
         public const string LAST_UPDATED = "2022-07-06";
         public const int DAYS_UNTIL_EXPIRES = 25;
         public static DateTime APP_REGISTRATION_DATE = new DateTime(2022, 7, 6);
+        public const string APP_REGISTRATION_NAME = "EE_ARN";  // The prefix to use when appending XData
 
         // File information
         public const string DEFAULT_EE_BEAM_FILENAME = "_EE-beams.eea";  // filename that stores the rafter information.

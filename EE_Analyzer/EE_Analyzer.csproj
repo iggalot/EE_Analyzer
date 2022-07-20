@@ -81,6 +81,7 @@
       <DependentUpon>EE_FDNInputDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="UserInteraction.cs" />
+    <Compile Include="Utilities\XData.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="UI\EE_FDNInputDialog.xaml">

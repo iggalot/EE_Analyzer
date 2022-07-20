@@ -1,1 +1,40 @@
-﻿
+﻿Last Updated 7/20/2022
+Items to add to this project: (* - "AutoCAD COMMAND")
+=============================
+COMPLETED
+---------
+(* - EER) Create rafters for regions by clicking polyline boundary
+(* - ERD) Redraw drawing from file and recreate model dictionaries
+(* - ENB) Add new beam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
+(* - EEC) Perform support calculations of rafters.
+
+
+TODO
+---------
+- Perform support calculations of supporting beams
+	- Require all supported objects to be statically determinate and have computed reactions being supported by it?
+- Allow beams to support other beams?
+- Find object in drawing by ID. -- zoom feature
+	-- use XDATA to assign object id number to the object within the drawing?
+- Add rafter(s) or member(s) after its support has been drawn -- how to make the auto connections and update the files?
+- Make application persistent -- always running -- would help with constant reading of files being required before every command.
+- Add single items to layout outside of EER command. How to create connections with beams / walls that are already existing?
+- Add ceiling / floor joist items.
+- Add wall items
+- Add column objects
+- Compute reactions of support beams, walls, rafters, and walls.
+- Draw compute status for wall / beam objects
+- Add object for foundation connections (structural boundary condition).
+- Remove single rafters / beams / walls/ purlins from layout
+- Draw purlins.
+- Draw loads - uniform and concentrated
+- Add concentrated loads to members / walls that have already been drawn.  Update support calculations.
+- Compute beam sizes.  
+- Compute rafter sizes.
+- Compute column sizes.
+
+FUTURE IMPROVEMENTS
+- Maintain a persistent list of objects that are non-determinate?  Click on item in list will zoom to member directly in AutoCAD?
+- Database interface instead of text files?
+- Draw structure in 3D?
+- Export model to structural analysis routine

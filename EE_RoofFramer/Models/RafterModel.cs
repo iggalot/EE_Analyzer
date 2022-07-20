@@ -11,6 +11,7 @@ using static EE_Analyzer.Utilities.DrawObject;
 using static EE_Analyzer.Utilities.EE_Helpers;
 using static EE_Analyzer.Utilities.LineObjects;
 using static EE_Analyzer.Utilities.LayerObjects;
+using static EE_Analyzer.Utilities.XData;
 
 
 namespace EE_RoofFramer.Models
