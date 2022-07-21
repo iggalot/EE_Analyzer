@@ -7,7 +7,9 @@ COMPLETED
 (* - ERD) Redraw drawing from file and recreate model dictionaries
 (* - ENB) Add new beam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
 (* - EEC) Perform support calculations of rafters.
+(* - EEAFD) Add a foundation support to a registered object (rafter or beam) at the clicked point. Adds connections to appropriate tables and saves data to files.
 ( - EEAUL) Add a uniform live load to a beam or rafter
+
 
 TODO
 ---------

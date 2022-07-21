@@ -37,6 +37,7 @@ namespace EE_RoofFramer
         public const string DEFAULT_ROOF_PURLIN_SUPPORT_LAYER = "_EE_ROOF_PURLIN"; // For purlin supports
 
         public const string DEFAULT_LOAD_LAYER = "_EE_ROOF_LOADS"; // For roof loads.
+        public const string DEFAULT_ROOF_FDN_LAYER = "_EE_ROOF_FDN_ITEM"; // for foundation connection items
 
         public const string DEFAULT_ROOF_TEXTS_LAYER = "_EE_ROOF_TEXT";
         public const string DEFAULT_ROOF_DIMENSIONS_LAYER = "_EE_ROOF_DIMENSIONS";
@@ -49,12 +50,18 @@ namespace EE_RoofFramer
         public const double DEFAULT_INTERSECTION_CIRCLE_RADIUS = 8; // diameter of the intersection marker circle
         public const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal
 
+        public const double DEFAULT_ROOF_CONN_ICON_WIDTH = 1; // Dimension for our FDN connection icon
+
         public const double DEFAULT_ROOF_TEXT_SIZE = 5;  // the size of the text in the bill of materials.
 
         public const double DEFAULT_MAX_PURLIN_SPACING = 144;  // measured in inches -- typical max is 12ft
 
         public const string RAFTER_DETERMINATE_PASS_COLOR = "By Layer"; // color to draw the rafters if they are statically determinate
         public const string RAFTER_DETERMINATE_FAIL_COLOR = "RED"; // color to draw the rafters if they are statically determinate
+
+        // Hatch
+        public const string DEFAULT_CONNECTION_HATCH_TYPE = "ANSI31";
+        public const double DEFAULT_CONNECTION_HATCH_PATTERNSCALE = 30;
 
     }
 }

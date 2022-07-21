@@ -16,7 +16,14 @@ using static EE_Analyzer.Utilities.XData;
 
 namespace EE_RoofFramer.Models
 {
-    public class ConnectionModel : acStructuralObject
+    public enum ConnectionTypes
+    {
+        CONN_TYPE_UNDEFINED = -1,
+        CONN_TYPE_MBR_TO_MBR = 0,
+        CONN_TYPE_MBR_TO_LOAD = 1,
+        CONN_TYPE_MBR_TO_FDN = 2
+    }
+    public class BaseConnectionModel : acStructuralObject
     {
         public Point3d ConnectionPoint { get; set; }
 
@@ -26,21 +33,24 @@ namespace EE_RoofFramer.Models
         // id number of the object supported above this connection (item being supporteD)
         public int AboveConn { get; set; }
 
+        public int ConnectionType { get; set; } = (int)ConnectionTypes.CONN_TYPE_UNDEFINED;
         public BaseLoadModel Reactions { get; set; } = null;
 
-        public ConnectionModel() : base()
+        public BaseConnectionModel() : base()
         {
 
         }
 
-        public ConnectionModel(int id, Point3d pt, int supporting, int supported_by, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) : base(id)
+        public BaseConnectionModel(int id, Point3d pt, int supporting, int supported_by, ConnectionTypes conn_type, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) : base(id)
         {
             ConnectionPoint = pt;
             BelowConn = supported_by;
             AboveConn = supporting;
+
+            ConnectionType = (int)conn_type;
         }
 
-        public ConnectionModel(string line, string layer_name) : base()
+        public BaseConnectionModel(string line, string layer_name) : base()
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "RAFTER" designation "R"
@@ -48,18 +58,18 @@ namespace EE_RoofFramer.Models
 
             try
             {
-                if (split_line.Length >= 6)
+                if (split_line.Length >= 7)
                 {
                     if (split_line[index].Substring(0, 2).Equals("SC"))
                     {
                         // read the previous information that was stored in the file
                         Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
-
-                        BelowConn = Int32.Parse(split_line[index + 1]);  // member id of supporting member
-                        AboveConn = Int32.Parse(split_line[index + 2]);  // member id of member above being supported
-                        double x = Double.Parse(split_line[index + 3]);
-                        double y = Double.Parse(split_line[index + 4]);
-                        double z = Double.Parse(split_line[index + 5]);
+                        ConnectionType = Int32.Parse(split_line[index+1]);
+                        BelowConn = Int32.Parse(split_line[index + 2]);  // member id of supporting member
+                        AboveConn = Int32.Parse(split_line[index + 3]);  // member id of member above being supported
+                        double x = Double.Parse(split_line[index + 4]);
+                        double y = Double.Parse(split_line[index + 5]);
+                        double z = Double.Parse(split_line[index + 6]);
 
                         ConnectionPoint = new Point3d(x, y, z);  // Point in space of the connection
                     }
@@ -79,7 +89,7 @@ namespace EE_RoofFramer.Models
             return;
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             ConnectionDictionary = conn_dict;
             LoadDictionary = load_dict;
@@ -128,7 +138,7 @@ namespace EE_RoofFramer.Models
         public override string ToFile()
         {
             string data = "";
-            data += "SC" + Id.ToString() + "," + BelowConn.ToString() + "," + AboveConn.ToString() + ",";
+            data += "SC" + Id.ToString() + "," + ConnectionType.ToString() + "," + BelowConn.ToString() + "," + AboveConn.ToString() + ",";
             data += ConnectionPoint.X.ToString() + "," + ConnectionPoint.Y.ToString() + "," + ConnectionPoint.Z.ToString() + ",";
             data += "$";
             return data;
@@ -143,7 +153,7 @@ namespace EE_RoofFramer.Models
 
         protected override void UpdateCalculations() { }
         public override bool ValidateSupports() { return false; }
-        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict) { }
+        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict) { }
         public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
         public override void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
         public override void HighlightStatus() { }

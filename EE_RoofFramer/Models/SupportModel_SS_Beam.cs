@@ -164,7 +164,7 @@ namespace EE_RoofFramer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -209,7 +209,7 @@ namespace EE_RoofFramer.Models
         /// Add connection information for beams that are supporting this rafter
         /// </summary>
         /// <param name="conn"></param>
-        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict)
+        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict)
         {
             ConnectionDictionary = dict;
             lst_SupportConnections.Add(conn.Id);

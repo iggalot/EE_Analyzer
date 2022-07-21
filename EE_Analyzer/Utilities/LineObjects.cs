@@ -292,5 +292,6 @@ namespace EE_Analyzer.Utilities
 
             return points;
         }
+
     }
 }

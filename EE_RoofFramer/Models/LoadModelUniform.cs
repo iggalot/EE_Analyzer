@@ -15,7 +15,7 @@ using EE_Analyzer.Utilities;
 
 namespace EE_RoofFramer.Models
 {
-    public class UniformLoadModel : BaseLoadModel
+    public class LoadModelUniform : BaseLoadModel
     {
         private Point3d _start_location_on_beam;
         private Point3d _end_location_on_beam;
@@ -25,7 +25,7 @@ namespace EE_RoofFramer.Models
         public Point3d ApplicationPointEnd { get => _end_location_on_beam; set { _end_location_on_beam = value; } }
 
 
-        public UniformLoadModel(int id, Point3d start_loc, Point3d end_loc, double dead, double live, double roof_live) 
+        public LoadModelUniform(int id, Point3d start_loc, Point3d end_loc, double dead, double live, double roof_live) 
             : base(id, dead, live, roof_live, LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD)
         {
             ApplicationPointStart = start_loc;
@@ -34,7 +34,7 @@ namespace EE_RoofFramer.Models
 
 
 
-        public UniformLoadModel(string line) : base()
+        public LoadModelUniform(string line) : base()
         {
             string[] split_line = line.Split(',');
             int index = 0;
@@ -91,12 +91,12 @@ namespace EE_RoofFramer.Models
             throw new NotImplementedException();
         }
 
-        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict)
+        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict)
         {
             throw new NotImplementedException();
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {

@@ -156,7 +156,7 @@ namespace EE_RoofFramer.Models
             }
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             ConnectionDictionary = conn_dict;
             LoadDictionary = load_dict;
@@ -235,7 +235,7 @@ namespace EE_RoofFramer.Models
         /// Add connection information for beams that are supporting this rafter
         /// </summary>
         /// <param name="conn"></param>
-        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict)
+        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict)
         {
             ConnectionDictionary = dict;
             lst_SupportConnections.Add(conn.Id);
@@ -285,7 +285,7 @@ namespace EE_RoofFramer.Models
         //TODO: Include external point loads for this calculation
         public override void CalculateReactions(RoofFramingLayout layout)
         {
-            IDictionary<int, ConnectionModel> conn_dict = layout.dctConnections;
+            IDictionary<int, BaseConnectionModel> conn_dict = layout.dctConnections;
             IDictionary<int, BaseLoadModel> load_dict = layout.dctLoads;
             IDictionary<int, int> applied_loads_dict = layout.dctAppliedLoads;
 
@@ -295,7 +295,7 @@ namespace EE_RoofFramer.Models
                 // compute the reaction values
                 if (this.lst_SupportedBy.Count == 2)
                 {
-                    List<ConnectionModel> connection_models_above = new List<ConnectionModel>();
+                    List<BaseConnectionModel> connection_models_above = new List<BaseConnectionModel>();
 
                     foreach (int conn_id in this.lst_SupportConnections)
                     {
@@ -309,8 +309,8 @@ namespace EE_RoofFramer.Models
                         }
                     }
 
-                    ConnectionModel first_conn = connection_models_above[0];
-                    ConnectionModel second_conn = connection_models_above[1];
+                    BaseConnectionModel first_conn = connection_models_above[0];
+                    BaseConnectionModel second_conn = connection_models_above[1];
 
                     // coordinate data of supports and limits of beam as measured from origin
                     Point3d pA = first_conn.ConnectionPoint;        // (in.) Support A location
@@ -352,8 +352,8 @@ namespace EE_RoofFramer.Models
                     double RA_Z_LL = -vW_LL.Z - RB_Z_LL;      // (lb)
                     double RA_Z_RLL = -vW_RLL.Z - RB_Z_RLL;   // (lb)
 
-                    BaseLoadModel lmA = new ConcentratedLoadModel(layout.GetNewId(), pA, RA_Z_DL, RA_Z_LL, RA_Z_RLL);
-                    BaseLoadModel lmB = new ConcentratedLoadModel(layout.GetNewId(), pB, RB_Z_DL, RB_Z_LL, RB_Z_RLL);
+                    BaseLoadModel lmA = new LoadModelConcentrated(layout.GetNewId(), pA, RA_Z_DL, RA_Z_LL, RA_Z_RLL);
+                    BaseLoadModel lmB = new LoadModelConcentrated(layout.GetNewId(), pB, RB_Z_DL, RB_Z_LL, RB_Z_RLL);
 
                     Reactions.Add(lmA);     // save the A reaction
                     Reactions.Add(lmB);     // save the B reaction

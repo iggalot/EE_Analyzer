@@ -101,5 +101,23 @@ namespace EE_Analyzer.Utilities
             Point3d p = new Point3d(0.5 * (p1.X + p2.X), 0.5 * (p1.Y + p2.Y), 0.5 * (p1.Z + p2.Z));
             return p;
         }
+
+        /// <summary>
+        /// Find the nearest point on perpendicular line to line segment passing through the picked point
+        /// </summary>
+        /// <param name="pick_pt">point in space</param>
+        /// <param name="start_of_line">first point on line segment</param>
+        /// <param name="end_of_linej">second point on line segment</param>
+        /// <returns></returns>
+        public static Point3d NearestPointOnLine(Point3d pick_pt, Point3d start_of_line, Point3d end_of_linej)
+        {
+            Vector3d v_line =start_of_line.GetVectorTo(end_of_linej);
+            Vector3d uv_perpendicular = MathHelpers.CrossProduct(v_line, new Vector3d(0, 0, 1));
+
+            Point3d perp_line_pt1 = MathHelpers.Point3dFromVectorOffset(pick_pt, 10 * uv_perpendicular);
+            IntersectPointData int_point = EE_Helpers.FindPointOfIntersectLines_FromPoint3d(start_of_line, end_of_linej, pick_pt, perp_line_pt1);
+
+            return int_point.Point;
+        }
     }
 }

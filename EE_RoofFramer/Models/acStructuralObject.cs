@@ -34,7 +34,7 @@ namespace EE_RoofFramer.Models
         public Handle OldHandle { get => _current_objHandle; set { _current_objHandle = value; } }
         public bool IsDeterminate { get; set; } = false;
 
-        public IDictionary<int, ConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<int, ConnectionModel>();
+        public IDictionary<int, BaseConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<int, BaseConnectionModel>();
         public IDictionary<int, BaseLoadModel> LoadDictionary { get; set; } = new Dictionary<int, BaseLoadModel>();
 
         public List<int> lst_SupportConnections { get; set; } = new List<int>();
@@ -46,10 +46,10 @@ namespace EE_RoofFramer.Models
         protected abstract void UpdateCalculations();
         protected abstract void UpdateSupportedBy();
 
-        public abstract void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict);
+        public abstract void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict);
         public abstract string ToFile();
 
-        public abstract void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict);
+        public abstract void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict);
         public abstract void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict);
         public abstract void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict);
 

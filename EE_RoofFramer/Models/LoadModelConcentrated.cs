@@ -14,19 +14,19 @@ using static EE_Analyzer.Utilities.MathHelpers;
 
 namespace EE_RoofFramer.Models
 {
-    public class ConcentratedLoadModel : BaseLoadModel
+    public class LoadModelConcentrated : BaseLoadModel
     {
         private Point3d _location_on_beam = new Point3d();
 
         public Point3d ApplicationPoint { get => _location_on_beam; set { _location_on_beam = value; } }
 
-        public ConcentratedLoadModel(int id, Point3d loc , double dead, double live, double roof_live) 
+        public LoadModelConcentrated(int id, Point3d loc , double dead, double live, double roof_live) 
             : base(id, dead, live, roof_live, LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD)
         {
             ApplicationPoint = loc;
         }
 
-        public ConcentratedLoadModel(string line)
+        public LoadModelConcentrated(string line)
         {
             string[] split_line = line.Split(',');
             int index = 0;
@@ -73,12 +73,12 @@ namespace EE_RoofFramer.Models
             throw new NotImplementedException();
         }
 
-        public override void AddConnection(ConnectionModel conn, IDictionary<int, ConnectionModel> dict)
+        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict)
         {
             throw new NotImplementedException();
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {

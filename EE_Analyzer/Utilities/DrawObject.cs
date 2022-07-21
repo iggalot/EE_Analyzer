@@ -254,7 +254,7 @@ namespace EE_Analyzer.Utilities
                 }
                 catch (System.Exception ex)
                 {
-                    edt.WriteMessage("Error encountered drawing circle at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z + ex.Message);
+                    edt.WriteMessage("\nError encountered drawing circle at: " + centerPt.X + ", " + centerPt.Y + ", " + centerPt.Z + " : " + ex.Message);
                     trans.Abort();
                 }
             }
