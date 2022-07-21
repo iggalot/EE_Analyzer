@@ -107,7 +107,7 @@ namespace EE_RoofFramer.Models
                     MoveLineToLayer(ln4, layer_name);
 
                     string support_str = "ID: " + Id.ToString() + "\n" + "A: " + AboveConn.ToString() + "\n" + "B: " + BelowConn.ToString();
-                    DrawMtext(db, doc, ConnectionPoint, support_str, 3, layer_name);
+                    DrawMtext(db, doc, ConnectionPoint, support_str, 1, layer_name);
 
                     trans.Commit();
                 }

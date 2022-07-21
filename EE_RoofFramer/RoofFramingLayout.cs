@@ -56,7 +56,7 @@ namespace EE_RoofFramer
         /// <returns></returns>
         private void UpdateNextId(int id)
         {
-            if(_largest_used_id <= id)
+            if (_largest_used_id <= id)
             {
                 _largest_used_id = id;
                 _next_id = _largest_used_id + 1;
@@ -161,7 +161,7 @@ namespace EE_RoofFramer
 
                 DoPreviewMode(start, end);
 
-                foreach (KeyValuePair<int,RafterModel> kvp in dctRafters_Untrimmed)
+                foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Untrimmed)
                 {
                     kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, dctConnections, dctLoads);
 
@@ -220,7 +220,7 @@ namespace EE_RoofFramer
 
             // Create the roof region
             List<RafterModel> tmp_rafter_list = new List<RafterModel>();
-            foreach(KeyValuePair<int, RafterModel> kvp in dctRafters_Trimmed )
+            foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Trimmed)
             {
                 tmp_rafter_list.Add(kvp.Value);
             }
@@ -674,7 +674,7 @@ namespace EE_RoofFramer
             // Create the roof bounding box
             doc.Editor.WriteMessage("\n-- Creating roof bounding box.");
             ObjectId oid = CreateRoofBoundingBox(lstVertices);
-            if(oid == ObjectId.Null)
+            if (oid == ObjectId.Null)
             {
                 doc.Editor.WriteMessage("Invalid roof boundary box created.");
                 return false;
@@ -760,7 +760,7 @@ namespace EE_RoofFramer
             CreateLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
 
             CreateLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db, 140);  // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db, 140);  // yellow
+            CreateLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db, 2);  // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER, doc, db, 52); // gold color 
 
             //Create the EE dimension style
@@ -923,6 +923,7 @@ namespace EE_RoofFramer
             }
         }
 
+        #region Drawing Functions
         public void DrawAllRoofFraming()
         {
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, doc, db);
@@ -954,38 +955,40 @@ namespace EE_RoofFramer
 
             // Now draw the loads file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db);
-
             foreach (KeyValuePair<int, BaseLoadModel> kvp in this.dctLoads)
             {
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                switch ((int)kvp.Value.LoadType)
+                {
+                    case ((int)LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD):
+                        {
+                            ((UniformLoadModel)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                            break;
+                        }
+                    case ((int)LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD):
+                        {
+                            ((ConcentratedLoadModel)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                            break;
+                        }
+                    default:
+                        break;
+                }
             }
 
-
-
-            //// Delete drawing objects on trimmed rafter layer
-            //DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db);
-            //// Draw the support beams
-            //foreach (LoadModel item in this.lstLoads)
-            //{
-            //    item.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
-            //}
-
-            // Now force a redraw
             ModifyAutoCADGraphics.ForceRedraw(db, doc);
 
         }
-
+        #endregion
 
         #region Add Elements to ROOF LAYOUT
         private void AddTrimmedRafterToLayout(RafterModel model)
         {
 
-            if(dctRafters_Trimmed is null)
+            if (dctRafters_Trimmed is null)
             {
                 dctRafters_Trimmed = new Dictionary<int, RafterModel>();
             }
 
-            if(model == null)
+            if (model == null)
             {
                 return;
             }
@@ -1072,7 +1075,7 @@ namespace EE_RoofFramer
             if (dctConnections is null)
             {
 
-                    dctConnections = new Dictionary<int, ConnectionModel>();
+                dctConnections = new Dictionary<int, ConnectionModel>();
             }
 
             if (model == null)
@@ -1108,7 +1111,6 @@ namespace EE_RoofFramer
             }
         }
         #endregion
-
 
         #region File Read and Write
         /// <summary>
@@ -1349,7 +1351,7 @@ namespace EE_RoofFramer
                 }
             }
 
-            if(dctRafters_Trimmed.Count == 0)
+            if (dctRafters_Trimmed.Count == 0)
             {
                 FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, "$");  // create an empty file
             }
@@ -1383,8 +1385,8 @@ namespace EE_RoofFramer
                 {
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME, kvp.Value.ToFile());
                 }
-            } 
-            
+            }
+
             if (dctConnections.Count == 0)
             {
                 FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME, "$");  // create an empty file
@@ -1392,7 +1394,7 @@ namespace EE_RoofFramer
 
         }
 
-        private void WriteLoadsToFile() 
+        private void WriteLoadsToFile()
         {
             File.Delete(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME);
 
@@ -1419,7 +1421,7 @@ namespace EE_RoofFramer
             {
                 foreach (KeyValuePair<int, int> kvp in dctAppliedLoads)
                 {
-                    string  applied_load_string = "AL" + kvp.Key.ToString() +"," + kvp.Value.ToString() + ",";
+                    string applied_load_string = "AL" + kvp.Key.ToString() + "," + kvp.Value.ToString() + ",";
                     applied_load_string += "$";
                     FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_APPLIED_LOADS_FILENAME, applied_load_string);
                 }
@@ -1467,38 +1469,38 @@ namespace EE_RoofFramer
             if (ValidateUser() is false)
                 return;
 
-            RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
-            
-            CurrentFoundationLayout.EE_ApplicationSetup();      // Set up layers and linetypes and AutoCAD drawings items
-            CurrentFoundationLayout.ReadAllDataFromFiles();     // read existing data from the text files
+            RoofFramingLayout CurrentRoofFramingLayout = new RoofFramingLayout();
+
+            CurrentRoofFramingLayout.EE_ApplicationSetup();      // Set up layers and linetypes and AutoCAD drawings items
+            CurrentRoofFramingLayout.ReadAllDataFromFiles();     // read existing data from the text files
             Thread.Sleep(1000);
-            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentRoofFramingLayout.DrawAllRoofFraming();       // redraw the data now that it's read
 
 
             // Set up our initial work.  If false, end the program.
-            if (CurrentFoundationLayout.OnRoofFramingLayoutCreate() is false)
+            if (CurrentRoofFramingLayout.OnRoofFramingLayoutCreate() is false)
                 return;
 
-            CurrentFoundationLayout.FirstLoad = true;
+            CurrentRoofFramingLayout.FirstLoad = true;
 
             // Keep reloading the dialog box if we are in preview mode
-            while (CurrentFoundationLayout.PreviewMode == true)
+            while (CurrentRoofFramingLayout.PreviewMode == true)
             {
                 EE_ROOFInputDialog dialog;
-                if (CurrentFoundationLayout.FirstLoad)
+                if (CurrentRoofFramingLayout.FirstLoad)
                 {
                     // Use the default values
-                    dialog = new EE_ROOFInputDialog(CurrentFoundationLayout, CurrentFoundationLayout.ShouldClose, CurrentFoundationLayout.CurrentDirectionMode);
-                    CurrentFoundationLayout.FirstLoad = false;
+                    dialog = new EE_ROOFInputDialog(CurrentRoofFramingLayout, CurrentRoofFramingLayout.ShouldClose, CurrentRoofFramingLayout.CurrentDirectionMode);
+                    CurrentRoofFramingLayout.FirstLoad = false;
                 }
                 else
                 {
                     // Otherwise reload the previous iteration values
-                    dialog = new EE_ROOFInputDialog(CurrentFoundationLayout, CurrentFoundationLayout.ShouldClose, CurrentFoundationLayout.CurrentDirectionMode);
+                    dialog = new EE_ROOFInputDialog(CurrentRoofFramingLayout, CurrentRoofFramingLayout.ShouldClose, CurrentRoofFramingLayout.CurrentDirectionMode);
                 }
 
-                CurrentFoundationLayout.ShouldClose = dialog.dialog_should_close;
-                CurrentFoundationLayout.IsComplete = dialog.dialog_is_complete;
+                CurrentRoofFramingLayout.ShouldClose = dialog.dialog_should_close;
+                CurrentRoofFramingLayout.IsComplete = dialog.dialog_is_complete;
 
                 if (dialog.dialog_should_close || dialog.dialog_is_complete)
                 {
@@ -1519,16 +1521,16 @@ namespace EE_RoofFramer
                     break;
                 }
 
-                CurrentFoundationLayout.CurrentDirectionMode = dialog.current_preview_mode_number;
+                CurrentRoofFramingLayout.CurrentDirectionMode = dialog.current_preview_mode_number;
             }
 
-//            CurrentFoundationLayout.PerformRafterReactionCalculations(); // compute the support reactions
+            //            CurrentFoundationLayout.PerformRafterReactionCalculations(); // compute the support reactions
 
             // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
             Thread.Sleep(1000);
-            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
-            CurrentFoundationLayout.WriteAllDataToFiles();
-        }   
+            CurrentRoofFramingLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentRoofFramingLayout.WriteAllDataToFiles();
+        }
 
 
         /// <summary>
@@ -1586,20 +1588,11 @@ namespace EE_RoofFramer
 
                     // update the rafter object to indicate the support in it
                     kvp.Value.AddConnection(support_conn, CurrentFoundationLayout.dctConnections);
-
-
                 }
             }
 
             // Add the beam to the support beams list
             CurrentFoundationLayout.AddBeamToLayout(beam);
-
-            // Finalize computations
-            CurrentFoundationLayout.ComputeRafterSupportReactions();
-            foreach(KeyValuePair<int, RafterModel> rafter in dctRafters_Trimmed)
-            {
-
-            }
 
             // Need to slow down the program otherwise it races through reading the data and goes straight to drawing.
             Thread.Sleep(1000);
@@ -1617,19 +1610,18 @@ namespace EE_RoofFramer
             if (ValidateUser() is false)
                 return;
 
-            RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
+            RoofFramingLayout CurrentRoofFramingLayout = new RoofFramingLayout();
 
             // Set up layers and linetypes and AutoCAD drawings items
-            CurrentFoundationLayout.EE_ApplicationSetup();
+            CurrentRoofFramingLayout.EE_ApplicationSetup();
 
             // Recreate our data models from file storage and puase slightly
-            CurrentFoundationLayout.ReadAllDataFromFiles();
+            CurrentRoofFramingLayout.ReadAllDataFromFiles();
             Thread.Sleep(1000);
-            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
-            CurrentFoundationLayout.WriteAllDataToFiles();  // save the work
+            CurrentRoofFramingLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentRoofFramingLayout.WriteAllDataToFiles();  // save the work
 
         }
-
 
         [CommandMethod("EEC")]
         public void PerformRafterReactionCalculations()
@@ -1637,30 +1629,30 @@ namespace EE_RoofFramer
             if (ValidateUser() is false)
                 return;
 
-            RoofFramingLayout CurrentFoundationLayout = new RoofFramingLayout();
+            RoofFramingLayout CurrentRoofFramingLayout = new RoofFramingLayout();
 
             #region Application Setup
 
             // Set up layers and linetypes and AutoCAD drawings items
-            CurrentFoundationLayout.EE_ApplicationSetup();
+            CurrentRoofFramingLayout.EE_ApplicationSetup();
 
             #endregion
 
             // Recreate our data models from file storage and puase slightly
-            CurrentFoundationLayout.ReadAllDataFromFiles();
+            CurrentRoofFramingLayout.ReadAllDataFromFiles();
             Thread.Sleep(1000);
-            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentRoofFramingLayout.DrawAllRoofFraming();       // redraw the data now that it's read
 
             // Do our calculations
-            foreach (KeyValuePair<int,RafterModel> item in CurrentFoundationLayout.dctRafters_Trimmed)
+            foreach (KeyValuePair<int, RafterModel> item in CurrentRoofFramingLayout.dctRafters_Trimmed)
             {
                 // Get a rafter
                 RafterModel rafter = item.Value;
 
-                rafter.CalculateReactions(CurrentFoundationLayout);
+                rafter.CalculateReactions(CurrentRoofFramingLayout);
 
                 // Needed in case the rafter reactions haven't been calculated due to being indeterminate
-                if(rafter.Reactions.Count >= 2)
+                if (rafter.Reactions.Count >= 2)
                 {
                     // Reactions A
                     DrawMtext(db, doc, ((ConcentratedLoadModel)rafter.Reactions[0]).ApplicationPoint, rafter.Reactions[0].ToString(), 2, EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER);
@@ -1669,8 +1661,179 @@ namespace EE_RoofFramer
                 }
             }
             // draw reaction values on the drawing
-            CurrentFoundationLayout.DrawAllRoofFraming();       // redraw the data now that it's read
-            CurrentFoundationLayout.WriteAllDataToFiles();      // save the work to file
+            CurrentRoofFramingLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentRoofFramingLayout.WriteAllDataToFiles();      // save the work to file
+        }
+
+
+        /// <summary>
+        /// Method to compute all of the internal forces in the layout
+        /// </summary>
+        [CommandMethod("EECA")]
+        public static void ComputeAllReactions()
+        {
+
+        }
+
+        /// <summary>
+        /// Function to add a point load to the selected member
+        /// </summary>
+        [CommandMethod("EEAPL")]
+        public void AddPointLoadToLayout()
+        {
+
+
+
+        }
+
+        /// <summary>
+        /// Adds a uniform load to the full length of a member
+        /// </summary>
+        [CommandMethod("EEAUL")]
+        public void AddFullUniformLoadToLayout()
+        {
+            if (ValidateUser() is false)
+                return;
+
+            RoofFramingLayout CurrentRoofFramingLayout = new RoofFramingLayout();
+
+            // Set up layers and linetypes and AutoCAD drawings items
+            CurrentRoofFramingLayout.EE_ApplicationSetup();
+
+            // Recreate our data models from file storage and puase slightly
+            CurrentRoofFramingLayout.ReadAllDataFromFiles();
+            Thread.Sleep(1000);
+            CurrentRoofFramingLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+
+            // Select the existing line
+            ObjectId selectedID = DoSelectLine();
+
+            // Check if the object is valid
+            if (selectedID == ObjectId.Null)
+            {
+                doc.Editor.WriteMessage("Error selecting line, or line does not contain XData tag yet.");
+                return;
+            }
+
+            double dead = 100;
+            double live = 200;
+            double roof_live = 300;
+            int model_num = -1;
+            using (Transaction tr = doc.TransactionManager.StartTransaction())
+            {
+
+                try
+                {
+                    DBObject obj = tr.GetObject(selectedID, OpenMode.ForRead);
+                    ResultBuffer rb = obj.XData;
+
+                    // look for the numeric id in each line of the XData
+                    foreach (TypedValue tv in rb)
+                    {
+                        if (tv.TypeCode == 1000)   // 1000 is the code in XData corresponding to the member id number
+                        {
+                            model_num = Int32.Parse((string)tv.Value);
+                            break;  // found it so stop searching
+                        }
+                    }
+
+                    if(model_num == -1)
+                    {
+                        doc.Editor.WriteMessage("\nNo valid EE rafter or beam model found.  Cancelling command.");
+                        tr.Abort();
+                        return;
+                    }
+
+                    // Get member model:
+                    bool found = false;
+                    Point3d start = new Point3d();
+                    Point3d end = new Point3d();
+                    // first is the line a rafter?
+                    if (CurrentRoofFramingLayout.dctRafters_Trimmed.ContainsKey(model_num))
+                    {
+                        RafterModel raf_model = CurrentRoofFramingLayout.dctRafters_Trimmed[model_num];
+                        start = raf_model.StartPt;
+                        end = raf_model.EndPt;
+                        found = true;
+                    }
+
+                    // if we don't find it in the rafters, then check the support beams list?
+                    if (!found)
+                    {
+                        if (CurrentRoofFramingLayout.dctSupportBeams.ContainsKey(model_num))
+                        {
+                            SupportModel_SS_Beam ss_model = CurrentRoofFramingLayout.dctSupportBeams[model_num];
+                            start = ss_model.StartPt;
+                            end = ss_model.EndPt;
+                            found = true;
+                        }
+                    }
+
+                    // Object wasnt found
+                    if (!found)
+                    {
+                        doc.Editor.WriteMessage("Model [" + model_num + "] was not found in the rafter or support beams table");
+                        return;
+                    }
+
+                    // second is the line a support beam?  If end points are the same, the line is invalid
+                    if (start != end)
+                    {
+                        BaseLoadModel uni_model = new UniformLoadModel(model_num, start, end, dead, live, roof_live);
+                        CurrentRoofFramingLayout.AddLoadToLayout(uni_model);
+                        CurrentRoofFramingLayout.AddAppliedLoadToLayout(uni_model.Id, model_num);
+                    }
+                    else
+                    {
+                        doc.Editor.WriteMessage("Error: Start and End points cannot be the same on uniform looad on member [" + model_num.ToString() + "]");
+                    }
+                    tr.Commit();
+                }
+                catch (System.Exception ex)
+                {
+                    doc.Editor.WriteMessage("Unable to add DL: " + dead + " LL: " + live + "  RLL: " + roof_live);
+                    tr.Abort();
+                }
+            }
+            // draw reaction values on the drawing
+            CurrentRoofFramingLayout.DrawAllRoofFraming();       // redraw the data now that it's read
+            CurrentRoofFramingLayout.WriteAllDataToFiles();      // save the work to file
+
+        }
+
+        private ObjectId DoSelectLine()
+        {
+            PromptEntityOptions options = new PromptEntityOptions("\nSelect Member");
+            options.SetRejectMessage("\nSelected object is not a line object.");
+            options.AddAllowedClass(typeof(Line), true);
+
+            // Select the polyline for the foundation
+            PromptEntityResult result = doc.Editor.GetEntity(options);
+
+            if (result.Status == PromptStatus.OK)
+            {
+                using (Transaction tr = doc.TransactionManager.StartTransaction())
+                {
+                    // Get the selected object from the autocad database
+                    DBObject obj = tr.GetObject(result.ObjectId, OpenMode.ForRead);
+                    ResultBuffer rb = obj.XData;
+                    if (rb == null)
+                    {
+                        doc.Editor.WriteMessage("\nSelected Entity " + result.ObjectId + " does not have XData attached.");
+                        return ObjectId.Null;
+                    }
+                    else
+                    {
+                        return obj.Id;
+                    }
+
+                    tr.Commit();
+                }
+            }
+
+
+
+            return ObjectId.Null;
         }
     }
 }

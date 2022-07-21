@@ -80,23 +80,32 @@ namespace EE_RoofFramer.Models
 
         public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
-            try
+            using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
+                try
                 {
+                    Point3d pt1 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(-4, 4, 0));
+                    Point3d pt2 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(4, -4, 0));
+                    Point3d pt3 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(-4, -4, 0));
+                    Point3d pt4 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(4, 4, 0));
 
-                    DrawLine(
-                        Point3dFromVectorOffset(ApplicationPoint, new Vector3d(-4, 4, 0)),
-                        Point3dFromVectorOffset(ApplicationPoint, new Vector3d(4, -4, 0)), layer_name);
-                    DrawLine(
-                        Point3dFromVectorOffset(ApplicationPoint, new Vector3d(-4, -4, 0)),
-                        Point3dFromVectorOffset(ApplicationPoint, new Vector3d(4, 4, 0)), layer_name);
+                    Line ln1 = OffsetLine(new Line(pt1, pt2), 0);
+                    MoveLineToLayer(ln1, layer_name);
+                    Line ln2 = OffsetLine(new Line(pt3, pt4), 0);
+                    MoveLineToLayer(ln1, layer_name);
+
+                    // Draw the load label
+                    DrawMtext(db, doc, ApplicationPoint, this.ToString(), 1, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+
+                    trans.Commit();
+                }
+                catch (System.Exception e)
+                {
+                    doc.Editor.WriteMessage("Error drawing Load Model [" + Id.ToString() + "]: " + e.Message);
+                    trans.Abort();
                 }
             }
-            catch (System.Exception e)
-            {
-                doc.Editor.WriteMessage("Error drawing Load Model [" + Id.ToString() + "]: " + e.Message);
-            }
+
         }
 
         public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)

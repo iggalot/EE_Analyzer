@@ -282,6 +282,7 @@ namespace EE_RoofFramer.Models
             return is_valid;
         }
 
+        //TODO: Include external point loads for this calculation
         public override void CalculateReactions(RoofFramingLayout layout)
         {
             IDictionary<int, ConnectionModel> conn_dict = layout.dctConnections;

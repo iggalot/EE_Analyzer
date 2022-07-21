@@ -60,7 +60,9 @@ namespace EE_RoofFramer.Models
         }
 
         public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
-        { }
+        { 
+        
+        }
 
         public override string ToString()
         {
@@ -86,9 +88,6 @@ namespace EE_RoofFramer.Models
         public virtual double? GetResultant_LL() { return null; }
         public virtual double? GetResultant_RLL() { return null; }
         public virtual Point3d? GetResultantPoint3d() { return null; }
-
-
-
 
         protected override void UpdateCalculations() { }
         public override bool ValidateSupports() { return false; }

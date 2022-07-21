@@ -11,6 +11,7 @@ using static EE_Analyzer.Utilities.EE_Helpers;
 using static EE_Analyzer.Utilities.LineObjects;
 using static EE_Analyzer.Utilities.LayerObjects;
 using static EE_Analyzer.Utilities.MathHelpers;
+using EE_Analyzer.Utilities;
 
 namespace EE_RoofFramer.Models
 {
@@ -97,23 +98,40 @@ namespace EE_RoofFramer.Models
 
         public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, ConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
         {
-            try
+            using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
+                try
                 {
+                    //Draw an icon for the uniform load
+                    Point3d mid_pt = MathHelpers.GetMidpoint(ApplicationPointStart, ApplicationPointEnd);
+                    Point3d pt1 = Point3dFromVectorOffset(mid_pt, new Vector3d(-4, 4, 0));
+                    Point3d pt2 = Point3dFromVectorOffset(mid_pt, new Vector3d(4, -4, 0));
+                    Point3d pt3 = Point3dFromVectorOffset(mid_pt, new Vector3d(-4, -4, 0));
+                    Point3d pt4 = Point3dFromVectorOffset(mid_pt, new Vector3d(4, 4, 0));
+                    DrawCircle(mid_pt, 4, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
 
-                    DrawLine(
-                        Point3dFromVectorOffset(ApplicationPointStart, new Vector3d(-4, 4, 0)),
-                        Point3dFromVectorOffset(ApplicationPointStart, new Vector3d(4, -4, 0)), layer_name);
-                    DrawLine(
-                        Point3dFromVectorOffset(ApplicationPointStart, new Vector3d(-4, -4, 0)),
-                        Point3dFromVectorOffset(ApplicationPointStart, new Vector3d(4, 4, 0)), layer_name);
+                    // Draw the icon for the load
+                    Line ln1 = OffsetLine(new Line(pt1, pt2), 0);
+                    MoveLineToLayer(ln1, layer_name);
+                    Line ln2 = OffsetLine(new Line(pt3, pt4), 0);
+                    MoveLineToLayer(ln1, layer_name);
+
+                    // Draw the load label
+                    DrawMtext(db, doc, mid_pt, this.ToString(), 1, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+
+                    // Draw markers at start and stop location of uniform load line
+                    DrawCircle(ApplicationPointStart, 2, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    DrawCircle(ApplicationPointEnd, 2, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+
+                    trans.Commit();
+                }
+                catch (System.Exception e)
+                {
+                    doc.Editor.WriteMessage("Error drawing Load Model [" + Id.ToString() + "]: " + e.Message);
+                    trans.Abort();
                 }
             }
-            catch (System.Exception e)
-            {
-                doc.Editor.WriteMessage("Error drawing Load Model [" + Id.ToString() + "]: " + e.Message);
-            }
+
         }
 
         public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)

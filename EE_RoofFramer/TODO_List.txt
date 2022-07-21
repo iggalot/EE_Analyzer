@@ -1,5 +1,5 @@
 ﻿Last Updated 7/20/2022
-Items to add to this project: (* - "AutoCAD COMMAND")
+Items to add to this project: (* - "AutoCAD COMMAND") -- (*) = completed () - in process
 =============================
 COMPLETED
 ---------
@@ -7,15 +7,18 @@ COMPLETED
 (* - ERD) Redraw drawing from file and recreate model dictionaries
 (* - ENB) Add new beam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
 (* - EEC) Perform support calculations of rafters.
-
+( - EEAUL) Add a uniform live load to a beam or rafter
 
 TODO
 ---------
+( ) - Add a single full length, uniform load by clicking on the member (beams or rafters).  Need to come up with a mechanism for inputting the values for the loads.
+- Add multiple uniform loads to same member -- need to verify load id's are unique for the member.
+- Add any point loads to rafter support reaction calculations
 - Perform support calculations of supporting beams
-	- Require all supported objects to be statically determinate and have computed reactions being supported by it?
-- Allow beams to support other beams?
+- Require all supported objects to be statically determinate and have computed reactions being supported by it?
+- Allow beams to support other beams? -- How to avoid circular supporting?  (beam 1 supports 2 which supports 3 which supports 1)
 - Find object in drawing by ID. -- zoom feature
-	-- use XDATA to assign object id number to the object within the drawing?
+(*) - use XDATA to assign object id number to the object within the drawing?
 - Add rafter(s) or member(s) after its support has been drawn -- how to make the auto connections and update the files?
 - Make application persistent -- always running -- would help with constant reading of files being required before every command.
 - Add single items to layout outside of EER command. How to create connections with beams / walls that are already existing?
@@ -32,9 +35,19 @@ TODO
 - Compute beam sizes.  
 - Compute rafter sizes.
 - Compute column sizes.
+- Deleting beams / Removing models from layout
+- Deleting walls / Removing models from layout
+- Deleting loads / Removing models from layout
+- Deleting connections / Removing models from layout
+
+
+
 
 FUTURE IMPROVEMENTS
+-------------------
 - Maintain a persistent list of objects that are non-determinate?  Click on item in list will zoom to member directly in AutoCAD?
 - Database interface instead of text files?
 - Draw structure in 3D?
 - Export model to structural analysis routine
+- MTO values
+- Shear walls 
