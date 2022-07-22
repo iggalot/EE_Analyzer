@@ -14,6 +14,8 @@ COMPLETED
 TODO
 ---------
 ( ) - Add a single full length, uniform load by clicking on the member (beams or rafters).  Need to come up with a mechanism for inputting the values for the loads.
+(*) - Add a foundation support to a registered object (rafter or beam) at the clicked point.
+- Add a NOT COMPUTED designator for elements that are not computed -- other than the highlight color.
 - Add multiple uniform loads to same member -- need to verify load id's are unique for the member.
 - Add any point loads to rafter support reaction calculations
 - Perform support calculations of supporting beams
