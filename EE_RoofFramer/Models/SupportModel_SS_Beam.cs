@@ -21,7 +21,7 @@ namespace EE_RoofFramer.Models
     /// </summary>
     public class SupportModel_SS_Beam : acStructuralObject
     {
-        private const double support_radius = 10;
+        //private const double support_radius = 10;
         public Line Centerline { get; set; }
         public Point3d StartPt { get; set; }
         public Point3d EndPt { get; set; }        
@@ -40,32 +40,26 @@ namespace EE_RoofFramer.Models
 
         public Double Length { get; set; }
 
-        private bool isDeterminate
-        {
-            get => (lst_SupportedBy.Count < 2) ? false : true;
-        }
-
         public bool SupportsAreValid { get => ValidateSupports(); }
 
 
 
-        public SupportModel_SS_Beam(int id, Point3d start, Point3d end, string layer_name) : base(id)
+        public SupportModel_SS_Beam(int id, Point3d start, Point3d end) : base(id)
         {
             StartPt = start;
             EndPt = end;
             Id = id;
+            
+ //           // Centerline object
+ //           Line ln = new Line(StartPt, EndPt);
+ //           Centerline = OffsetLine(ln, 0) as Line;
+ //           MoveLineToLayer(Centerline, layer_name);
 
-            // Centerline object
-            Line ln = new Line(StartPt, EndPt);
-            Centerline = OffsetLine(ln, 0) as Line;
-            MoveLineToLayer(Centerline, layer_name);
-
-            UpdateCalculations();
-            HighlightStatus();
+   //         UpdateCalculations();
         }
 
 
-        public SupportModel_SS_Beam(string line, string layer_name) : base()
+        public SupportModel_SS_Beam(string line) : base()
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "BEAM" designation "B"
@@ -83,11 +77,9 @@ namespace EE_RoofFramer.Models
                     // 3, 4, 5 == Next three values are the end point coord
                     EndPt = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
 
-                    Line ln = new Line(StartPt, EndPt);
-                    Centerline = OffsetLine(ln, 0) as Line;
-                    MoveLineToLayer(Centerline, layer_name);
-
-
+ //                   Line ln = new Line(StartPt, EndPt);
+ //                   Centerline = OffsetLine(ln, 0) as Line;
+//                    MoveLineToLayer(Centerline, layer_name);
 
                     index = index + 8;
 
@@ -127,7 +119,6 @@ namespace EE_RoofFramer.Models
                     }
 
                     UpdateCalculations();
-                    HighlightStatus();
                 }
             }
         }
@@ -140,7 +131,6 @@ namespace EE_RoofFramer.Models
             vDir = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
             Length = MathHelpers.Magnitude(StartPt.GetVectorTo(EndPt));
             ComputeSupportReactions();
-
         }
 
 
@@ -157,8 +147,8 @@ namespace EE_RoofFramer.Models
                 {
                     // BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                     // BlockTableRecord btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                    DrawCircle(StartPt, support_radius, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);  // outer support diameter
-                    DrawCircle(EndPt, support_radius, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);  // outer support diameter
+//                    DrawCircle(StartPt, support_radius, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);  // outer support diameter
+//                    DrawCircle(EndPt, support_radius, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);  // outer support diameter
 
                     Line ln = new Line(StartPt, EndPt);
                     Centerline = OffsetLine(ln, 0) as Line;

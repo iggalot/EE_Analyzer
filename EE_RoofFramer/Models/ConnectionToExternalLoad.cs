@@ -15,25 +15,30 @@ namespace EE_RoofFramer.Models
     {
         int LoadModelId { get; set; }
 
-        public ConnectionToExternalLoad(int id, int load_id, Point3d pt, int supported_by, int supporting_above, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) 
-            : base(id, pt, supported_by, supporting_above, ConnectionTypes.CONN_TYPE_MBR_TO_LOAD, layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER)
+        public ConnectionToExternalLoad(int id, int load_id, Point3d pt, int supported_by, int supporting_above) 
+            : base(id, pt, supported_by, supporting_above, ConnectionTypes.CONN_TYPE_MBR_TO_LOAD)
         {
             LoadModelId = load_id;
         }
 
-        public ConnectionToExternalLoad(string line, string layer_name) : base(line, layer_name)
+        public ConnectionToExternalLoad(string line) : base(line)
         {
             AboveConn = -1;
         }
 
         public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
+            double icon_size = EE_ROOF_Settings.DEFAULT_ROOF_CONN_ICON_WIDTH;
+
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 try
                 { 
-                    DrawCircle(this.ConnectionPoint, EE_ROOF_Settings.DEFAULT_ROOF_CONN_ICON_WIDTH, EE_ROOF_Settings.DEFAULT_ROOF_FDN_LAYER);  // outer pier diameter
-                    AddCircularHatch(this.ConnectionPoint, EE_ROOF_Settings.DEFAULT_ROOF_CONN_ICON_WIDTH * 0.9, EE_ROOF_Settings.DEFAULT_CONNECTION_HATCH_TYPE, EE_ROOF_Settings.DEFAULT_CONNECTION_HATCH_PATTERNSCALE);
+                    DrawCircle(this.ConnectionPoint, icon_size, layer_name);  // outer pier diameter
+                    AddCircularHatch(this.ConnectionPoint, icon_size * 0.9, EE_ROOF_Settings.DEFAULT_CONNECTION_HATCH_TYPE, EE_ROOF_Settings.DEFAULT_CONNECTION_HATCH_PATTERNSCALE);
+
+                    string support_str = "ID: " + Id.ToString() + "\n" + "A: " + AboveConn.ToString() + "\n" + "B: " + BelowConn.ToString();
+                    DrawMtext(db, doc, ConnectionPoint, support_str, 1, layer_name);
 
                     trans.Commit();
                 }

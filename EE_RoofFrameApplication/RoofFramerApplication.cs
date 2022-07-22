@@ -64,16 +64,7 @@ namespace EE_RoofFrameApplication
             Autodesk.AutoCAD.Internal.Utils.AddCommand("EAFS", "EAFS", "EAFS", CommandFlags.Modal, CreateNewFoundationSupport);
         }
 
-        private RoofFramingLayout OnCreateLayout()
-        {
-            RoofFramingLayout layout = new RoofFramingLayout(db, doc);            
-            LoadAutoCADSettings();
-            layout.ReadAllDataFromFiles();     // read existing data from the text files
-            Thread.Sleep(1000);
-            layout.DrawAllRoofFraming();       // redraw the data now that it's read
 
-            return layout;
-        }
 
 
         /// <summary>
@@ -101,15 +92,14 @@ namespace EE_RoofFrameApplication
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RIDGE_SUPPORT_LAYER, doc, db, 3); // blue
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_HIPVALLEY_SUPPORT_LAYER, doc, db, 3); // red
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WALL_SUPPORT_LAYER, doc, db, 2); // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db, 1); // red
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER, doc, db, 2); // yellow
+            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db, 6); // magenta
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER, doc, db, 140); // blue
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_PURLIN_SUPPORT_LAYER, doc, db, 140); // blue
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_DIMENSIONS_LAYER, doc, db, 2); // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_ANNOTATION_LAYER, doc, db, 1); // red
             CreateLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db, 140);  // yellow
+            CreateLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db, 140);  // blue
             CreateLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db, 2);  // yellow
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER, doc, db, 52); // gold color 
             CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_FDN_LAYER, doc, db, 32); // burnt orange color 
@@ -135,6 +125,19 @@ namespace EE_RoofFrameApplication
             return true;
         }
 
+        private RoofFramingLayout OnCommndExecute()
+        {
+            RoofFramingLayout layout = new RoofFramingLayout(db, doc);
+            LoadAutoCADSettings();
+            layout.ReadAllDataFromFiles();       // read existing data from the text files
+            layout.UpdateAllSupportedByLists();  // update the support_by conditions
+
+            Thread.Sleep(1000);
+            layout.DrawAllRoofFraming();       // redraw the data now that it's read
+
+            return layout;
+        }
+
         private void OnCommandTerminate(RoofFramingLayout layout)
         {
             layout.DrawAllRoofFraming();    // redraw the drawing since the data has been changed
@@ -142,52 +145,6 @@ namespace EE_RoofFrameApplication
         }
 
         #region Command definitions
-        /// <summary>
-        /// Sets up the AutoCAD linetypes and the layers for the application
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="db"></param>
-        private void EE_ApplicationSetup()
-        {
-            // Load our linetype
-            LoadLineTypes("CENTER", doc, db);
-            LoadLineTypes("DASHED", doc, db);
-            LoadLineTypes("HIDDEN", doc, db);
-            LoadLineTypes("CENTERX2", doc, db);
-            LoadLineTypes("DASHEDX2", doc, db);
-            LoadLineTypes("HIDDENX2", doc, db);
-            LoadLineTypes("CENTER2", doc, db);
-            LoadLineTypes("DASHED2", doc, db);
-            LoadLineTypes("HIDDEN2", doc, db);
-
-            // Create our layers
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_BOUNDINGBOX_LAYER, doc, db, 4); // cyan
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, doc, db, 3); // green
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, doc, db, 2); // yellow
-
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_RIDGE_SUPPORT_LAYER, doc, db, 3); // blue
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_HIPVALLEY_SUPPORT_LAYER, doc, db, 3); // red
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WALL_SUPPORT_LAYER, doc, db, 2); // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db, 1); // red
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER, doc, db, 2); // yellow
-
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_WOOD_BEAM_SUPPORT_LAYER, doc, db, 140); // blue
-
-
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_PURLIN_SUPPORT_LAYER, doc, db, 140); // blue
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER, doc, db, 2); // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_DIMENSIONS_LAYER, doc, db, 2); // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_ANNOTATION_LAYER, doc, db, 1); // red
-            CreateLayer(EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER, doc, db, 2);  // yellow
-
-            CreateLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db, 140);  // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_LOAD_LAYER, doc, db, 2);  // yellow
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_CALCULATIONS_LAYER, doc, db, 52); // gold color 
-            CreateLayer(EE_ROOF_Settings.DEFAULT_ROOF_FDN_LAYER, doc, db, 32); // burnt orange color 
-
-            //Create the EE dimension style
-            CreateEE_DimensionStyle(EE_ROOF_Settings.DEFAULT_EE_DIMSTYLE_NAME);
-        }
 
         /// <summary>
         /// Main functionality for ECRL command
@@ -195,7 +152,7 @@ namespace EE_RoofFrameApplication
         //        [CommandMethod("ECRL")]
         private void CreateRafterLayout()
         {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+            RoofFramingLayout CurrentRoofFramingLayout = this.OnCommndExecute();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
             // Set up our initial work.  If false, end the program.
             if (CurrentRoofFramingLayout.OnRoofFramingLayoutCreate() is false)
@@ -250,12 +207,12 @@ namespace EE_RoofFrameApplication
         }
 
         /// <summary>
-        /// The ENB command to add a new beam to the screen.
+        /// The EANB command to add a new beam to the screen.
         /// </summary>
-        //        [CommandMethod("ENB")]
+        //        [CommandMethod("EANB")]
         private void CreateNewSupportBeam()
         {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+            RoofFramingLayout CurrentRoofFramingLayout = this.OnCommndExecute();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
             Point3d[] pt = PromptUserforLineEndPoints(db, doc);
 
@@ -266,7 +223,7 @@ namespace EE_RoofFrameApplication
             }
 
             // Create the new beam and set the XDAta object number reference
-            SupportModel_SS_Beam beam = new SupportModel_SS_Beam(CurrentRoofFramingLayout.GetNewId(), pt[0], pt[1], EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
+            SupportModel_SS_Beam beam = new SupportModel_SS_Beam(CurrentRoofFramingLayout.GetNewId(), pt[0], pt[1]);
 
             // Now check if the support intersects the rafter
             foreach (KeyValuePair<int, RafterModel> kvp in CurrentRoofFramingLayout.dctRafters_Trimmed)
@@ -285,7 +242,11 @@ namespace EE_RoofFrameApplication
 
                     CurrentRoofFramingLayout.AddConnectionToLayout(support_conn);       // add the connection to dictionary
                     beam.AddConnection(support_conn);                                   // Update the beam object to indicate the support connection
+                    CurrentRoofFramingLayout.UpdatedSingleSupportedByList(beam);        // Update the supported by list on the beam
+
                     kvp.Value.AddConnection(support_conn);                              // update the rafter object to indicate the support in it
+                    CurrentRoofFramingLayout.UpdatedSingleSupportedByList(kvp.Value);        // Update the supported by list on the beam
+
                 }
             }
 
@@ -304,7 +265,9 @@ namespace EE_RoofFrameApplication
         //       [CommandMethod("ERDA")]
         private void ReloadDrawingFromFile()
         {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+            RoofFramingLayout CurrentRoofFramingLayout = this.OnCommndExecute();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+
+            // No need to reload or save on this.
         }
 
         /// <summary>
@@ -313,7 +276,7 @@ namespace EE_RoofFrameApplication
         //       [CommandMethod("EPRC")]
         private void PerformReactionCalculations()
         {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+            RoofFramingLayout CurrentRoofFramingLayout = this.OnCommndExecute();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
             // Do our calculations
             foreach (KeyValuePair<int, RafterModel> item in CurrentRoofFramingLayout.dctRafters_Trimmed)
@@ -342,7 +305,7 @@ namespace EE_RoofFrameApplication
         //        [CommandMethod("EAPL")]
         private void AddPointLoadToMember()
         {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+            RoofFramingLayout CurrentRoofFramingLayout = this.OnCommndExecute();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
             // Select the existing line
             ObjectId selectedID = DoSelectLine(db, doc);
@@ -421,13 +384,14 @@ namespace EE_RoofFrameApplication
                     }
 
                     // Add the concentrated load to the dictionaries
-                    BaseLoadModel conc_model = new LoadModelConcentrated(CurrentRoofFramingLayout.GetNewId(), load_pt, dead, live, roof_live);
-                    CurrentRoofFramingLayout.AddLoadToLayout(conc_model);                           // add the load to dictionary
-                    CurrentRoofFramingLayout.AddAppliedLoadToLayout(conc_model.Id, model_num);      // add the applied load to dictionary
+                    BaseLoadModel conc_load_model = new LoadModelConcentrated(CurrentRoofFramingLayout.GetNewId(), load_pt, dead, live, roof_live);
+                    CurrentRoofFramingLayout.AddLoadToLayout(conc_load_model);                           // add the load to dictionary
+                    CurrentRoofFramingLayout.AddAppliedLoadToLayout(conc_load_model.Id, model_num);      // add the applied load to dictionary
 
                     // Add the connection to the dictioniaries and to the member below
-                    BaseConnectionModel conn_model = new ConnectionToExternalLoad(CurrentRoofFramingLayout.GetNewId(), conc_model.Id, load_pt, model_num, conc_model.Id);
+                    BaseConnectionModel conn_model = new ConnectionToExternalLoad(CurrentRoofFramingLayout.GetNewId(), conc_load_model.Id, load_pt, model_num, conc_load_model.Id);
                     CurrentRoofFramingLayout.AddConnectionToLayout(conn_model);                     // add the connection to dictionary
+                    CurrentRoofFramingLayout.UpdatedSingleSupportedByList(conc_load_model);
                     model_below.AddConnection(conn_model);  // connection to the member above
 
                     tr.Commit();
@@ -449,7 +413,7 @@ namespace EE_RoofFrameApplication
         //        [CommandMethod("EAFUL")]
         private void AddFullUniformLoadToLayout()
         {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+            RoofFramingLayout CurrentRoofFramingLayout = this.OnCommndExecute();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
             // Select the existing line
             ObjectId selectedID = DoSelectLine(db, doc);
@@ -529,16 +493,16 @@ namespace EE_RoofFrameApplication
                     if (start != end)
                     {
                         // create the load and add it to the dictionaries
-                        BaseLoadModel uni_model = new LoadModelUniform(CurrentRoofFramingLayout.GetNewId(), start, end, dead, live, roof_live);
-                        CurrentRoofFramingLayout.AddLoadToLayout(uni_model);                                // add the load to dictionary
-                        CurrentRoofFramingLayout.AddAppliedLoadToLayout(uni_model.Id, model_num);           // add the applied load to dictionary
+                        BaseLoadModel uni_load_model = new LoadModelUniform(CurrentRoofFramingLayout.GetNewId(), start, end, dead, live, roof_live);
+                        CurrentRoofFramingLayout.AddLoadToLayout(uni_load_model);                                // add the load to dictionary
+                        CurrentRoofFramingLayout.AddAppliedLoadToLayout(uni_load_model.Id, model_num);           // add the applied load to dictionary
                         
                         // create the connection and add it to the dictionaries and to the supporting member
-                        BaseConnectionModel conn_model = new ConnectionToExternalLoad(CurrentRoofFramingLayout.GetNewId(), uni_model.Id, MathHelpers.GetMidpoint(start, end), model_num, uni_model.Id);
+                        BaseConnectionModel conn_model = new ConnectionToExternalLoad(CurrentRoofFramingLayout.GetNewId(), uni_load_model.Id, MathHelpers.GetMidpoint(start, end), model_num, uni_load_model.Id);
                         CurrentRoofFramingLayout.AddConnectionToLayout(conn_model);                         // add the connection to dictionary
+                        CurrentRoofFramingLayout.UpdatedSingleSupportedByList(uni_load_model);
+
                         model_below.AddConnection(conn_model);     // connection to the member below -- no connection above for loads
-
-
                     }
                     else
                     {
@@ -563,7 +527,7 @@ namespace EE_RoofFrameApplication
         //        [CommandMethod("EAFS")]
         private void CreateNewFoundationSupport()
         {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
+            RoofFramingLayout CurrentRoofFramingLayout = this.OnCommndExecute();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
             try
             {

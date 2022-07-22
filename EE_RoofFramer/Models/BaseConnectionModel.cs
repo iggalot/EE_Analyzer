@@ -40,8 +40,7 @@ namespace EE_RoofFramer.Models
         {
 
         }
-
-        public BaseConnectionModel(int id, Point3d pt, int supporting, int supported_by, ConnectionTypes conn_type, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) : base(id)
+        public BaseConnectionModel(int id, Point3d pt, int supporting, int supported_by, ConnectionTypes conn_type) : base(id)
         {
             ConnectionPoint = pt;
             BelowConn = supported_by;
@@ -50,7 +49,7 @@ namespace EE_RoofFramer.Models
             ConnectionType = (int)conn_type;
         }
 
-        public BaseConnectionModel(string line, string layer_name) : base()
+        public BaseConnectionModel(string line) : base()
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "RAFTER" designation "R"
@@ -93,13 +92,14 @@ namespace EE_RoofFramer.Models
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
+                double icon_size = EE_ROOF_Settings.DEFAULT_ROOF_CONN_ICON_WIDTH / 2;
                 try
                 {
                     // Draw a box shape for a support connection
-                    Point3d pt1 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-5, -5, 0));
-                    Point3d pt2 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-5, 5, 0));
-                    Point3d pt3 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(5, 5, 0));
-                    Point3d pt4 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(5, -5, 0));
+                    Point3d pt1 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-icon_size, -icon_size, 0));
+                    Point3d pt2 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(-icon_size, icon_size, 0));
+                    Point3d pt3 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(icon_size, icon_size, 0));
+                    Point3d pt4 = MathHelpers.Point3dFromVectorOffset(ConnectionPoint, new Vector3d(icon_size, -icon_size, 0));
 
                     Line ln1 = OffsetLine(new Line(pt1, pt2), 0) as Line;
                     MoveLineToLayer(ln1, layer_name);
@@ -113,6 +113,7 @@ namespace EE_RoofFramer.Models
                     Line ln4 = OffsetLine(new Line(pt4, pt1), 0) as Line;
                     MoveLineToLayer(ln4, layer_name);
 
+                    // Add a label for the connection
                     string support_str = "ID: " + Id.ToString() + "\n" + "A: " + AboveConn.ToString() + "\n" + "B: " + BelowConn.ToString();
                     DrawMtext(db, doc, ConnectionPoint, support_str, 1, layer_name);
 

@@ -3,16 +3,22 @@ Items to add to this project: (* - "AutoCAD COMMAND") -- (*) = completed () - in
 =============================
 COMPLETED COMMANDS
 ------------------
-(* - EER) Create rafters for regions by clicking polyline boundary
-(* - ERD) Redraw drawing from file and recreate model dictionaries
-(* - ENB) Add new beam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
-(* - EEC) Perform support calculations of rafters.
-(* - EEAFD) Add a foundation support to a registered object (rafter or beam) at the clicked point. Adds connections to appropriate tables and saves data to files.
-( - EEAUL) Add a uniform live load to a beam or rafter
+(* - ECRL) (C)reate (R)after (L)ayout for regions by clicking polyline boundary
+(* - ERDA) (R)edraw (D)rawing (A)LL from file and recreate model dictionaries
+(* - EANB) (A)dd (N)ew (B)eam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
+(* - EPRC) (P)erform (R)eaction (c)alculations of rafters.
+(* - EAFS) (A)dd (F)oundation (S)upport to a registered object (rafter or beam) at the clicked point. Adds connections to appropriate tables and saves data to files.
+(* - EAFUL) (A)dd (F)ull (U)niform (L)oad to a beam or rafter
+(* - EAPL) (A)dd (P)oint (L)oad to a beam or rafters
 
 
 COMPLETED TODO TASK
 --------------
+(7/22/2022) - Add point loads to beams and rafters that have already been drawn		
+(7/22/2022) - Add full uniform loads to beams and rafters that have already been drawn
+(7/22/2022) - Draw foundation supports
+(7/22/2022) - Draw applied loads - uniform and concentrated
+(7/22/2022) - Add object for foundation connections (structural boundary condition).
 (7/21/2022) - Create a main application for the modules.
 (7/21/2022) - Create a module for framer application
 (7/21/2022) - Add a foundation support to a registered object (rafter or beam) at the clicked point.
@@ -20,13 +26,11 @@ COMPLETED TODO TASK
 
 TODO
 ---------
-- Create a module for the foundation application
-( ) - Add a single full length, uniform load by clicking on the member (beams or rafters).  Need to come up with a mechanism for inputting the values for the loads.
+- Add input values mechanism for point loads and uniform loads. Need to come up with a mechanism for inputting the values for the loads.
 - Add a NOT COMPUTED designator for elements that are not computed -- other than the highlight color.
 - Add multiple uniform loads to same member -- need to verify load id's are unique for the member.
 - Add any point loads to rafter support reaction calculations
-- Perform support calculations of supporting beams
-- Require all supported objects to be statically determinate and have computed reactions being supported by it?
+- Perform support calculations of supporting beams - Require all supported objects to be statically determinate and have computed reactions being supported by it?
 - Allow beams to support other beams? -- How to avoid circular supporting?  (beam 1 supports 2 which supports 3 which supports 1)
 - Find object in drawing by ID. -- zoom feature
 - Add rafter(s) or member(s) after its support has been drawn -- how to make the auto connections and update the files?
@@ -36,12 +40,12 @@ TODO
 - Add wall items
 - Add column objects
 - Compute reactions of support beams, walls, rafters, and walls.
-- Draw compute status for wall / beam objects
-- Add object for foundation connections (structural boundary condition).
+- Draw status for beam objects
+- Draw status for rafter objects
+- Draw status for wall objects
 - Remove single rafters / beams / walls/ purlins from layout
-- Draw purlins.
-() - Draw loads - uniform and concentrated
-- Add concentrated loads to members / walls that have already been drawn.  Update support calculations.
+- Add purlins.
+- Add uniform load that is not full length
 - Compute beam sizes.  
 - Compute rafter sizes.
 - Compute column sizes.
@@ -52,6 +56,7 @@ TODO
 
 FUTURE IMPROVEMENTS
 -------------------
+- Create a module for the foundation application- Create a module for the foundation application
 - Maintain a persistent list of objects that are non-determinate?  Click on item in list will zoom to member directly in AutoCAD?
 - Database interface instead of text files?
 - Draw structure in 3D?

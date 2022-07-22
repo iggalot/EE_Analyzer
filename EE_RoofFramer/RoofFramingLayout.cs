@@ -166,8 +166,7 @@ namespace EE_RoofFramer
 
                 foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Untrimmed)
                 {
-                    kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
-
+                    kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER);
                 }
 
                 ModifyAutoCADGraphics.ForceRedraw(db, doc);
@@ -200,14 +199,14 @@ namespace EE_RoofFramer
                         continue;
                     }
 
-                    // Mark the rafter trim points for reference
-                    foreach (Point3d pt in lst_intPt)
-                    {
-                        DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
-                    }
+                    //// Mark the rafter trim points for reference
+                    //foreach (Point3d pt in lst_intPt)
+                    //{
+                    //    DrawCircle(pt, 6, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
+                    //}
 
                     // create the new rafter model and set the XDATA tag for the model id
-                    RafterModel new_model = new RafterModel(GetNewId(), lst_intPt[0], lst_intPt[1], rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
+                    RafterModel new_model = new RafterModel(GetNewId(), lst_intPt[0], lst_intPt[1], rafter_spacing);
 
                     // Add a uniform load to each rafter
                     BaseLoadModel uniform_load_model = new LoadModelUniform(GetNewId(), new_model.StartPt, new_model.EndPt, -10, -20, -20);
@@ -256,7 +255,7 @@ namespace EE_RoofFramer
             //        if (item.Length > EE_ROOF_Settings.DEFAULT_MAX_PURLIN_SPACING * count)
             //        {
             //            Point3d purlin_pt = MathHelpers.Point3dFromVectorOffset(item.StartPt, item.vDir * EE_ROOF_Settings.DEFAULT_MAX_PURLIN_SPACING * count);
-            //            DrawCircle(purlin_pt, 6, EE_ROOF_Settings.DEFAULT_ROOF_PURLIN_LAYER);
+            //            DrawCircle(purlin_pt, 6, EE_ROOF_Settings.DEPURLIN_LAYER);
             //            exceed_length = true;
             //        }
             //    }
@@ -353,7 +352,7 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
+                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing);
 
                 // finally add the rafter to the list
                 AddUntrimmedRafterToLayout(new_model);
@@ -365,7 +364,7 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(0, 1, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(1).Y - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).Y));
 
-                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
+                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing);
 
                 // finally add the rafter to the list
                 AddUntrimmedRafterToLayout(new_model);
@@ -404,7 +403,7 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_start) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1, 0, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
+                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing);
 
                 // finally add the rafter to the list
                 AddUntrimmedRafterToLayout(new_model);
@@ -416,7 +415,7 @@ namespace EE_RoofFramer
                 Point3d start_pt = MathHelpers.Point3dFromVectorOffset(temp_vertex, MathHelpers.Normalize(dir_vec_intpt_to_end) * i * rafter_spacing);
                 Point3d new_pt = MathHelpers.Point3dFromVectorOffset(start_pt, new Vector3d(1, 0, 0) * (ROOF_BOUNDARY_BOX.GetPoint3dAt(3).X - ROOF_BOUNDARY_BOX.GetPoint3dAt(0).X));
 
-                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
+                RafterModel new_model = new RafterModel(GetNewId(), start_pt, new_pt, rafter_spacing);
 
                 // finally add the rafter to the list
                 AddUntrimmedRafterToLayout(new_model);
@@ -623,7 +622,7 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list1 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list1 * i * rafter_spacing);
 
-                RafterModel new_model = new RafterModel(GetNewId(), start_temp_pt, end_temp_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
+                RafterModel new_model = new RafterModel(GetNewId(), start_temp_pt, end_temp_pt, rafter_spacing);
 
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 // finally add the rafter to the list
@@ -637,7 +636,7 @@ namespace EE_RoofFramer
                 Point3d start_temp_pt = MathHelpers.Point3dFromVectorOffset(start_pt, uv_list2 * i * rafter_spacing);
                 Point3d end_temp_pt = MathHelpers.Point3dFromVectorOffset(end_pt, uv_list2 * i * rafter_spacing);
 
-                RafterModel new_model = new RafterModel(GetNewId(), start_temp_pt, end_temp_pt, rafter_spacing, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
+                RafterModel new_model = new RafterModel(GetNewId(), start_temp_pt, end_temp_pt, rafter_spacing);
 
                 //DrawCircle(start_pt, 10, EE_ROOF_Settings.DEFAULT_ROOF_TEXTS_LAYER);
                 // finally add the rafter to the list
@@ -910,22 +909,22 @@ namespace EE_RoofFramer
                 SetXData(EE_ROOF_Settings.APP_REGISTRATION_NAME, kvp.Value.Id.ToString(), kvp.Value.Centerline.Id);
             }
 
-            // Now draw the connections file contents
+            //// Now draw the connections file contents
+            
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db);
-
             foreach (KeyValuePair<int, BaseConnectionModel> kvp in this.dctConnections)
             {
-                (kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                (kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
                 switch ((int)kvp.Value.ConnectionType)
                 {
                     case ((int)ConnectionTypes.CONN_TYPE_MBR_TO_LOAD):
                         {
-                            ((ConnectionToExternalLoad)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                            ((ConnectionToExternalLoad)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
                             break;
                         }
                     case ((int)ConnectionTypes.CONN_TYPE_MBR_TO_FDN):
                         {
-                            ((ConnectionToFoundation)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                            ((ConnectionToFoundation)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
                             break;
                         }
                     default:
@@ -1107,7 +1106,6 @@ namespace EE_RoofFramer
             ReadLoadsFile();
             ReadAppliedLoadsFile();
         }
-
         private IDictionary<int, RafterModel> ReadRaftersFile()
         {
             Dictionary<int, RafterModel> new_dict = new Dictionary<int, RafterModel>();
@@ -1127,7 +1125,7 @@ namespace EE_RoofFramer
                         break;
                     else
                     {
-                        RafterModel model = new RafterModel(line, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
+                        RafterModel model = new RafterModel(line);
 
                         UpdateNextId(model.Id);
 
@@ -1139,7 +1137,6 @@ namespace EE_RoofFramer
             }
             return new_dict;
         }
-
         private IDictionary<int, SupportModel_SS_Beam> ReadBeamsFile()
         {
             Dictionary<int, SupportModel_SS_Beam> new_dict = new Dictionary<int, SupportModel_SS_Beam>();
@@ -1159,7 +1156,7 @@ namespace EE_RoofFramer
                         break;
                     else
                     {
-                        SupportModel_SS_Beam model = new SupportModel_SS_Beam(line, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
+                        SupportModel_SS_Beam model = new SupportModel_SS_Beam(line);
                         UpdateNextId(model.Id);
 
                         this.AddBeamToLayout(model);
@@ -1198,15 +1195,15 @@ namespace EE_RoofFramer
 
                             if (conn_type == ((int)ConnectionTypes.CONN_TYPE_MBR_TO_FDN))
                             {
-                                model = new ConnectionToFoundation(line, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
+                                model = new ConnectionToFoundation(line);
                             }
                             else if (conn_type == ((int)ConnectionTypes.CONN_TYPE_MBR_TO_LOAD))
                             {
-                                model = new ConnectionToExternalLoad(line, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
+                                model = new ConnectionToExternalLoad(line);
                             }
                             else
                             {
-                                model = new BaseConnectionModel(line, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
+                                model = new BaseConnectionModel(line);
                             }
                         }
 
@@ -1220,7 +1217,6 @@ namespace EE_RoofFramer
             }
             return new_dict;
         }
-
         private IDictionary<int, BaseLoadModel> ReadLoadsFile()
         {
             Dictionary<int, BaseLoadModel> new_dict = new Dictionary<int, BaseLoadModel>();
@@ -1274,7 +1270,6 @@ namespace EE_RoofFramer
             }
             return new_dict;
         }
-
         /// <summary>
         /// Reads the applied load data to recreated the loads and rafter relation dictionary
         /// </summary>
@@ -1333,8 +1328,6 @@ namespace EE_RoofFramer
             }
             return new_dict;
         }
-
-
         /// <summary>
         /// Write all the data objects to file
         /// </summary>
@@ -1346,8 +1339,6 @@ namespace EE_RoofFramer
             Task.Run(() => WriteLoadsToFile());
             Task.Run(() => WriteAppliedLoadsToFile());
         }
-
-
         /// <summary>
         /// Write all rafters to file
         /// </summary>
@@ -1368,7 +1359,6 @@ namespace EE_RoofFramer
                 FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, "$");  // create an empty file
             }
         }
-
         private void WriteBeamsToFile()
         {
             File.Delete(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME);
@@ -1386,7 +1376,6 @@ namespace EE_RoofFramer
                 FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_BEAM_FILENAME, "$");  // create an empty file
             }
         }
-
         private void WriteConnectionsToFile()
         {
             File.Delete(EE_ROOF_Settings.DEFAULT_EE_CONNECTION_FILENAME);
@@ -1405,7 +1394,6 @@ namespace EE_RoofFramer
             }
 
         }
-
         private void WriteLoadsToFile()
         {
             File.Delete(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME);
@@ -1423,8 +1411,6 @@ namespace EE_RoofFramer
                 FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME, "$");  // create an empty file
             }
         }
-
-
         private void WriteAppliedLoadsToFile()
         {
             File.Delete(EE_ROOF_Settings.DEFAULT_EE_APPLIED_LOADS_FILENAME);
@@ -1446,6 +1432,72 @@ namespace EE_RoofFramer
         }
         #endregion
 
+
+        public void UpdatedSingleSupportedByList(acStructuralObject obj)
+        {
+            if (obj.GetType().Equals(typeof(RafterModel)))
+            {
+                if (dctRafters_Trimmed.ContainsKey(obj.Id))
+                {
+                    // clear the supported by list
+                    dctRafters_Trimmed[obj.Id].lst_SupportedBy.Clear();
+
+                    // for each connection in the list of supports
+                    foreach (int connection in obj.lst_SupportConnections)
+                    {
+                        // check if the ABOVECONN matches the rafter
+                        if (dctConnections[connection].AboveConn == obj.Id)
+                        {
+                            // Make the update
+                            dctRafters_Trimmed[obj.Id].lst_SupportedBy.Add(dctConnections[connection].BelowConn);
+                        }
+                    }
+                }
+            }
+            else if (obj.GetType().Equals(typeof(SupportModel_SS_Beam)))
+            {
+                if (dctSupportBeams.ContainsKey(obj.Id))
+                {
+                    // clear the supported by list
+                    dctSupportBeams[obj.Id].lst_SupportedBy.Clear();
+
+                    // for each connection in the list of supports
+                    foreach (int connection in obj.lst_SupportConnections)
+                    {
+                        // check if the ABOVECONN matches the rafter
+                        if (dctConnections[connection].AboveConn == obj.Id)
+                        {
+                            // Make the update
+                            dctSupportBeams[obj.Id].lst_SupportedBy.Add(dctConnections[connection].BelowConn);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Updates the supported by list for rafters, beams, and connections
+        /// </summary>
+        public void UpdateAllSupportedByLists()
+        {
+            // for each rafter
+            foreach(KeyValuePair<int, RafterModel> kvp in dctRafters_Trimmed)
+            {
+                UpdatedSingleSupportedByList(kvp.Value);
+            }
+
+            // for each beam
+            foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in dctSupportBeams)
+            {
+                UpdatedSingleSupportedByList(kvp.Value);
+            }
+
+            // for each beam
+            foreach (KeyValuePair<int, BaseLoadModel> kvp in dctLoads)
+            {
+                UpdatedSingleSupportedByList(kvp.Value);
+            }
+        }
 
 
 

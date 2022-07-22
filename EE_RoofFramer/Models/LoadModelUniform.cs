@@ -100,28 +100,46 @@ namespace EE_RoofFramer.Models
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
+                double icon_size = EE_ROOF_Settings.DEFAULT_ROOF_CONN_ICON_WIDTH / 2.0;
+                Point3d mid_pt = MathHelpers.GetMidpoint(ApplicationPointStart, ApplicationPointEnd);
+
                 try
                 {
                     //Draw an icon for the uniform load
-                    Point3d mid_pt = MathHelpers.GetMidpoint(ApplicationPointStart, ApplicationPointEnd);
-                    Point3d pt1 = Point3dFromVectorOffset(mid_pt, new Vector3d(-4, 4, 0));
-                    Point3d pt2 = Point3dFromVectorOffset(mid_pt, new Vector3d(4, -4, 0));
-                    Point3d pt3 = Point3dFromVectorOffset(mid_pt, new Vector3d(-4, -4, 0));
-                    Point3d pt4 = Point3dFromVectorOffset(mid_pt, new Vector3d(4, 4, 0));
-                    DrawCircle(mid_pt, 4, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    Point3d pt1 = Point3dFromVectorOffset(mid_pt, new Vector3d(-icon_size, icon_size, 0));
+                    Point3d pt2 = Point3dFromVectorOffset(mid_pt, new Vector3d(icon_size, -icon_size, 0));
+                    Point3d pt3 = Point3dFromVectorOffset(mid_pt, new Vector3d(-icon_size, -icon_size, 0));
+                    Point3d pt4 = Point3dFromVectorOffset(mid_pt, new Vector3d(icon_size, icon_size, 0));
+
+                    Point3d pt5 = Point3dFromVectorOffset(mid_pt, new Vector3d(-icon_size, 0, 0));
+                    Point3d pt6 = Point3dFromVectorOffset(mid_pt, new Vector3d(icon_size, 0, 0));
+                    Point3d pt7 = Point3dFromVectorOffset(mid_pt, new Vector3d(0, -icon_size, 0));
+                    Point3d pt8 = Point3dFromVectorOffset(mid_pt, new Vector3d(0, icon_size, 0));
 
                     // Draw the icon for the load
                     Line ln1 = OffsetLine(new Line(pt1, pt2), 0);
                     MoveLineToLayer(ln1, layer_name);
                     Line ln2 = OffsetLine(new Line(pt3, pt4), 0);
-                    MoveLineToLayer(ln1, layer_name);
+                    MoveLineToLayer(ln2, layer_name);
+                    Line ln3 = OffsetLine(new Line(pt5, pt6), 0);
+                    MoveLineToLayer(ln3, layer_name);
+                    Line ln4 = OffsetLine(new Line(pt7, pt8), 0);
+                    MoveLineToLayer(ln4, layer_name);
 
                     // Draw the load label
                     DrawMtext(db, doc, mid_pt, this.ToString(), 1, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
 
+                    // Mark the load label location
+                    DrawCircle(mid_pt, icon_size * 0.5, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    DrawCircle(mid_pt, icon_size * 0.5 * 0.95, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+
                     // Draw markers at start and stop location of uniform load line
-                    DrawCircle(ApplicationPointStart, 2, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
-                    DrawCircle(ApplicationPointEnd, 2, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    // - Start Pt
+                    DrawCircle(ApplicationPointStart, icon_size * 0.5, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    DrawCircle(ApplicationPointStart, icon_size * 0.5 * 0.95, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    // - End Pt
+                    DrawCircle(ApplicationPointEnd, icon_size * 0.5, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    DrawCircle(ApplicationPointStart, icon_size * 0.5 * 0.95, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
 
                     trans.Commit();
                 }

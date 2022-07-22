@@ -18,13 +18,13 @@ namespace EE_RoofFramer.Models
         // The reaction to the foundation
         public double Reaction { get; set; }
 
-        public ConnectionToFoundation(int id, Point3d pt, int supporting, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) 
+        public ConnectionToFoundation(int id, Point3d pt, int supporting) 
             : base(id, pt, supporting, -1, ConnectionTypes.CONN_TYPE_MBR_TO_FDN)
         {
 
         }
 
-        public ConnectionToFoundation(string line, string layer_name) : base(line, layer_name)
+        public ConnectionToFoundation(string line) : base(line)
         {
             BelowConn = -1;
         }
@@ -32,6 +32,8 @@ namespace EE_RoofFramer.Models
 
         public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
+            layer_name = EE_ROOF_Settings.DEFAULT_ROOF_FDN_LAYER;
+
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -47,7 +49,7 @@ namespace EE_RoofFramer.Models
 
                     pline.SetDatabaseDefaults();
                     pline.Closed = true;
-                    pline.Layer = EE_ROOF_Settings.DEFAULT_ROOF_FDN_LAYER;
+                    pline.Layer = layer_name;
                     pline.Linetype = "HIDDEN2";
                     //pline.SetDatabaseDefaults();
                     ObjectId plineId = btr.AppendEntity(pline);
@@ -55,6 +57,10 @@ namespace EE_RoofFramer.Models
 
                     // Add the associative hatch
                     AddRectangularHatch(ConnectionPoint, plineId, EE_FDN_Settings.DEFAULT_PIER_HATCH_TYPE, EE_FDN_Settings.DEFAULT_HATCH_PATTERNSCALE);
+
+                    // add a label
+                    string support_str = "ID: " + Id.ToString() + "\n" + "A: " + AboveConn.ToString() + "\n" + "B: " + BelowConn.ToString();
+                    DrawMtext(db, doc, ConnectionPoint, support_str, 1, layer_name);
 
                     trans.Commit();
                 }

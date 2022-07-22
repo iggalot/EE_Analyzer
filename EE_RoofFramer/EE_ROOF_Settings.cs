@@ -50,7 +50,7 @@ namespace EE_RoofFramer
         public const double DEFAULT_INTERSECTION_CIRCLE_RADIUS = 8; // diameter of the intersection marker circle
         public const double DEFAULT_HORIZONTAL_TOLERANCE = 0.01;  // Sets the tolerance (difference between Y-coords) to determine if a line is horizontal
 
-        public const double DEFAULT_ROOF_CONN_ICON_WIDTH = 1; // Dimension for our FDN connection icon
+        public const double DEFAULT_ROOF_CONN_ICON_WIDTH = 3; // Dimension for our FDN connection icon
 
         public const double DEFAULT_ROOF_TEXT_SIZE = 5;  // the size of the text in the bill of materials.
 

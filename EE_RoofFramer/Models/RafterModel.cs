@@ -44,17 +44,17 @@ namespace EE_RoofFramer.Models
         /// <param name="start">start point</param>
         /// <param name="end">end point</param>
         /// <param name="spacing">tributary width or rafter spacing</param>
-        public RafterModel(int id, Point3d start, Point3d end, double spacing, string layer_name) : base(id)
+        public RafterModel(int id, Point3d start, Point3d end, double spacing) : base(id)
         {
             StartPt = start;
             EndPt = end;
 
             Spacing = spacing;  // spacing between adjacent rafters
 
-            // Centerline object
-            Line ln = new Line(StartPt, EndPt);
-            Centerline = OffsetLine(ln, 0) as Line;
-            MoveLineToLayer(Centerline, layer_name);
+            //// Centerline object
+            //Line ln = new Line(StartPt, EndPt);
+            //Centerline = OffsetLine(ln, 0) as Line;
+            //MoveLineToLayer(Centerline, layer_name);
 
             UpdateCalculations();
         }
@@ -63,7 +63,7 @@ namespace EE_RoofFramer.Models
         /// constructor to create our object from a line of text -- used when parsing the string file
         /// </summary>
         /// <param name="line"></param>
-        public RafterModel(string line, string layer_name) : base()
+        public RafterModel(string line) : base()
         {
             string[] split_line = line.Split(',');
             // Check that this line is a "RAFTER" designation "R"
@@ -83,10 +83,10 @@ namespace EE_RoofFramer.Models
                     // 3, 4, 5 == Next three values are the end point coord
                     EndPt = new Point3d(Double.Parse(split_line[index + 5]), Double.Parse(split_line[index + 6]), Double.Parse(split_line[index + 7]));
 
-                    // Centerline object
-                    Line ln = new Line(StartPt, EndPt);
-                    Centerline = OffsetLine(ln, 0) as Line;
-                    MoveLineToLayer(Centerline, layer_name);
+                    //// Centerline object
+                    //Line ln = new Line(StartPt, EndPt);
+                    //Centerline = OffsetLine(ln, 0) as Line;
+                    //MoveLineToLayer(Centerline, layer_name);
 
                     index = index + 8;  // start index of the first L: marker
 
@@ -130,6 +130,7 @@ namespace EE_RoofFramer.Models
             Length = MathHelpers.Magnitude(StartPt.GetVectorTo(EndPt));
         }
 
+
         public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
@@ -142,15 +143,14 @@ namespace EE_RoofFramer.Models
                     Line ln = new Line(StartPt, EndPt);
                     Centerline = OffsetLine(ln, 0) as Line;
                     MoveLineToLayer(Centerline, layer_name);
-                    HighlightStatus();
-
 
                     // indicate if the rafters are adequately supported.
                     UpdateCalculations();
                     HighlightStatus();
 
-                    DrawCircle(StartPt, 2, layer_name);
-                    DrawCircle(EndPt, 2, layer_name);
+                    // mark the end supports of the rafter
+//                    DrawCircle(StartPt, 2, layer_name);
+//                    DrawCircle(EndPt, 2, layer_name);
 
                     // Add the rafter ID label
                     DrawMtext(db, doc, MidPt, "#"+Id.ToString(), 3, layer_name);
@@ -221,6 +221,21 @@ namespace EE_RoofFramer.Models
             UpdateCalculations();
         }
 
+        public bool IsDeterminate()
+        {
+            bool is_determinate = true;
+            if ((lst_SupportedBy is null) || (lst_SupportedBy.Count < 2))
+            {
+                is_determinate = false;
+            }
+
+            return is_determinate;
+        }
+
+        public override bool ValidateSupports()
+        {
+            return IsDeterminate();
+        }
 
         /// <summary>
         /// Change the color of the rafter line based on its support status
@@ -235,29 +250,6 @@ namespace EE_RoofFramer.Models
             {
                 ChangeLineColor(Centerline, EE_ROOF_Settings.RAFTER_DETERMINATE_FAIL_COLOR);
             }
-        }
-
-        public bool IsDeterminate()
-        {
-            bool is_determinate = true;
-            if ((lst_SupportedBy is null) || (lst_SupportedBy.Count < 2))
-            {
-                is_determinate = false;
-            }
-
-            return is_determinate;
-        }
-
-        public override bool ValidateSupports()
-        {
-            bool is_valid = false;
-
-            if (lst_SupportConnections.Count > 2)
-            {
-                is_valid = true;
-            }
-
-            return is_valid;
         }
 
         //TODO: Include external point loads for this calculation

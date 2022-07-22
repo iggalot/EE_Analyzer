@@ -80,22 +80,34 @@ namespace EE_RoofFramer.Models
 
         public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
+            double icon_size = EE_ROOF_Settings.DEFAULT_ROOF_CONN_ICON_WIDTH / 2.0;
+
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 try
                 {
-                    Point3d pt1 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(-4, 4, 0));
-                    Point3d pt2 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(4, -4, 0));
-                    Point3d pt3 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(-4, -4, 0));
-                    Point3d pt4 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(4, 4, 0));
+                    //Draw an icon for the uniform load
+                    Point3d pt5 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(-icon_size, 0, 0));
+                    Point3d pt6 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(icon_size, 0, 0));
+                    Point3d pt7 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(0, -icon_size, 0));
+                    Point3d pt8 = Point3dFromVectorOffset(ApplicationPoint, new Vector3d(0, icon_size, 0));
 
-                    Line ln1 = OffsetLine(new Line(pt1, pt2), 0);
+                    // Draw the icon for the load
+                    Line ln1 = OffsetLine(new Line(pt5, pt8), 0);
                     MoveLineToLayer(ln1, layer_name);
-                    Line ln2 = OffsetLine(new Line(pt3, pt4), 0);
-                    MoveLineToLayer(ln1, layer_name);
+                    Line ln2 = OffsetLine(new Line(pt8, pt6), 0);
+                    MoveLineToLayer(ln2, layer_name);
+                    Line ln3 = OffsetLine(new Line(pt6, pt7), 0);
+                    MoveLineToLayer(ln3, layer_name);
+                    Line ln4 = OffsetLine(new Line(pt7, pt5), 0);
+                    MoveLineToLayer(ln4, layer_name);
 
                     // Draw the load label
                     DrawMtext(db, doc, ApplicationPoint, this.ToString(), 1, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+
+                    // Mark the load label location
+                    DrawCircle(ApplicationPoint, icon_size * 0.5, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
+                    DrawCircle(ApplicationPoint, icon_size * 0.5 * 0.95, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
 
                     trans.Commit();
                 }
