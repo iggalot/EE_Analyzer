@@ -57,7 +57,7 @@ namespace EE_RoofFramer
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        private void UpdateNextId(int id)
+        public void UpdateNextId(int id)
         {
             if (_largest_used_id <= id)
             {
@@ -166,7 +166,7 @@ namespace EE_RoofFramer
 
                 foreach (KeyValuePair<int, RafterModel> kvp in dctRafters_Untrimmed)
                 {
-                    kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER, dctConnections, dctLoads);
+                    kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_UNTRIMMED_LAYER);
 
                 }
 
@@ -214,10 +214,11 @@ namespace EE_RoofFramer
 
                     // Connect the load to the rafter
                     ConnectionToExternalLoad new_load_conn = 
-                        new ConnectionToExternalLoad(GetNewId(), uniform_load_model.Id, MathHelpers.GetMidpoint(new_model.StartPt, new_model.EndPt), new_model.Id);
+                        new ConnectionToExternalLoad(GetNewId(), uniform_load_model.Id, MathHelpers.GetMidpoint(new_model.StartPt, new_model.EndPt), new_model.Id, uniform_load_model.Id);
                     
                     // Update dictionaries for saving to file
                     AddConnectionToLayout(new_load_conn);                           // add the connection to the connection dictionary
+                    new_model.AddConnection(new_load_conn);                         // add the load connection to the member
                     AddLoadToLayout(uniform_load_model);                            // register the load information with the loads dictionary
                     AddAppliedLoadToLayout(new_model.Id, uniform_load_model.Id);    // register the load id with the member it is acting on
                     AddTrimmedRafterToLayout(new_model);                            // finally add the rafter to the list
@@ -895,7 +896,7 @@ namespace EE_RoofFramer
             // Now draw the current rafter file contents
             foreach (KeyValuePair<int, RafterModel> kvp in this.dctRafters_Trimmed)
             {
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, dctConnections, dctLoads);
+                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
                 SetXData(EE_ROOF_Settings.APP_REGISTRATION_NAME, kvp.Value.Id.ToString(), kvp.Value.Centerline.Id);
 
             }
@@ -905,7 +906,7 @@ namespace EE_RoofFramer
 
             foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in this.dctSupportBeams)
             {
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, dctConnections, dctLoads);
+                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
                 SetXData(EE_ROOF_Settings.APP_REGISTRATION_NAME, kvp.Value.Id.ToString(), kvp.Value.Centerline.Id);
             }
 
@@ -914,24 +915,24 @@ namespace EE_RoofFramer
 
             foreach (KeyValuePair<int, BaseConnectionModel> kvp in this.dctConnections)
             {
-                (kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                (kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
                 switch ((int)kvp.Value.ConnectionType)
                 {
                     case ((int)ConnectionTypes.CONN_TYPE_MBR_TO_LOAD):
                         {
-                            ((ConnectionToExternalLoad)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                            ((ConnectionToExternalLoad)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
                             break;
                         }
                     case ((int)ConnectionTypes.CONN_TYPE_MBR_TO_FDN):
                         {
-                            ((ConnectionToFoundation)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                            ((ConnectionToFoundation)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
                             break;
                         }
                     default:
                         break;
                 }
 
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, dctConnections, dctLoads);
+                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
             }
 
             // Now draw the loads file contents
@@ -942,12 +943,12 @@ namespace EE_RoofFramer
                 {
                     case ((int)LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD):
                         {
-                            ((LoadModelUniform)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                            ((LoadModelUniform)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
                             break;
                         }
                     case ((int)LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD):
                         {
-                            ((LoadModelConcentrated)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER, dctConnections, dctLoads);
+                            ((LoadModelConcentrated)kvp.Value).AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_LOAD_LAYER);
                             break;
                         }
                     default:
@@ -1239,25 +1240,35 @@ namespace EE_RoofFramer
                         break;
                     else
                     {
-                        BaseLoadModel model;
-                        if (line.Substring(0, 2).Equals("LU"))
+                        BaseLoadModel load_model = null;
+                        ConnectionToExternalLoad ext_load_conn = null;
+
+                        string[] split_line = line.Split(',');
+                        int load_type;
+
+                        if(split_line.Length > 2)
                         {
-                            model = new LoadModelUniform(line);
-                            UpdateNextId(model.Id);
-                        }
-                        else if (line.Substring(0, 2).Equals("LC"))
-                        {
-                            model = new LoadModelConcentrated(line);
-                            UpdateNextId(model.Id);
-                        }
-                        else
-                        {
-                            throw new NotImplementedException("\nUnrecognized loadtype in line " + line + " of file " + EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME);
+                            load_type = Int32.Parse(split_line[1]);
+                            if(load_type == (int)LoadTypes.LOAD_TYPE_FULL_UNIFORM_LOAD)
+                            {
+                                load_model = new LoadModelUniform(line);
+
+                                UpdateNextId(load_model.Id);
+                            } else if (load_type == (int)LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD)
+                            {
+                                load_model = new LoadModelConcentrated(line);
+                                UpdateNextId(load_model.Id);
+                            } else
+                            {
+                                throw new NotImplementedException("\nUnrecognized loadtype in line " + line + " of file " + EE_ROOF_Settings.DEFAULT_EE_LOAD_FILENAME);
+                            }
                         }
 
-                        this.AddLoadToLayout(model);
-
-                        new_dict.Add(model.Id, model);
+                        if(load_model != null)
+                        {
+                            this.AddLoadToLayout(load_model);
+                            new_dict.Add(load_model.Id, load_model);
+                        }
                     }
                 }
             }
@@ -1314,7 +1325,7 @@ namespace EE_RoofFramer
 
                         } catch (System.Exception e)
                         {
-                            throw new NotImplementedException("\nUnrecognized loadtype in line " + line + " of file " + EE_ROOF_Settings.DEFAULT_EE_APPLIED_LOADS_FILENAME);
+                            throw new NotImplementedException("\nUnrecognized loadtype in line [" + line + "] of file [" + EE_ROOF_Settings.DEFAULT_EE_APPLIED_LOADS_FILENAME + "]: " + e.Message);
 
                         }
                     }

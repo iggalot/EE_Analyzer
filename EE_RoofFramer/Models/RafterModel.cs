@@ -34,8 +34,7 @@ namespace EE_RoofFramer.Models
 
         public Double Length { get; set; }
 
-
-       // public int Id { get => _id; set { _id = value; next_id++; } }
+        // public int Id { get => _id; set { _id = value; next_id++; } }
 
         public bool ReactionsCalculatedCorrectly = false;
 
@@ -58,7 +57,6 @@ namespace EE_RoofFramer.Models
             MoveLineToLayer(Centerline, layer_name);
 
             UpdateCalculations();
-            HighlightStatus();
         }
 
         /// <summary>
@@ -118,7 +116,6 @@ namespace EE_RoofFramer.Models
                     }
 
                     UpdateCalculations();
-                    HighlightStatus();
                     return;
                 }
             }
@@ -131,36 +128,10 @@ namespace EE_RoofFramer.Models
         {
             vDir = MathHelpers.Normalize(StartPt.GetVectorTo(EndPt));
             Length = MathHelpers.Magnitude(StartPt.GetVectorTo(EndPt));
-            UpdateSupportedBy();
-            CheckDeterminance();
         }
 
-        // Updates the list of supported by members
-        protected override void UpdateSupportedBy()
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
-            lst_SupportedBy.Clear();
-
-            // First find the supports that have this member as an "ABOVE" connection
-            foreach (int item in lst_SupportConnections)
-            {
-                if (ConnectionDictionary != null)
-                {
-                    if (ConnectionDictionary.ContainsKey(item))
-                    {
-                        if (ConnectionDictionary[item].AboveConn == Id) // found a connection
-                        {
-                            lst_SupportedBy.Add(ConnectionDictionary[item].BelowConn); // record the BELOW value of the connection
-                        }
-                    }
-                }
-            }
-        }
-
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
-        {
-            ConnectionDictionary = conn_dict;
-            LoadDictionary = load_dict;
-
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 try
@@ -171,6 +142,8 @@ namespace EE_RoofFramer.Models
                     Line ln = new Line(StartPt, EndPt);
                     Centerline = OffsetLine(ln, 0) as Line;
                     MoveLineToLayer(Centerline, layer_name);
+                    HighlightStatus();
+
 
                     // indicate if the rafters are adequately supported.
                     UpdateCalculations();
@@ -221,12 +194,12 @@ namespace EE_RoofFramer.Models
         /// Add a load model object
         /// </summary>
         /// <param name="load_model"></param>
-        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
+        public override void AddUniformLoads(BaseLoadModel load_model)
         {
 
         }
 
-        public override void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
+        public override void AddConcentratedLoads(BaseLoadModel load_model)
         {
 
         }
@@ -235,10 +208,16 @@ namespace EE_RoofFramer.Models
         /// Add connection information for beams that are supporting this rafter
         /// </summary>
         /// <param name="conn"></param>
-        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict)
+        public override void AddConnection(BaseConnectionModel conn)
         {
-            ConnectionDictionary = dict;
             lst_SupportConnections.Add(conn.Id);
+
+            // if the connecition ABOVE value is the same as this member id, this connection is supporting this member, so add it to the supported by lst.
+            if(conn.AboveConn == this.Id)
+            {
+                lst_SupportedBy.Add(conn.Id);
+            }
+
             UpdateCalculations();
         }
 
@@ -248,7 +227,7 @@ namespace EE_RoofFramer.Models
         /// </summary>
         public override void HighlightStatus()
         {
-            if (CheckDeterminance() == true)
+            if (IsDeterminate() == true)
             {
                 ChangeLineColor(Centerline, EE_ROOF_Settings.RAFTER_DETERMINATE_PASS_COLOR);
             }
@@ -258,15 +237,14 @@ namespace EE_RoofFramer.Models
             }
         }
 
-        private bool CheckDeterminance()
+        public bool IsDeterminate()
         {
             bool is_determinate = true;
-            if ((lst_SupportConnections is null) || (lst_SupportConnections.Count < 2))
+            if ((lst_SupportedBy is null) || (lst_SupportedBy.Count < 2))
             {
                 is_determinate = false;
             }
 
-            IsDeterminate = is_determinate;
             return is_determinate;
         }
 
@@ -290,7 +268,7 @@ namespace EE_RoofFramer.Models
             IDictionary<int, int> applied_loads_dict = layout.dctAppliedLoads;
 
             // check if the rafter is determinant
-            if (this.IsDeterminate)
+            if (this.IsDeterminate())
             {
                 // compute the reaction values
                 if (this.lst_SupportedBy.Count == 2)

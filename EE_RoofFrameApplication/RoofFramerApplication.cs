@@ -36,9 +36,8 @@ namespace EE_RoofFrameApplication
         public static Document doc { get; } = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
         public static Database db { get; } = doc.Database;
 
-    // Constructor for setting up our application
-
-    public RoofFramerApplication()
+        // Constructor for setting up our application
+        public RoofFramerApplication()
         {
 
 
@@ -56,14 +55,13 @@ namespace EE_RoofFrameApplication
         // Register the commands within Autocad.
         private void LoadEE_RoofFramingCommands()
         {
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("EER", "EER", "EER", CommandFlags.Modal, CreateRafterLayout);
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("ENB", "ENB", "ENB", CommandFlags.Modal, CreateNewSupportBeam);
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("ERD", "ERD", "ERD", CommandFlags.Modal, ReloadDrawingFromFile);
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("EEC", "EEC", "EEC", CommandFlags.Modal, PerformRafterReactionCalculations);
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("EECA", "EECA", "EECA", CommandFlags.Modal, ComputeAllReactions);
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("EEAPL", "EEAPL", "EEAPL", CommandFlags.Modal, AddPointLoadToMember);
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("EEAUL", "EEAUL", "EEAUL", CommandFlags.Modal, AddFullUniformLoadToLayout);
-            Autodesk.AutoCAD.Internal.Utils.AddCommand("EEAFD", "EEAFD", "EEAFD", CommandFlags.Modal, CreateNewFoundaionSupport);
+            Autodesk.AutoCAD.Internal.Utils.AddCommand("ECRL", "ECRL", "ECRL", CommandFlags.Modal, CreateRafterLayout);
+            Autodesk.AutoCAD.Internal.Utils.AddCommand("EANB", "EANB", "EANB", CommandFlags.Modal, CreateNewSupportBeam);
+            Autodesk.AutoCAD.Internal.Utils.AddCommand("ERDA", "ERDA", "ERDA", CommandFlags.Modal, ReloadDrawingFromFile);
+            Autodesk.AutoCAD.Internal.Utils.AddCommand("EPRC", "EPRC", "EPRC", CommandFlags.Modal, PerformReactionCalculations);
+            Autodesk.AutoCAD.Internal.Utils.AddCommand("EAPL", "EAPL", "EAPL", CommandFlags.Modal, AddPointLoadToMember);
+            Autodesk.AutoCAD.Internal.Utils.AddCommand("EAFUL", "EAFUL", "EAFUL", CommandFlags.Modal, AddFullUniformLoadToLayout);
+            Autodesk.AutoCAD.Internal.Utils.AddCommand("EAFS", "EAFS", "EAFS", CommandFlags.Modal, CreateNewFoundationSupport);
         }
 
         private RoofFramingLayout OnCreateLayout()
@@ -137,6 +135,13 @@ namespace EE_RoofFrameApplication
             return true;
         }
 
+        private void OnCommandTerminate(RoofFramingLayout layout)
+        {
+            layout.DrawAllRoofFraming();    // redraw the drawing since the data has been changed
+            layout.WriteAllDataToFiles();   // save the work to file
+        }
+
+        #region Command definitions
         /// <summary>
         /// Sets up the AutoCAD linetypes and the layers for the application
         /// </summary>
@@ -184,12 +189,10 @@ namespace EE_RoofFrameApplication
             CreateEE_DimensionStyle(EE_ROOF_Settings.DEFAULT_EE_DIMSTYLE_NAME);
         }
 
-
-
-
-
-
-        //        [CommandMethod("EER")]
+        /// <summary>
+        /// Main functionality for ECRL command
+        /// </summary>
+        //        [CommandMethod("ECRL")]
         private void CreateRafterLayout()
         {
             RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
@@ -246,11 +249,10 @@ namespace EE_RoofFrameApplication
             this.OnCommandTerminate(CurrentRoofFramingLayout);
         }
 
-
         /// <summary>
-        /// The command to add a new beam to the screen.
+        /// The ENB command to add a new beam to the screen.
         /// </summary>
-//        [CommandMethod("ENB")]
+        //        [CommandMethod("ENB")]
         private void CreateNewSupportBeam()
         {
             RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
@@ -278,15 +280,12 @@ namespace EE_RoofFrameApplication
                 // if its a valid intersection, make a new connection, add it to the support and the rafter,
                 if (intPt.isWithinSegment is true)
                 {
-                    BaseConnectionModel support_conn = new BaseConnectionModel(CurrentRoofFramingLayout.GetNewId(), intPt.Point, kvp.Value.Id, beam.Id, ConnectionTypes.CONN_TYPE_MBR_TO_MBR);
-                    // add the connection to our list
-                    CurrentRoofFramingLayout.AddConnectionToLayout(support_conn);
+                    BaseConnectionModel support_conn 
+                        = new BaseConnectionModel(CurrentRoofFramingLayout.GetNewId(), intPt.Point, kvp.Value.Id, beam.Id, ConnectionTypes.CONN_TYPE_MBR_TO_MBR);
 
-                    // Update the beam object to indicate the support connection
-                    beam.AddConnection(support_conn, CurrentRoofFramingLayout.dctConnections);
-
-                    // update the rafter object to indicate the support in it
-                    kvp.Value.AddConnection(support_conn, CurrentRoofFramingLayout.dctConnections);
+                    CurrentRoofFramingLayout.AddConnectionToLayout(support_conn);       // add the connection to dictionary
+                    beam.AddConnection(support_conn);                                   // Update the beam object to indicate the support connection
+                    kvp.Value.AddConnection(support_conn);                              // update the rafter object to indicate the support in it
                 }
             }
 
@@ -300,19 +299,21 @@ namespace EE_RoofFrameApplication
         }
 
         /// <summary>
-        /// Function to test reading and storing of raftermodel information.  Can we retrieve the model info between commands?
+        /// Command ERDA to reload and redraw the model information information.
         /// </summary>
- //       [CommandMethod("ERD")]
+        //       [CommandMethod("ERDA")]
         private void ReloadDrawingFromFile()
         {
             RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
         }
 
-        //       [CommandMethod("EEC")]
-        private void PerformRafterReactionCalculations()
+        /// <summary>
+        /// Command EPRC to perform the calculations
+        /// </summary>
+        //       [CommandMethod("EPRC")]
+        private void PerformReactionCalculations()
         {
             RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
-
 
             // Do our calculations
             foreach (KeyValuePair<int, RafterModel> item in CurrentRoofFramingLayout.dctRafters_Trimmed)
@@ -332,45 +333,123 @@ namespace EE_RoofFrameApplication
                 }
             }
 
-
-
             this.OnCommandTerminate(CurrentRoofFramingLayout);
         }
 
-
         /// <summary>
-        /// Method to compute all of the internal forces in the layout
+        /// Command EAPL function to add a point load to user selected member
         /// </summary>
-//        [CommandMethod("EECA")]
-        private void ComputeAllReactions()
-        {
-            RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
-
-            this.OnCommandTerminate(CurrentRoofFramingLayout);
-
-        }
-
-        /// <summary>
-        /// Function to add a point load to the selected member
-        /// </summary>
-//        [CommandMethod("EEAPL")]
+        //        [CommandMethod("EAPL")]
         private void AddPointLoadToMember()
         {
             RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
+            // Select the existing line
+            ObjectId selectedID = DoSelectLine(db, doc);
+
+            // Check if the object is valid
+            if (selectedID == ObjectId.Null)
+            {
+                doc.Editor.WriteMessage("Error selecting line, or line does not contain XData tag yet.");
+                return;
+            }
+
+            double dead = 1000;
+            double live = 2000;
+            double roof_live = 3000;
+
+            int model_num = -1;
+            using (Transaction tr = doc.TransactionManager.StartTransaction())
+            {
+                try
+                {
+                    DBObject obj = tr.GetObject(selectedID, OpenMode.ForRead);
+                    ResultBuffer rb = obj.XData;
+
+                    // look for the numeric id in each line of the XData
+                    foreach (TypedValue tv in rb)
+                    {
+                        if (tv.TypeCode == 1000)   // 1000 is the code in XData corresponding to the member id number
+                        {
+                            model_num = Int32.Parse((string)tv.Value);
+                            break;  // found it so stop searching
+                        }
+                    }
+
+                    if (model_num == -1)
+                    {
+                        doc.Editor.WriteMessage("\nNo valid EE rafter or beam model found.  Cancelling command.");
+                        tr.Abort();
+                        return;
+                    }
+
+                    Point3d load_pt = SelectionObjects.DoSelectPointOnLine(db, doc, selectedID);
+                    // Get member model:
+                    bool found = false;
+                    Point3d start = new Point3d();
+                    Point3d end = new Point3d();
+
+                    acStructuralObject model_below = null;
+                    // first is the line a rafter?
+                    if (CurrentRoofFramingLayout.dctRafters_Trimmed.ContainsKey(model_num))
+                    {
+                        model_below = CurrentRoofFramingLayout.dctRafters_Trimmed[model_num];
+                        start = ((RafterModel)model_below).StartPt;
+                        end = ((RafterModel)model_below).EndPt;
+                        found = true;
+                    }
+                    // if we don't find it in the rafters, then check the support beams list?
+
+                    else if (CurrentRoofFramingLayout.dctSupportBeams.ContainsKey(model_num))
+                    {
+                        model_below = CurrentRoofFramingLayout.dctSupportBeams[model_num];
+
+                        start = ((SupportModel_SS_Beam)model_below).StartPt;
+                        end = ((SupportModel_SS_Beam)model_below).EndPt;
+                        found = true;
+                    }
+                    else
+                    {
+                        found = false;
+                    }
+                    
+                    // Object wasnt found
+                    if (!found)
+                    {
+                        doc.Editor.WriteMessage("Model [" + model_num + "] was not found in the rafter or support beams table");
+                        return;
+                    }
+
+                    // Add the concentrated load to the dictionaries
+                    BaseLoadModel conc_model = new LoadModelConcentrated(CurrentRoofFramingLayout.GetNewId(), load_pt, dead, live, roof_live);
+                    CurrentRoofFramingLayout.AddLoadToLayout(conc_model);                           // add the load to dictionary
+                    CurrentRoofFramingLayout.AddAppliedLoadToLayout(conc_model.Id, model_num);      // add the applied load to dictionary
+
+                    // Add the connection to the dictioniaries and to the member below
+                    BaseConnectionModel conn_model = new ConnectionToExternalLoad(CurrentRoofFramingLayout.GetNewId(), conc_model.Id, load_pt, model_num, conc_model.Id);
+                    CurrentRoofFramingLayout.AddConnectionToLayout(conn_model);                     // add the connection to dictionary
+                    model_below.AddConnection(conn_model);  // connection to the member above
+
+                    tr.Commit();
+                }
+                catch (System.Exception e)
+                {
+                    doc.Editor.WriteMessage("Unable to add concentrated load to member id[ " + model_num + "] -- DL: " + dead + " LL: " + live + "  RLL: " + roof_live + "]: " + e.Message);
+                    tr.Abort();
+                }
+            }
+
             this.OnCommandTerminate(CurrentRoofFramingLayout);
 
         }
 
         /// <summary>
-        /// Adds a uniform load to the full length of a member
+        /// Command EAFUL adds a full length uniform load to the full length of a member
         /// </summary>
-//        [CommandMethod("EEAUL")]
+        //        [CommandMethod("EAFUL")]
         private void AddFullUniformLoadToLayout()
         {
             RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
-
-
 
             // Select the existing line
             ObjectId selectedID = DoSelectLine(db, doc);
@@ -414,25 +493,29 @@ namespace EE_RoofFrameApplication
                     bool found = false;
                     Point3d start = new Point3d();
                     Point3d end = new Point3d();
+
+                    acStructuralObject model_below = null;
                     // first is the line a rafter?
                     if (CurrentRoofFramingLayout.dctRafters_Trimmed.ContainsKey(model_num))
                     {
-                        RafterModel raf_model = CurrentRoofFramingLayout.dctRafters_Trimmed[model_num];
-                        start = raf_model.StartPt;
-                        end = raf_model.EndPt;
+                        model_below = CurrentRoofFramingLayout.dctRafters_Trimmed[model_num];
+                        start = ((RafterModel)model_below).StartPt;
+                        end = ((RafterModel)model_below).EndPt;
                         found = true;
                     }
-
                     // if we don't find it in the rafters, then check the support beams list?
-                    if (!found)
+
+                    else if (CurrentRoofFramingLayout.dctSupportBeams.ContainsKey(model_num))
                     {
-                        if (CurrentRoofFramingLayout.dctSupportBeams.ContainsKey(model_num))
-                        {
-                            SupportModel_SS_Beam ss_model = CurrentRoofFramingLayout.dctSupportBeams[model_num];
-                            start = ss_model.StartPt;
-                            end = ss_model.EndPt;
-                            found = true;
-                        }
+                        model_below = CurrentRoofFramingLayout.dctSupportBeams[model_num];
+
+                        start = ((SupportModel_SS_Beam)model_below).StartPt;
+                        end = ((SupportModel_SS_Beam)model_below).EndPt;
+                        found = true;
+                    }
+                    else
+                    {
+                        found = false;
                     }
 
                     // Object wasnt found
@@ -445,9 +528,17 @@ namespace EE_RoofFrameApplication
                     // second is the line a support beam?  If end points are the same, the line is invalid
                     if (start != end)
                     {
-                        BaseLoadModel uni_model = new LoadModelUniform(model_num, start, end, dead, live, roof_live);
-                        CurrentRoofFramingLayout.AddLoadToLayout(uni_model);
-                        CurrentRoofFramingLayout.AddAppliedLoadToLayout(uni_model.Id, model_num);
+                        // create the load and add it to the dictionaries
+                        BaseLoadModel uni_model = new LoadModelUniform(CurrentRoofFramingLayout.GetNewId(), start, end, dead, live, roof_live);
+                        CurrentRoofFramingLayout.AddLoadToLayout(uni_model);                                // add the load to dictionary
+                        CurrentRoofFramingLayout.AddAppliedLoadToLayout(uni_model.Id, model_num);           // add the applied load to dictionary
+                        
+                        // create the connection and add it to the dictionaries and to the supporting member
+                        BaseConnectionModel conn_model = new ConnectionToExternalLoad(CurrentRoofFramingLayout.GetNewId(), uni_model.Id, MathHelpers.GetMidpoint(start, end), model_num, uni_model.Id);
+                        CurrentRoofFramingLayout.AddConnectionToLayout(conn_model);                         // add the connection to dictionary
+                        model_below.AddConnection(conn_model);     // connection to the member below -- no connection above for loads
+
+
                     }
                     else
                     {
@@ -455,9 +546,9 @@ namespace EE_RoofFrameApplication
                     }
                     tr.Commit();
                 }
-                catch (System.Exception ex)
+                catch (System.Exception e)
                 {
-                    doc.Editor.WriteMessage("Unable to add DL: " + dead + " LL: " + live + "  RLL: " + roof_live);
+                    doc.Editor.WriteMessage("Unable to add loads to load model [DL: " + dead + " LL: " + live + "  RLL: " + roof_live + "]: " + e.Message);
                     tr.Abort();
                 }
             }
@@ -466,17 +557,11 @@ namespace EE_RoofFrameApplication
 
         }
 
-        private void OnCommandTerminate(RoofFramingLayout layout)
-        {
-            layout.DrawAllRoofFraming();    // redraw the drawing since the data has been changed
-            layout.WriteAllDataToFiles();   // save the work to file
-        }
-
         /// <summary>
-        /// The command to add a new foundation support to a point on the model.
+        /// The command EAFS to add a new foundation support to a point on the model.
         /// </summary>
-        //        [CommandMethod("EEAFD")]
-        private void CreateNewFoundaionSupport()
+        //        [CommandMethod("EAFS")]
+        private void CreateNewFoundationSupport()
         {
             RoofFramingLayout CurrentRoofFramingLayout = this.OnCreateLayout();           // Create our framing layout, Set up layers and linetypes and AutoCAD drawings items
 
@@ -523,25 +608,28 @@ namespace EE_RoofFrameApplication
                         return;
                     }
 
-                    // Create the connecton to the foundation
-                    BaseConnectionModel fdn_conn = new ConnectionToFoundation(CurrentRoofFramingLayout.GetNewId(), pt, model_num);
 
                     // Add the connection to the member
                     // find the rafter
                     bool found = false;
-                    int support_id_num = -1;
+                    Point3d start;
+                    Point3d end;
+
+                    acStructuralObject model_above = null;
+                    // first is the line a rafter?
                     if (CurrentRoofFramingLayout.dctRafters_Trimmed.ContainsKey(model_num))
                     {
-                        RafterModel rafter = CurrentRoofFramingLayout.dctRafters_Trimmed[model_num];
-                        rafter.AddConnection(fdn_conn, CurrentRoofFramingLayout.dctConnections);
-                        support_id_num = rafter.Id;
+                        model_above = CurrentRoofFramingLayout.dctRafters_Trimmed[model_num];
+                        start = ((RafterModel)model_above).StartPt;
+                        end = ((RafterModel)model_above).EndPt;
                         found = true;
                     }
+                    // if we don't find it in the rafters, then check the support beams list?
                     else if (CurrentRoofFramingLayout.dctSupportBeams.ContainsKey(model_num))
                     {
-                        SupportModel_SS_Beam beam = CurrentRoofFramingLayout.dctSupportBeams[model_num];
-                        beam.AddConnection(fdn_conn, CurrentRoofFramingLayout.dctConnections);
-                        support_id_num = beam.Id;
+                        model_above = CurrentRoofFramingLayout.dctSupportBeams[model_num];
+                        start = ((SupportModel_SS_Beam)model_above).StartPt;
+                        end = ((SupportModel_SS_Beam)model_above).EndPt;
                         found = true;
                     }
                     else
@@ -549,21 +637,27 @@ namespace EE_RoofFrameApplication
                         found = false;
                     }
 
+                    // Object wasnt found
                     if (!found)
                     {
-                        doc.Editor.WriteMessage("\nSelected object id [" + support_id_num + "] is not found in the rafter or beam dictionary.");
+                        doc.Editor.WriteMessage("Model [" + model_num + "] was not found in the rafter or support beams table");
+                        return;
                     }
 
-                    CurrentRoofFramingLayout.AddConnectionToLayout(fdn_conn); // add the connection to our list
+                    // Create the connecton to the foundation and add it to the member being supported
+                    BaseConnectionModel fdn_conn = new ConnectionToFoundation(CurrentRoofFramingLayout.GetNewId(), pt, model_num);          // create the foundation connection
+                    CurrentRoofFramingLayout.AddConnectionToLayout(fdn_conn);                                                               // add the connection to our list
+                    model_above.AddConnection(fdn_conn);                                                                                    // add the connection to the member above
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception e)
             {
-                doc.Editor.WriteMessage("\nError adding creating foundation connection.");
+                doc.Editor.WriteMessage("\nError creating foundation connection: " + "]: " + e.Message);
                 return;
             }
 
             this.OnCommandTerminate(CurrentRoofFramingLayout);
         }
+        #endregion
     }
 }

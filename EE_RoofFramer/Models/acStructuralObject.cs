@@ -32,8 +32,6 @@ namespace EE_RoofFramer.Models
         public Handle _old_objHandle; // the previous handle object identifier 
         public ObjectId _old_objID; // the previous object identifier
         public Handle OldHandle { get => _current_objHandle; set { _current_objHandle = value; } }
-        public bool IsDeterminate { get; set; } = false;
-
         public IDictionary<int, BaseConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<int, BaseConnectionModel>();
         public IDictionary<int, BaseLoadModel> LoadDictionary { get; set; } = new Dictionary<int, BaseLoadModel>();
 
@@ -44,14 +42,12 @@ namespace EE_RoofFramer.Models
 
 
         protected abstract void UpdateCalculations();
-        protected abstract void UpdateSupportedBy();
-
-        public abstract void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict);
+        public abstract void AddToAutoCADDatabase(Database db, Document doc, string layer_name);
         public abstract string ToFile();
 
-        public abstract void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict);
-        public abstract void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict);
-        public abstract void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict);
+        public abstract void AddConnection(BaseConnectionModel conn);
+        public abstract void AddUniformLoads(BaseLoadModel load_model);
+        public abstract void AddConcentratedLoads(BaseLoadModel load_model);
 
         // For drawing the status of the member -- color changes for indeterminancy etc.
         public abstract void HighlightStatus();

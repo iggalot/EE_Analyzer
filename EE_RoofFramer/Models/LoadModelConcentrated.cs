@@ -33,12 +33,12 @@ namespace EE_RoofFramer.Models
 
             try
             {
-                if (split_line.Length > 5)
+                if (split_line.Length > 6)
                 {
-                     if (split_line[index].Substring(0, 2).Equals("LC"))
+                     if (split_line[index].Substring(0, 1).Equals("L"))
                     {
                         // read the previous information that was stored in the file
-                        Id = Int32.Parse(split_line[index].Substring(2, split_line[index].Length - 2));
+                        Id = Int32.Parse(split_line[index].Substring(1, split_line[index].Length - 1));
 
                         LoadType = Int32.Parse(split_line[index + 1]);
                         DL = Double.Parse(split_line[index + 2]);  // DL
@@ -68,17 +68,17 @@ namespace EE_RoofFramer.Models
             return _location_on_beam;
         }
 
-        public override void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
+        public override void AddConcentratedLoads(BaseLoadModel load_model)
         {
             throw new NotImplementedException();
         }
 
-        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict)
+        public override void AddConnection(BaseConnectionModel conn)
         {
             throw new NotImplementedException();
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -108,7 +108,7 @@ namespace EE_RoofFramer.Models
 
         }
 
-        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
+        public override void AddUniformLoads(BaseLoadModel load_model)
         {
             throw new NotImplementedException();
         }
@@ -129,11 +129,16 @@ namespace EE_RoofFramer.Models
             string data_prefix = "";
             if (LoadType == (int)LoadTypes.LOAD_TYPE_CONCENTRATED_LOAD)
             {
-                data_prefix += "LC";
+                data_prefix += "L";
                 data += data_prefix + Id.ToString() + "," + LoadType.ToString() + "," + DL + "," + LL + "," + RLL + ",";
                 data += ApplicationPoint.X.ToString() + "," + ApplicationPoint.Y.ToString() + "," + ApplicationPoint.Z.ToString() + ",";
             }
             return data;
+        }
+
+        public override string ToString()
+        {
+            return "DL: " + Math.Ceiling(DL) + "\nLL: " + Math.Ceiling(LL) + "\nRLL: " + Math.Ceiling(RLL) + " (lbs)";
         }
 
         public override bool ValidateSupports()
@@ -142,11 +147,6 @@ namespace EE_RoofFramer.Models
         }
 
         protected override void UpdateCalculations()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void UpdateSupportedBy()
         {
             throw new NotImplementedException();
         }

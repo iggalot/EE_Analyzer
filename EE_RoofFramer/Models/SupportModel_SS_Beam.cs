@@ -42,7 +42,7 @@ namespace EE_RoofFramer.Models
 
         private bool isDeterminate
         {
-            get => (lst_SupportConnections.Count < 2) ? false : true;
+            get => (lst_SupportedBy.Count < 2) ? false : true;
         }
 
         public bool SupportsAreValid { get => ValidateSupports(); }
@@ -132,21 +132,6 @@ namespace EE_RoofFramer.Models
             }
         }
 
-        public override bool ValidateSupports()
-        {
-            bool is_valid = false;
-
-            if (lst_SupportConnections.Count > 2)
-            {
-                if(SupportA_Loc != SupportB_Loc)
-                {
-                    is_valid = true;
-                }
-            }
-
-            return is_valid;
-        }
-
         /// <summary>
         /// Updates calculations for the rafter model
         /// </summary>
@@ -164,7 +149,7 @@ namespace EE_RoofFramer.Models
         /// </summary>
         /// <param name="db"></param>
         /// <param name="doc"></param>
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -200,7 +185,7 @@ namespace EE_RoofFramer.Models
         /// Add a load model object
         /// </summary>
         /// <param name="load_model"></param>
-        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict)
+        public override void AddUniformLoads(BaseLoadModel load_model)
         {
 
         }
@@ -209,10 +194,16 @@ namespace EE_RoofFramer.Models
         /// Add connection information for beams that are supporting this rafter
         /// </summary>
         /// <param name="conn"></param>
-        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict)
+        public override void AddConnection(BaseConnectionModel conn)
         {
-            ConnectionDictionary = dict;
             lst_SupportConnections.Add(conn.Id);
+
+            // if the connecition ABOVE value is the same as this member id, this connection is supporting this member, so add it to the supported by lst.
+            if (conn.AboveConn == this.Id)
+            {
+                lst_SupportedBy.Add(conn.Id);
+            }
+
             UpdateCalculations();
         }
 
@@ -222,7 +213,7 @@ namespace EE_RoofFramer.Models
         /// <param name="dead">Dead load in psf</param>
         /// <param name="live">Live load in psf</param>
         /// <param name="roof_live">Roof live load in psf</param>
-        public override void AddConcentratedLoads(BaseLoadModel model, IDictionary<int,BaseLoadModel> dict)
+        public override void AddConcentratedLoads(BaseLoadModel model)
         {
 
         }
@@ -263,19 +254,40 @@ namespace EE_RoofFramer.Models
             return data;
         }
 
-        protected override void UpdateSupportedBy()
-        {
-            
-        }
-
-        public override void HighlightStatus()
-        {
-            
-        }
-
         public override void CalculateReactions(RoofFramingLayout layout)
         {
             throw new NotImplementedException();
+        }
+
+        public bool IsDeterminate()
+        {
+            bool is_determinate = true;
+            if ((lst_SupportedBy is null) || (lst_SupportedBy.Count < 2))
+            {
+                is_determinate = false;
+            }
+
+            return is_determinate;
+        }
+
+        public override bool ValidateSupports()
+        {
+            return IsDeterminate();
+        }
+
+        /// <summary>
+        /// Change the color of the rafter line based on its support status
+        /// </summary>
+        public override void HighlightStatus()
+        {
+            if (IsDeterminate() == true)
+            {
+                ChangeLineColor(Centerline, EE_ROOF_Settings.RAFTER_DETERMINATE_PASS_COLOR);
+            }
+            else
+            {
+                ChangeLineColor(Centerline, EE_ROOF_Settings.RAFTER_DETERMINATE_FAIL_COLOR);
+            }
         }
     }
 }

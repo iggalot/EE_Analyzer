@@ -59,14 +59,14 @@ namespace EE_RoofFramer.Models
             LoadType = (int)load_type;
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         { 
         
         }
 
         public override string ToString()
         {
-            return "DL: " + Math.Ceiling(DL) + "\nLL: " + Math.Ceiling(LL) + "\nRLL: " + Math.Ceiling(RLL) + " (lbs)";
+            return "DL: " + Math.Ceiling(DL) + "\nLL: " + Math.Ceiling(LL) + "\nRLL: " + Math.Ceiling(RLL) + " (unknown units)";
         }
 
         public override string ToFile()
@@ -91,13 +91,10 @@ namespace EE_RoofFramer.Models
 
         protected override void UpdateCalculations() { }
         public override bool ValidateSupports() { return false; }
-        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict) { }
-        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
-        public override void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
+        public override void AddConnection(BaseConnectionModel conn) { }
+        public override void AddUniformLoads(BaseLoadModel load_model) { }
+        public override void AddConcentratedLoads(BaseLoadModel load_model) { }
         public override void HighlightStatus() { }
-
-        protected override void UpdateSupportedBy() { }
-
         public override void CalculateReactions(RoofFramingLayout layout)
         {
             throw new NotImplementedException();

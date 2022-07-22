@@ -15,8 +15,8 @@ namespace EE_RoofFramer.Models
     {
         int LoadModelId { get; set; }
 
-        public ConnectionToExternalLoad(int id, int load_id, Point3d pt, int supported_by, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) 
-            : base(id, pt, -1, supported_by, ConnectionTypes.CONN_TYPE_MBR_TO_LOAD, layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER)
+        public ConnectionToExternalLoad(int id, int load_id, Point3d pt, int supported_by, int supporting_above, string layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER) 
+            : base(id, pt, supported_by, supporting_above, ConnectionTypes.CONN_TYPE_MBR_TO_LOAD, layer_name = EE_ROOF_Settings.DEFAULT_TEMPORARY_GRAPHICS_LAYER)
         {
             LoadModelId = load_id;
         }
@@ -26,7 +26,7 @@ namespace EE_RoofFramer.Models
             AboveConn = -1;
         }
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> loade_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -39,7 +39,7 @@ namespace EE_RoofFramer.Models
                 }
                 catch (System.Exception e)
                 {
-                    doc.Editor.WriteMessage("\nError drawing concentrated load connection [" + Id.ToString() + "]");
+                    doc.Editor.WriteMessage("\nError drawing concentrated load connection [" + Id.ToString() + "]: " + e.Message);
                     trans.Abort();
                 }
             }

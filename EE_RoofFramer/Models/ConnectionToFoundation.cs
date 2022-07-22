@@ -30,7 +30,7 @@ namespace EE_RoofFramer.Models
         }
 
 
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -60,7 +60,7 @@ namespace EE_RoofFramer.Models
                 }
                 catch (System.Exception e)
                 {
-                    doc.Editor.WriteMessage("\nError drawing foundation connection [" + Id.ToString() + "]");
+                    doc.Editor.WriteMessage("\nError drawing foundation connection [" + Id.ToString() + "]: " + e.Message);
                     trans.Abort();
                 }
             }

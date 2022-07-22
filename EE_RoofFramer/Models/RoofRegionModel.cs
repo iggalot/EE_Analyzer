@@ -66,6 +66,8 @@ namespace EE_RoofFramer.Models
 
         }
 
+        #region Abstract class implementation
+
         /// <summary>
         /// The string to write contents to file
         /// </summary>
@@ -85,22 +87,17 @@ namespace EE_RoofFramer.Models
         /// <param name="conn_dict"></param>
         /// <param name="load_dict"></param>
         /// <exception cref="NotImplementedException"></exception>
-        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name, IDictionary<int, BaseConnectionModel> conn_dict, IDictionary<int, BaseLoadModel> load_dict)
+        public override void AddToAutoCADDatabase(Database db, Document doc, string layer_name)
         {
             throw new NotImplementedException();
         }
 
-
-
-
-        #region Abstract class implementation
-        public override void AddConcentratedLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
-        public override void AddConnection(BaseConnectionModel conn, IDictionary<int, BaseConnectionModel> dict) { }
-        public override void AddUniformLoads(BaseLoadModel load_model, IDictionary<int, BaseLoadModel> dict) { }
+        public override void AddConcentratedLoads(BaseLoadModel load_model) { }
+        public override void AddConnection(BaseConnectionModel conn) { }
+        public override void AddUniformLoads(BaseLoadModel load_model) { }
         public override void HighlightStatus() { }
         public override bool ValidateSupports() { return false; }
         protected override void UpdateCalculations() { }
-        protected override void UpdateSupportedBy() { }
 
         public override void CalculateReactions(RoofFramingLayout layout)
         {

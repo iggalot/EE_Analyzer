@@ -1,8 +1,8 @@
 ﻿Last Updated 7/20/2022
 Items to add to this project: (* - "AutoCAD COMMAND") -- (*) = completed () - in process
 =============================
-COMPLETED
----------
+COMPLETED COMMANDS
+------------------
 (* - EER) Create rafters for regions by clicking polyline boundary
 (* - ERD) Redraw drawing from file and recreate model dictionaries
 (* - ENB) Add new beam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
@@ -11,10 +11,17 @@ COMPLETED
 ( - EEAUL) Add a uniform live load to a beam or rafter
 
 
+COMPLETED TODO TASK
+--------------
+(7/21/2022) - Create a main application for the modules.
+(7/21/2022) - Create a module for framer application
+(7/21/2022) - Add a foundation support to a registered object (rafter or beam) at the clicked point.
+(7/20/2022) - use XDATA to assign object id number to the object within the drawing?
+
 TODO
 ---------
+- Create a module for the foundation application
 ( ) - Add a single full length, uniform load by clicking on the member (beams or rafters).  Need to come up with a mechanism for inputting the values for the loads.
-(*) - Add a foundation support to a registered object (rafter or beam) at the clicked point.
 - Add a NOT COMPUTED designator for elements that are not computed -- other than the highlight color.
 - Add multiple uniform loads to same member -- need to verify load id's are unique for the member.
 - Add any point loads to rafter support reaction calculations
@@ -22,11 +29,10 @@ TODO
 - Require all supported objects to be statically determinate and have computed reactions being supported by it?
 - Allow beams to support other beams? -- How to avoid circular supporting?  (beam 1 supports 2 which supports 3 which supports 1)
 - Find object in drawing by ID. -- zoom feature
-(*) - use XDATA to assign object id number to the object within the drawing?
 - Add rafter(s) or member(s) after its support has been drawn -- how to make the auto connections and update the files?
 - Make application persistent -- always running -- would help with constant reading of files being required before every command.
 - Add single items to layout outside of EER command. How to create connections with beams / walls that are already existing?
-- Add ceiling / floor joist items.
+- Add ceiling / floor joist items - similar to rafters.
 - Add wall items
 - Add column objects
 - Compute reactions of support beams, walls, rafters, and walls.
@@ -34,7 +40,7 @@ TODO
 - Add object for foundation connections (structural boundary condition).
 - Remove single rafters / beams / walls/ purlins from layout
 - Draw purlins.
-- Draw loads - uniform and concentrated
+() - Draw loads - uniform and concentrated
 - Add concentrated loads to members / walls that have already been drawn.  Update support calculations.
 - Compute beam sizes.  
 - Compute rafter sizes.
@@ -43,9 +49,6 @@ TODO
 - Deleting walls / Removing models from layout
 - Deleting loads / Removing models from layout
 - Deleting connections / Removing models from layout
-
-
-
 
 FUTURE IMPROVEMENTS
 -------------------
