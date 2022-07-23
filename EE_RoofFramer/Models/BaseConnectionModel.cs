@@ -121,7 +121,7 @@ namespace EE_RoofFramer.Models
                 }
                 catch (System.Exception ex)
                 {
-                    doc.Editor.WriteMessage("\nError adding connection [" + CurrentHandle.ToString() + "] information to RafterModel entities to AutoCAD DB: " + ex.Message);
+                    doc.Editor.WriteMessage("\nError adding connection [" + Id.ToString() + "] information to RafterModel entities to AutoCAD DB: " + ex.Message);
                     trans.Abort();
                 }
             }

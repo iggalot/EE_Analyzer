@@ -25,17 +25,10 @@ namespace EE_RoofFramer.Models
             }
         }
 
-        public Handle _current_objHandle; // the handle of the item after it is reloaded
-        public ObjectId _current_objID;  // non persistant object identifier
-        public Handle CurrentHandle { get => _current_objHandle; set { _current_objHandle = value; } }
-
-        public Handle _old_objHandle; // the previous handle object identifier 
-        public ObjectId _old_objID; // the previous object identifier
-        public Handle OldHandle { get => _current_objHandle; set { _current_objHandle = value; } }
-        public IDictionary<int, BaseConnectionModel> ConnectionDictionary { get; set; } = new Dictionary<int, BaseConnectionModel>();
-        public IDictionary<int, BaseLoadModel> LoadDictionary { get; set; } = new Dictionary<int, BaseLoadModel>();
-
+        // All of the connection made to this member
         public List<int> lst_SupportConnections { get; set; } = new List<int>();
+
+        // All of the connections where this member is the ABOVECONN
         public List<int> lst_SupportedBy { get; set; } = new List<int>(); // Support connection numbers for connections that are supporting this rafter
 
 

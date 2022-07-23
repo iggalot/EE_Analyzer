@@ -108,8 +108,12 @@ namespace EE_RoofFramer
         // dictionary to hold roof regions and their associated rafters
         public IDictionary<int, RoofRegionModel> dctRoofRegions { get; set; } = new Dictionary<int, RoofRegionModel>();
 
+        // dictionary that holds the wall information
+        public IDictionary<int, WallModel> dctWalls { get; set; } = new Dictionary<int, WallModel>();
+
         // dictionary that relates load models to rafter / beams / walls on which it acts
         public IDictionary<int, int> dctAppliedLoads { get; set; } = new Dictionary<int, int>();
+
 
 
         public static Document doc { get; private set; } = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
@@ -891,18 +895,23 @@ namespace EE_RoofFramer
         public void DrawAllRoofFraming()
         {
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER, doc, db);
-
             // Now draw the current rafter file contents
             foreach (KeyValuePair<int, RafterModel> kvp in this.dctRafters_Trimmed)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_RAFTERS_TRIMMED_LAYER);
                 SetXData(EE_ROOF_Settings.APP_REGISTRATION_NAME, kvp.Value.Id.ToString(), kvp.Value.Centerline.Id);
+            }
 
+            DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_WALL_SUPPORT_LAYER, doc, db);
+            // Now draw the current wall file contents
+            foreach (KeyValuePair<int, WallModel> kvp in this.dctWalls)
+            {
+                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_WALL_SUPPORT_LAYER);
+                SetXData(EE_ROOF_Settings.APP_REGISTRATION_NAME, kvp.Value.Id.ToString(), kvp.Value.Centerline.Id);
             }
 
             // Now draw the support beam file contents
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER, doc, db);
-
             foreach (KeyValuePair<int, SupportModel_SS_Beam> kvp in this.dctSupportBeams)
             {
                 kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_ROOF_STEEL_BEAM_SUPPORT_LAYER);
@@ -910,7 +919,6 @@ namespace EE_RoofFramer
             }
 
             //// Now draw the connections file contents
-            
             DeleteAllObjectsOnLayer(EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER, doc, db);
             foreach (KeyValuePair<int, BaseConnectionModel> kvp in this.dctConnections)
             {
@@ -928,10 +936,12 @@ namespace EE_RoofFramer
                             break;
                         }
                     default:
-                        break;
+                        {
+                            break;
+                            kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
+                        }
                 }
 
-                kvp.Value.AddToAutoCADDatabase(db, doc, EE_ROOF_Settings.DEFAULT_SUPPORT_CONNECTION_POINT_LAYER);
             }
 
             // Now draw the loads file contents
@@ -983,7 +993,6 @@ namespace EE_RoofFramer
                 dctRafters_Trimmed.Add(model.Id, model);
             }
         }
-
         private void AddUntrimmedRafterToLayout(RafterModel model)
         {
 
@@ -1006,7 +1015,27 @@ namespace EE_RoofFramer
                 dctRafters_Untrimmed.Add(model.Id, model);
             }
         }
+        public void AddWallToLayout(WallModel model)
+        {
+            if (dctWalls is null)
+            {
+                dctWalls = new Dictionary<int, WallModel>();
+            }
 
+            if (model == null)
+            {
+                return;
+            }
+
+            if (dctWalls.ContainsKey(model.Id))
+            {
+                doc.Editor.WriteMessage("Wall dictionary already contains an entry for id [" + model.Id.ToString() + "]. Skipping this entry.");
+            }
+            else
+            {
+                dctWalls.Add(model.Id, model);
+            }
+        }
         public void AddBeamToLayout(SupportModel_SS_Beam model)
         {
             if (dctSupportBeams is null)
@@ -1028,7 +1057,6 @@ namespace EE_RoofFramer
                 dctSupportBeams.Add(model.Id, model);
             }
         }
-
         public void AddLoadToLayout(BaseLoadModel model)
         {
             if (dctLoads is null)
@@ -1050,7 +1078,6 @@ namespace EE_RoofFramer
                 dctLoads.Add(model.Id, model);
             }
         }
-
         public void AddConnectionToLayout(BaseConnectionModel model)
         {
             if (dctConnections is null)
@@ -1073,7 +1100,6 @@ namespace EE_RoofFramer
                 dctConnections.Add(model.Id, model);
             }
         }
-
         public void AddAppliedLoadToLayout(int rafter_id, int load_id)
         {
             if (dctAppliedLoads is null)
@@ -1102,6 +1128,7 @@ namespace EE_RoofFramer
             // read the beams file
             ReadRaftersFile();
             ReadBeamsFile();
+            ReadWallsFile();
             ReadSupportConnectionsFile();
             ReadLoadsFile();
             ReadAppliedLoadsFile();
@@ -1160,6 +1187,36 @@ namespace EE_RoofFramer
                         UpdateNextId(model.Id);
 
                         this.AddBeamToLayout(model);
+
+                        new_dict.Add(model.Id, model);
+                    }
+                }
+            }
+            return new_dict;
+        }
+        private IDictionary<int, WallModel> ReadWallsFile()
+        {
+            Dictionary<int, WallModel> new_dict = new Dictionary<int, WallModel>();
+
+            // Read the support connections file
+            if (File.Exists(EE_ROOF_Settings.DEFAULT_EE_WALL_FILENAME))
+            {
+                // Read the entire beams file
+                string[] lines = FileObjects.ReadFromFile(EE_ROOF_Settings.DEFAULT_EE_WALL_FILENAME);
+
+                // Parse the individual lines
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string line = lines[i];
+
+                    if (line.Equals("$"))
+                        break;
+                    else
+                    {
+                        WallModel model = new WallModel(line);
+                        UpdateNextId(model.Id);
+
+                        this.AddWallToLayout(model);
 
                         new_dict.Add(model.Id, model);
                     }
@@ -1335,6 +1392,7 @@ namespace EE_RoofFramer
         {
             Task.Run(() => WriteRaftersToFile());
             Task.Run(() => WriteBeamsToFile());
+            Task.Run(() => WriteWallsToFile());
             Task.Run(() => WriteConnectionsToFile());
             Task.Run(() => WriteLoadsToFile());
             Task.Run(() => WriteAppliedLoadsToFile());
@@ -1357,6 +1415,24 @@ namespace EE_RoofFramer
             if (dctRafters_Trimmed.Count == 0)
             {
                 FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_RAFTER_FILENAME, "$");  // create an empty file
+            }
+        }
+
+        private void WriteWallsToFile()
+        {
+            File.Delete(EE_ROOF_Settings.DEFAULT_EE_WALL_FILENAME);
+
+            if (dctWalls.Count > 0)
+            {
+                foreach (KeyValuePair<int, WallModel> kvp in dctWalls)
+                {
+                    FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_WALL_FILENAME, kvp.Value.ToFile());
+                }
+            }
+
+            if (dctWalls.Count == 0)
+            {
+                FileObjects.AppendStringToFile(EE_ROOF_Settings.DEFAULT_EE_WALL_FILENAME, "$");  // create an empty file
             }
         }
         private void WriteBeamsToFile()
@@ -1461,7 +1537,7 @@ namespace EE_RoofFramer
                     // clear the supported by list
                     dctSupportBeams[obj.Id].lst_SupportedBy.Clear();
 
-                    // for each connection in the list of supports
+                    // for each connection in the list of connections
                     foreach (int connection in obj.lst_SupportConnections)
                     {
                         // check if the ABOVECONN matches the rafter
@@ -1469,6 +1545,25 @@ namespace EE_RoofFramer
                         {
                             // Make the update
                             dctSupportBeams[obj.Id].lst_SupportedBy.Add(dctConnections[connection].BelowConn);
+                        }
+                    }
+                }
+            }
+            else if (obj.GetType().Equals(typeof(WallModel)))
+            {
+                if (dctWalls.ContainsKey(obj.Id))
+                {
+                    // clear the supported by list
+                    dctWalls[obj.Id].lst_SupportedBy.Clear();
+
+                    // for each connection in the list of connections
+                    foreach (int connection in obj.lst_SupportConnections)
+                    {
+                        // check if the ABOVECONN matches the walll
+                        if (dctConnections[connection].AboveConn == obj.Id)
+                        {
+                            // Make the update
+                            dctWalls[obj.Id].lst_SupportedBy.Add(dctConnections[connection].BelowConn);
                         }
                     }
                 }
@@ -1492,22 +1587,19 @@ namespace EE_RoofFramer
                 UpdatedSingleSupportedByList(kvp.Value);
             }
 
-            // for each beam
+            // for each wall
+            foreach (KeyValuePair<int, WallModel> kvp in dctWalls)
+            {
+                UpdatedSingleSupportedByList(kvp.Value);
+            }
+
+            // for each load
             foreach (KeyValuePair<int, BaseLoadModel> kvp in dctLoads)
             {
                 UpdatedSingleSupportedByList(kvp.Value);
             }
         }
 
-
-
-        /// <summary>
-        /// Compute the support reactions for the rafters
-        /// </summary>
-        private void ComputeRafterSupportReactions()
-        {
-
-        }
 
 
 

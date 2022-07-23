@@ -58,6 +58,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnalyzerMainApplication.cs" />
+    <Compile Include="Commands\acEE_Command.cs" />
+    <Compile Include="Commands\EAFS.cs" />
+    <Compile Include="Commands\EAFUL.cs" />
+    <Compile Include="Commands\EANB.cs" />
+    <Compile Include="Commands\EAPL.cs" />
+    <Compile Include="Commands\ECRL.cs" />
+    <Compile Include="Commands\ECWA.cs" />
+    <Compile Include="Commands\EPRC.cs" />
+    <Compile Include="Commands\ERDA.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RoofFramerApplication.cs" />
   </ItemGroup>

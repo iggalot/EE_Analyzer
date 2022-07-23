@@ -19,6 +19,8 @@ namespace EE_RoofFramer
         public const string DEFAULT_EE_LOAD_FILENAME = "_EE-loads.eea";  // filename that stores the support connection information.
         public const string DEFAULT_EE_ROOF_REGION_FILENAME = "_EE-roofregions.eea"; // filename that stores the defined roof regions locations
         public const string DEFAULT_EE_APPLIED_LOADS_FILENAME = "_EE-appliedloads.eea"; // filename that stores the load id and the strctural object id (beam / rafter / joist /etc.) on which it is acting
+        public const string DEFAULT_EE_WALL_FILENAME = "_EE-walls.eea";  // filename that stores the wall information
+
 
         // Default layers
         public const string DEFAULT_ROOF_BOUNDINGBOX_LAYER = "_EE_ROOF_BOUNDINGBOX"; // Contains the bounding box 

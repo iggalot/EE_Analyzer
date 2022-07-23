@@ -3,17 +3,18 @@ Items to add to this project: (* - "AutoCAD COMMAND") -- (*) = completed () - in
 =============================
 COMPLETED COMMANDS
 ------------------
-(* - ECRL) (C)reate (R)after (L)ayout for regions by clicking polyline boundary
-(* - ERDA) (R)edraw (D)rawing (A)LL from file and recreate model dictionaries
-(* - EANB) (A)dd (N)ew (B)eam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
-(* - EPRC) (P)erform (R)eaction (c)alculations of rafters.
 (* - EAFS) (A)dd (F)oundation (S)upport to a registered object (rafter or beam) at the clicked point. Adds connections to appropriate tables and saves data to files.
 (* - EAFUL) (A)dd (F)ull (U)niform (L)oad to a beam or rafter
+(* - EANB) (A)dd (N)ew (B)eam to layout.  Automatically create connections with existing trimmed rafters in drawing.  Assigns connections to rafters and support beams.
 (* - EAPL) (A)dd (P)oint (L)oad to a beam or rafters
+(* - ECRL) (C)reate (R)after (L)ayout for regions by clicking polyline boundary
+(* - EPRC) (P)erform (R)eaction (c)alculations of rafters.
+(* - ERDA) (R)edraw (D)rawing (A)LL from file and recreate model dictionaries
 
 
 COMPLETED TODO TASK
 --------------
+(7/22/2022) - Moved all commands into separate files for easier management. Created a base class acEE_Command to handle common functionality.
 (7/22/2022) - Add point loads to beams and rafters that have already been drawn		
 (7/22/2022) - Add full uniform loads to beams and rafters that have already been drawn
 (7/22/2022) - Draw foundation supports
@@ -26,6 +27,23 @@ COMPLETED TODO TASK
 
 TODO
 ---------
+- Add wall items
+- Don't draw top and bottom beams for wall objects
+- Add calculations of loads for wall objects
+- Make lines into single rafter
+- Make lines into single wall
+- Make lines into single beam
+- Make connections between existing rafter and existing beam
+- Make connections between existing rafter and existing wall
+- Make connections between existing rafter and existing column
+- Make connections between existing beam and existing beam
+- Make connections between existing beam and existing wall
+- Make connections between existing beam and existing column
+- Make connections between existing and existing beam
+- Make connections between existing and existing wall
+- Make connections between existing and existing column
+
+- Make the elevation plans -- basement ceiling, first ceiling, second ceiling, third ceiling, roof
 - Add input values mechanism for point loads and uniform loads. Need to come up with a mechanism for inputting the values for the loads.
 - Add a NOT COMPUTED designator for elements that are not computed -- other than the highlight color.
 - Add multiple uniform loads to same member -- need to verify load id's are unique for the member.
@@ -37,7 +55,6 @@ TODO
 - Make application persistent -- always running -- would help with constant reading of files being required before every command.
 - Add single items to layout outside of EER command. How to create connections with beams / walls that are already existing?
 - Add ceiling / floor joist items - similar to rafters.
-- Add wall items
 - Add column objects
 - Compute reactions of support beams, walls, rafters, and walls.
 - Draw status for beam objects
